@@ -1,20 +1,3 @@
-export interface Node<T> {
-  left?: Node<T>
-  right?: Node<T>
-  up?: Node<T>
-  down?: Node<T>
-  col?: Column<T>
-  index?: number
-  data?: T
-}
-
-export interface Column<T> {
-  head: Node<T>
-  len: number
-  prev?: Column<T>
-  next?: Column<T>
-}
-
 export interface Row<T> {
   coveredColumns: number[]
   data: T

@@ -7,7 +7,7 @@
  * and in order to work around the lack of `goto` in JS
  */
 
-import { Column, Node, Result, SearchConfig } from './interfaces.js'
+import { Result, SearchConfig } from './interfaces.js'
 
 enum SearchState {
   FORWARD,
@@ -17,9 +17,28 @@ enum SearchState {
   DONE
 }
 
+class Node<T> {
+  left: Node<T> | null = null
+  right: Node<T> | null = null
+  up: Node<T> | null = null
+  down: Node<T> | null = null
+  col: Column<T> | null = null
+  index = -1
+  data: T | null = null
+}
+class Column<T> {
+  head: Node<T>
+  len = 0
+  prev: Column<T> | null = null
+  next: Column<T> | null = null
+  constructor(head: Node<T>) {
+    this.head = head
+  }
+}
+
 export function search<T>(config: SearchConfig<T>) {
   const { numSolutions, numPrimary, numSecondary, rows } = config
-  const root: Column<T> = {} as Column<T>
+  const root: Column<T> = new Column(new Node())
 
   const colArray: Column<T>[] = [root]
   const nodeArray: Node<T>[] = []
@@ -37,14 +56,11 @@ export function search<T>(config: SearchConfig<T>) {
     let curColIndex = 1
 
     for (let i = 0; i < numPrimary; i++) {
-      const head: Node<T> = {} as Node<T>
+      const head: Node<T> = new Node()
       head.up = head
       head.down = head
 
-      const column: Column<T> = {
-        len: 0,
-        head
-      }
+      const column: Column<T> = new Column(head)
 
       const prevColumn = colArray[curColIndex - 1]
       if (prevColumn) {
@@ -62,14 +78,11 @@ export function search<T>(config: SearchConfig<T>) {
     root.prev = lastCol
 
     for (let i = 0; i < numSecondary; i++) {
-      const head: Node<T> = {} as Node<T>
+      const head: Node<T> = new Node()
       head.up = head
       head.down = head
 
-      const column: Column<T> = {
-        head,
-        len: 0
-      }
+      const column: Column<T> = new Column(head)
 
       column.prev = column
       column.next = column
@@ -89,7 +102,7 @@ export function search<T>(config: SearchConfig<T>) {
       let rowStart: Node<T> | undefined = undefined
 
       for (const columnIndex of row.coveredColumns) {
-        const node: Node<T> = {} as Node<T>
+        const node: Node<T> = new Node()
         node.left = node
         node.right = node
         node.down = node
