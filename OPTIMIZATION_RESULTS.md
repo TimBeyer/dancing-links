@@ -1,100 +1,92 @@
-# SoA Optimization Results Analysis
+# SoA Optimization Results
 
-## Phase 1 Optimization Results
+## Current Baseline Performance
 
-### Performance Impact
-| Benchmark | Current SoA | Optimized SoA | Change |
-|-----------|-------------|---------------|---------|
-| Sudoku | 9,802 ops/sec | 11,278 ops/sec | **+15.1%** ✅ |
-| Pentomino 1 | 585 ops/sec | 576 ops/sec | **-1.5%** ❌ |
-| Pentomino 10 | 92.56 ops/sec | 88.18 ops/sec | **-4.7%** ❌ |
-| Pentomino 100 | 12.11 ops/sec | 11.91 ops/sec | **-1.7%** ❌ |
+### Benchmark Results (Current SoA Implementation)
+| Benchmark | Performance |
+|-----------|-------------|
+| Sudoku findRaw | 9,949 ops/sec |
+| Pentomino 1 findRaw | 609 ops/sec |
+| Pentomino 10 findRaw | 90.24 ops/sec |
+| Pentomino 100 findRaw | 13.05 ops/sec |
 
-## Key Insights
+*Baseline established - all optimization tests will be measured against these numbers*
 
-### 1. **V8 is Already Highly Optimized**
-The original SoA implementation benefits from V8's:
-- **Inline caching** on array accesses
-- **Loop unrolling** by TurboFan compiler
-- **Branch prediction** optimization
-- **Dead code elimination**
+## Individual Optimization Test Results
 
-### 2. **Manual Optimizations Can Interfere**
-Our "optimizations" likely:
-- **Confused the optimizer** with additional branches
-- **Disrupted inlining** decisions
-- **Added code size** that hurt instruction cache
-- **Interfered with branch prediction**
+*Each optimization tested in isolation against baseline*
 
-### 3. **Problem-Specific Patterns**
-- **Sudoku improvement**: Dense constraint matrix benefits from early termination
-- **Pentomino regression**: Sparse matrix hurt by additional branching overhead
+### Test 1: [Optimization Name]
+- **Description**: [What exactly was changed]
+- **Results**: [Actual performance numbers vs baseline]
+- **Decision**: [Keep/Revert]
+- **Notes**: [Observations]
+
+### Test 2: [Next Optimization]
+- **Description**: [What exactly was changed]
+- **Results**: [Actual performance numbers vs baseline]
+- **Decision**: [Keep/Revert]
+- **Notes**: [Observations]
+
+*...continue for each test...*
+
+## Final Results Summary
+*To be updated after all individual tests are complete*
+
+## Planned Optimization Tests
+
+*Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
+
+### Queue of Individual Tests
+
+1. **Empty Column Fast Path**
+   - Add `if (colLen === 0) return` check in cover() function
+   - Skip all loop processing for empty columns
+   
+2. **Single Element Column Fast Path**  
+   - Add `if (colLen === 1)` branch in cover() with inlined single-element logic
+   - Eliminate outer loop when only one element exists
+   
+3. **Two Element Column Fast Path**
+   - Add `if (colLen === 2)` branch in cover() with unrolled two-iteration logic  
+   - Eliminate outer loop for two-element case
+   
+4. **Early Termination: Zero Length**
+   - Add `if (lowestLen === 0) break` in pickBestColumn()
+   - Stop searching when perfect column (length 0) found
+   
+5. **Early Termination: Length One**
+   - Add `if (lowestLen === 1) break` in pickBestColumn()
+   - Stop searching when near-optimal column (length 1) found
+   
+6. **Cache Column Length**
+   - Store `const colLen = columns.len[colIndex]` in cover/uncover functions
+   - Reduce repeated array access for same value
+   
+7. **Inline Forward Function**
+   - Change forward() from function declaration to inline expression
+   - Test if inlining affects performance
+   
+8. **Local Variable Caching**
+   - Store `const colHeadIndex = columns.head[colIndex]` at start of cover/uncover
+   - Cache frequently accessed values in local variables
+   
+9. **Pre-calculate Next Pointers**
+   - Store `const nextRR = nodes.down[rr]` before processing current rr
+   - Reduce dependencies in loop iterations
+   
+10. **Reduce Array Access in Inner Loops**
+    - Cache `nodes.col[nn]` and `columns.len` array references
+    - Minimize repeated array lookups in hot loops
+
+### Test Protocol for Each Optimization
+
+1. **Implement**: Make single, focused change to current implementation
+2. **Benchmark**: Run `npm run benchmark:dev` 3 times, record average
+3. **Compare**: Calculate percentage change vs baseline for each test case
+4. **Document**: Record exact results in test results section
+5. **Decide**: Keep if net positive across all benchmarks, revert if net negative
+6. **Clean**: Ensure implementation is clean before next test
 
 ## Lessons Learned
-
-### ❌ **Failed Approaches**
-1. **Manual loop unrolling** - V8 already does this optimally
-2. **Branch-heavy fast paths** - Hurts branch prediction
-3. **Aggressive inlining** - V8's heuristics are better
-4. **Micro-optimizations** - Often counterproductive in modern JS
-
-### ✅ **Successful Principles**  
-1. **Trust V8 optimizer** for hot code paths
-2. **Profile-guided optimization** over speculation
-3. **Algorithm-level improvements** over micro-optimizations
-4. **Data structure layout** matters more than individual operations
-
-## Alternative Optimization Strategies
-
-### 1. **Memory Layout Optimization**
-Instead of optimizing operations, optimize data layout:
-```typescript
-// Current: AoS within SoA
-nodes.up[i], nodes.down[i], nodes.left[i], nodes.right[i]
-
-// Better: True SoA with spatial locality
-// Group by access pattern, not by field
-```
-
-### 2. **Algorithmic Improvements**
-- **Constraint preprocessing** to reduce search space
-- **Symmetry breaking** to avoid duplicate work
-- **Heuristic ordering** of constraint processing
-
-### 3. **WebAssembly for Critical Path**
-Port only the cover/uncover loops to WASM:
-```wat
-;; Hand-tuned assembly for maximum performance
-;; Bypass JS overhead entirely for hot loops
-```
-
-### 4. **Batch Processing**
-Process multiple operations together:
-```typescript
-// Instead of: individual cover() calls
-// Use: batchCover([col1, col2, col3])
-```
-
-## Next Steps Recommendation
-
-### **Stop Manual JS Optimization**
-V8 is too sophisticated for manual micro-optimizations to help consistently.
-
-### **Focus on Higher-Level Improvements**
-1. **Algorithm improvements** (better heuristics)
-2. **Data structure redesign** (memory layout)
-3. **WebAssembly for critical loops** (bypass JS overhead)
-4. **Problem-specific optimizations** (sudoku-specific solver)
-
-### **Profile-Driven Development**
-Always benchmark before implementing optimizations. Modern JS engines often surprise with what's actually fast.
-
-## Conclusion
-
-The SoA implementation is already well-optimized for V8. Further performance gains require:
-- **Higher-level algorithmic improvements**
-- **Memory layout redesigns**
-- **Domain-specific optimizations**
-- **WebAssembly for maximum performance**
-
-Manual micro-optimizations in JavaScript are often counterproductive in 2024.
+*Only facts from actual measurements, no assumptions*
