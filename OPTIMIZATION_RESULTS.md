@@ -120,7 +120,7 @@
 
 ## Final Results Summary
 
-After systematic testing of 10 individual optimizations, **2 optimizations were kept**:
+After systematic testing of 13 individual optimizations, **3 optimizations were kept**:
 
 ### Successfully Applied Optimizations
 1. **Test 4: Early Termination Zero Length** - Added early termination in pickBestColumn() when lowestLen === 0
@@ -129,19 +129,25 @@ After systematic testing of 10 individual optimizations, **2 optimizations were 
 2. **Test 9: Pre-calculate Next Pointers** - Store const nextRR = nodes.down[rr] before processing to reduce dependencies
    - Performance gain: +0.3% to +2.8% across all benchmarks
 
-### Final Performance vs Original Baseline
-With both optimizations applied:
-- Sudoku findRaw: 10,250 ops/sec vs 9,949 baseline = **+3.0%**
-- Pentomino 1 findRaw: 622 ops/sec vs 609 baseline = **+2.1%** 
-- Pentomino 10 findRaw: 94.36 ops/sec vs 90.24 baseline = **+4.6%**
-- Pentomino 100 findRaw: 13.39 ops/sec vs 13.05 baseline = **+2.6%**
+3. **Phase 2A: Unit Propagation** - Prioritize columns with length 1 for immediate selection
+   - Performance gain: Massive +43.6% improvement on Sudoku, minimal regression on Pentomino problems
 
-### Reverted Optimizations (8 total)
-All other optimizations showed net negative or minimal performance impact:
-- Tests 1-3: Fast path optimizations hurt performance
+### Final Performance vs Original Baseline
+With 3 successful optimizations applied (Test 4, Test 9, Phase 2A):
+- Sudoku findRaw: 14,717 ops/sec vs 9,949 baseline = **+47.9%**
+- Pentomino 1 findRaw: 614 ops/sec vs 609 baseline = **+0.8%** 
+- Pentomino 10 findRaw: 90.87 ops/sec vs 90.24 baseline = **+0.7%**
+- Pentomino 100 findRaw: 13.04 ops/sec vs 13.05 baseline = **-0.1%**
+
+### Reverted Optimizations (10 total)
+All other optimizations showed net negative, minimal, or conceptually flawed approaches:
+- Tests 1-3: Fast path optimizations hurt performance due to V8 optimization disruption
 - Test 5: Early termination for length 1 helped simple problems but hurt complex ones
-- Tests 6-8: Various caching strategies showed minimal or negative impact  
-- Test 10: Array access caching significantly hurt complex problem performance
+- Tests 6-8, 10: Various caching strategies showed minimal or negative impact
+- Phase 1A: Degree-based heuristics too expensive despite algorithmic benefits
+- Phase 1B: Complex data structure maintenance caused implementation bugs
+- Phase 2B: Memory layout separation added getter overhead
+- Phase 3A: Post-processing symmetry breaking doesn't eliminate search work
 
 ## Phase 1 Advanced Optimization Results
 
