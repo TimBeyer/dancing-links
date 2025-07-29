@@ -19,7 +19,6 @@ This is a high-performance JavaScript/TypeScript implementation of Knuth's Danci
 - `npm run coverage` - Generate test coverage report with nyc
 - `npm run benchmark` - Run library-only performance benchmarks
 - `npm run benchmark:comparison` - Run comprehensive benchmarks comparing against other libraries  
-- `npm run benchmark:dev` - Run development benchmarks comparing Original AoS vs SoA implementations
 - `npm run profile` - Generate CPU profile for performance analysis
 
 ## Core Architecture
@@ -39,8 +38,8 @@ The core algorithm (`lib/index.ts`) uses a state machine pattern to avoid recurs
 - DONE: Solution found or search complete
 
 ### Data Structures
-- `Node<T>` class: Doubly-linked list nodes with left/right/up/down pointers
-- `Column<T>` class: Column headers with length tracking
+- `NodeStore<T>` class: Struct-of-Arrays implementation with typed arrays for navigation fields
+- `ColumnStore` class: Column headers with length tracking and circular linking
 - Constraint types: `SimpleConstraint` (single row) and `ComplexConstraint` (primary + secondary rows)
 
 ### Key Modules
@@ -50,39 +49,9 @@ The core algorithm (`lib/index.ts`) uses a state machine pattern to avoid recurs
 
 ## Performance Requirements
 
-Performance is critical - always run benchmarks before and after changes using `npm run benchmark`. The library must maintain its position as the fastest Dancing Links implementation in JavaScript.
+Performance is critical - always run benchmarks before and after changes using `npm run benchmark`. The library maintains its position as the fastest Dancing Links implementation in JavaScript through systematic optimization.
 
-### Performance Optimization Guidelines
-
-**CRITICAL: Always benchmark performance changes in isolation**
-
-When implementing performance optimizations:
-
-1. **One optimization at a time** - Never mix multiple performance changes in a single commit
-2. **Benchmark each change individually** - Run `npm run benchmark:dev` before and after each change
-3. **Never make assumptions** - Modern JS engines (V8) are highly sophisticated and counter-intuitive
-4. **Document results** - Record actual performance impact, not theoretical expectations
-5. **Be prepared to revert** - Many "optimizations" actually hurt performance in modern JS
-6. **Isolate variables** - Change only one thing to understand its true impact
-
-**Required workflow:**
-- **Baseline**: Run benchmarks on current implementation and record exact numbers
-- **Plan**: Create systematic list of individual optimizations to test
-- **Implement**: Make single, focused change to one function/operation
-- **Test**: Verify functionality still works with `npm run test`
-- **Measure**: Run `npm run benchmark:dev` multiple times and record results
-- **Document**: Update `OPTIMIZATION_RESULTS.md` with exact performance deltas
-- **Decide**: Keep if net positive across all benchmarks, revert if net negative
-- **Commit**: Commit the result (kept or reverted) before next test
-- **Repeat**: Move to next optimization only after completing this cycle
-
-**Proven patterns from systematic testing:**
-- **Branching optimizations often hurt** - Adding `if` statements in hot loops typically reduces performance
-- **Algorithmic improvements help** - Reducing unnecessary work (early termination) provides real gains
-- **Problem-specific behavior** - Same optimization may help simple problems but hurt complex ones
-- **Net effect matters** - Must show improvement across multiple benchmark scenarios
-
-**Never assume** that logical optimizations (loop unrolling, branch reduction, etc.) will improve performance. Systematic measurement is the only reliable approach.
+See `PERFORMANCE.md` for detailed analysis of optimization work completed.
 
 ## Testing
 
