@@ -52,6 +52,29 @@ The core algorithm (`lib/index.ts`) uses a state machine pattern to avoid recurs
 
 Performance is critical - always run benchmarks before and after changes using `npm run benchmark`. The library must maintain its position as the fastest Dancing Links implementation in JavaScript.
 
+### Performance Optimization Guidelines
+
+**CRITICAL: Always benchmark performance changes in isolation**
+
+When implementing performance optimizations:
+
+1. **One optimization at a time** - Never mix multiple performance changes in a single commit
+2. **Benchmark each change individually** - Run `npm run benchmark:dev` before and after each change
+3. **Never make assumptions** - Modern JS engines (V8) are highly sophisticated and counter-intuitive
+4. **Document results** - Record actual performance impact, not theoretical expectations
+5. **Be prepared to revert** - Many "optimizations" actually hurt performance in modern JS
+6. **Isolate variables** - Change only one thing to understand its true impact
+
+**Example workflow:**
+- Baseline: Run benchmarks on current implementation
+- Change: Implement single, focused optimization
+- Measure: Run benchmarks again and compare results
+- Document: Record actual performance delta (positive or negative)
+- Decide: Keep if beneficial, revert if harmful
+- Repeat: Move to next optimization only after completing this cycle
+
+**Never assume** that logical optimizations (loop unrolling, branch reduction, etc.) will improve performance. V8's TurboFan compiler often handles these better than manual optimizations.
+
 ## Testing
 
 All new features require comprehensive unit tests. Use `npm run test` for standard testing, `npm run test-watch` for development. Coverage reports available via `npm run coverage`.
