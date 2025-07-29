@@ -193,6 +193,18 @@ All other optimizations showed net negative, minimal, or conceptually flawed app
 - **Decision**: **REVERT** - Does not eliminate search work, only filters results after computation
 - **Notes**: True symmetry breaking requires constraint matrix preprocessing or search-time pruning, not post-processing
 
+## Remaining Optimization Attempts
+
+### Remaining Opt 4: Extended Unit Propagation
+- **Description**: Enhanced propagation analysis with `calculatePropagationImpact()` to predict constraint cascading effects
+- **Results** (vs Test 4+9+2A baseline):
+  - Sudoku findRaw: 12,422 ops/sec vs 14,717 Phase 2A = **-15.6%**
+  - Pentomino 1 findRaw: 549 ops/sec vs 614 Phase 2A = **-10.6%**
+  - Pentomino 10 findRaw: 76.12 ops/sec vs 90.87 Phase 2A = **-16.2%**  
+  - Pentomino 100 findRaw: 11.02 ops/sec vs 13.04 Phase 2A = **-15.5%**
+- **Decision**: **REVERT** - Significant regression due to expensive heuristic computation
+- **Notes**: Even limited analysis (only columns ≤3) added too much overhead; complex heuristics fail pattern confirmed
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
