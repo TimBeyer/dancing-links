@@ -50,6 +50,7 @@
     "build:dev": "npm run clean && tsc -p tsconfig.dev.json",
     "benchmark": "npm run build:dev && node built/benchmark/index-library.js",
     "benchmark:comparison": "npm run build:dev && node built/benchmark/index.js",
+    "benchmark:dev": "npm run build:dev && node built/benchmark/index-development.js",
     "profile": "npm run build:dev && node built/benchmark/profile.js",
     "release": "release-it"
   },
