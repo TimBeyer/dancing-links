@@ -143,6 +143,18 @@ All other optimizations showed net negative or minimal performance impact:
 - Tests 6-8: Various caching strategies showed minimal or negative impact  
 - Test 10: Array access caching significantly hurt complex problem performance
 
+## Phase 1 Advanced Optimization Results
+
+### Phase 1A: Enhanced Column Selection Heuristic
+- **Description**: Add degree-based tie-breaking to pickBestColumn() using calculateColumnDegree() for MRV ties
+- **Results** (vs Test 4+9 baseline):
+  - Sudoku findRaw: 8,935 ops/sec vs 10,250 baseline = **-12.8%**
+  - Pentomino 1 findRaw: 578 ops/sec vs 622 baseline = **-7.1%**
+  - Pentomino 10 findRaw: 87.47 ops/sec vs 94.36 baseline = **-7.3%**  
+  - Pentomino 100 findRaw: 12.26 ops/sec vs 13.39 baseline = **-8.4%**
+- **Decision**: **REVERT** - Significant regression across all benchmarks
+- **Notes**: Degree calculation overhead outweighs heuristic benefits; V8 optimization likely disrupted by complex control flow
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
