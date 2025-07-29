@@ -171,6 +171,16 @@ All other optimizations showed net negative or minimal performance impact:
 - **Decision**: **KEEP** - Massive improvement on Sudoku, minimal regression on Pentomino problems
 - **Notes**: Unit propagation is highly effective for constraint problems with many forced moves like Sudoku
 
+### Phase 2B: Memory Layout Optimization
+- **Description**: Separate hot data (navigation: left/right/up/down) from cold data (metadata: col/rowIndex/data) for better cache locality
+- **Results** (vs Test 4+9+2A baseline):
+  - Sudoku findRaw: 14,559 ops/sec vs 14,717 Phase 2A = **-1.1%**
+  - Pentomino 1 findRaw: 578 ops/sec vs 614 Phase 2A = **-5.9%**
+  - Pentomino 10 findRaw: 83.21 ops/sec vs 90.87 Phase 2A = **-8.4%**  
+  - Pentomino 100 findRaw: 12.80 ops/sec vs 13.04 Phase 2A = **-1.8%**
+- **Decision**: **REVERT** - Consistent regression across all benchmarks
+- **Notes**: Memory layout separation added object access overhead that outweighed cache benefits
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
