@@ -16,17 +16,55 @@
 
 *Each optimization tested in isolation against baseline*
 
-### Test 1: [Optimization Name]
-- **Description**: [What exactly was changed]
-- **Results**: [Actual performance numbers vs baseline]
-- **Decision**: [Keep/Revert]
-- **Notes**: [Observations]
+### Test 1: Empty Column Fast Path
+- **Description**: Added `if (colLen === 0) return` check in cover() function to skip processing empty columns
+- **Results**:
+  - Sudoku findRaw: 10,104 ops/sec vs 9,949 baseline = **+1.6%**
+  - Pentomino 1 findRaw: 577 ops/sec vs 609 baseline = **-5.3%**
+  - Pentomino 10 findRaw: 90.97 ops/sec vs 90.24 baseline = **+0.8%**  
+  - Pentomino 100 findRaw: 12.95 ops/sec vs 13.05 baseline = **-0.8%**
+- **Decision**: **REVERT** - Mixed results with net negative impact on larger problems
+- **Notes**: Small improvement on simple problems, regression on complex ones
 
-### Test 2: [Next Optimization]
-- **Description**: [What exactly was changed]
-- **Results**: [Actual performance numbers vs baseline]
-- **Decision**: [Keep/Revert]
-- **Notes**: [Observations]
+### Test 2: Single Element Column Fast Path
+- **Description**: Added `if (colLen === 1)` branch in cover() with inlined single-element logic to eliminate outer loop
+- **Results**:
+  - Sudoku findRaw: 9,373 ops/sec vs 9,949 baseline = **-5.8%**
+  - Pentomino 1 findRaw: 590 ops/sec vs 609 baseline = **-3.1%**
+  - Pentomino 10 findRaw: 91.82 ops/sec vs 90.24 baseline = **+1.8%**  
+  - Pentomino 100 findRaw: 12.93 ops/sec vs 13.05 baseline = **-0.9%**
+- **Decision**: **REVERT** - Net negative performance across most benchmarks
+- **Notes**: Significant regression on simple problems, minimal gains on complex ones
+
+### Test 3: Two Element Column Fast Path
+- **Description**: Added `if (colLen === 2)` branch in cover() with unrolled two-iteration logic to eliminate outer loop
+- **Results**:
+  - Sudoku findRaw: 10,138 ops/sec vs 9,949 baseline = **+1.9%**
+  - Pentomino 1 findRaw: 592 ops/sec vs 609 baseline = **-2.8%**
+  - Pentomino 10 findRaw: 90.72 ops/sec vs 90.24 baseline = **+0.5%**  
+  - Pentomino 100 findRaw: 12.52 ops/sec vs 13.05 baseline = **-4.1%**
+- **Decision**: **REVERT** - Mixed results with regression on larger problems
+- **Notes**: Small improvement on Sudoku, but regression on Pentomino problems
+
+### Test 4: Early Termination Zero Length
+- **Description**: Added early termination in pickBestColumn() when `lowestLen === 0` (perfect column found)
+- **Results**:
+  - Sudoku findRaw: 10,220 ops/sec vs 9,949 baseline = **+2.7%**
+  - Pentomino 1 findRaw: 608 ops/sec vs 609 baseline = **-0.2%**
+  - Pentomino 10 findRaw: 92.47 ops/sec vs 90.24 baseline = **+2.5%**  
+  - Pentomino 100 findRaw: 13.03 ops/sec vs 13.05 baseline = **-0.2%**
+- **Decision**: **KEEP** - Consistent positive or neutral performance across all benchmarks
+- **Notes**: First optimization that shows net positive results without significant regressions
+
+### Test 5: Early Termination Length One
+- **Description**: Added early termination in pickBestColumn() when `lowestLen === 1` (near-optimal column found)
+- **Results** (vs Test 4 baseline):
+  - Sudoku findRaw: 15,070 ops/sec vs 10,220 Test 4 = **+47.4%** 
+  - Pentomino 1 findRaw: 546 ops/sec vs 608 Test 4 = **-10.2%**
+  - Pentomino 10 findRaw: 89.61 ops/sec vs 92.47 Test 4 = **-3.1%**  
+  - Pentomino 100 findRaw: 12.49 ops/sec vs 13.03 Test 4 = **-4.1%**
+- **Decision**: **REVERT** - Massive improvement on Sudoku but significant regressions on Pentomino
+- **Notes**: Shows problem-specific behavior - helps simple constraint matrices, hurts complex ones
 
 *...continue for each test...*
 

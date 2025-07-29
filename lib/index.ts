@@ -190,11 +190,22 @@ export function search<T>(config: SearchConfig<T>) {
     let lowestLen = columns.len[rootNext]
     let lowest = rootNext
 
-    for (let curColIndex = columns.next[rootColIndex]; curColIndex !== rootColIndex; curColIndex = columns.next[curColIndex]) {
+    // TEST 4: Early termination for zero length
+    if (lowestLen === 0) {
+      bestColIndex = lowest
+      return
+    }
+
+    for (let curColIndex = columns.next[rootNext]; curColIndex !== rootColIndex; curColIndex = columns.next[curColIndex]) {
       const length = columns.len[curColIndex]
       if (length < lowestLen) {
         lowestLen = length
         lowest = curColIndex
+        
+        // Early termination - can't get better than 0
+        if (lowestLen === 0) {
+          break
+        }
       }
     }
 
