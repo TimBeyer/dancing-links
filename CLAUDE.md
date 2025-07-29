@@ -91,3 +91,5 @@ Make sure to leave relevant and detailed comments on complex parts of the codeba
 
 When you write complex code, you MUST write documentation explaining the why, not the what.
 
+## Commit Guidelines
+- Commit frequently, ensure tests pass before committing, always ensure that ALL TS types pass
