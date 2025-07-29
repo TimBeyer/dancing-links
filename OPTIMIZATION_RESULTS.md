@@ -106,10 +106,42 @@
 - **Decision**: **KEEP** - Consistent positive performance across all benchmarks
 - **Notes**: Pre-calculating next pointers improves performance, especially on complex problems
 
+### Test 10: Reduce Array Access
+- **Description**: Cache `nodes.col[nn]` in local variable `nodeCol` to reduce repeated array access in cover/uncover loops
+- **Results** (vs Test 4+9 baseline):
+  - Sudoku findRaw: 10,250 ops/sec vs 10,250 Test 9 = **+0.0%**
+  - Pentomino 1 findRaw: 553 ops/sec vs 622 Test 9 = **-11.1%**
+  - Pentomino 10 findRaw: 94.14 ops/sec vs 94.36 Test 9 = **-0.2%**  
+  - Pentomino 100 findRaw: 13.46 ops/sec vs 13.39 Test 9 = **+0.5%**
+- **Decision**: **REVERT** - Significant regression on Pentomino 1, minimal gains elsewhere
+- **Notes**: Array access caching hurts performance on complex constraint problems
+
 *...continue for each test...*
 
 ## Final Results Summary
-*To be updated after all individual tests are complete*
+
+After systematic testing of 10 individual optimizations, **2 optimizations were kept**:
+
+### Successfully Applied Optimizations
+1. **Test 4: Early Termination Zero Length** - Added early termination in pickBestColumn() when lowestLen === 0
+   - Performance gain: +0.3% to +2.7% across all benchmarks
+   
+2. **Test 9: Pre-calculate Next Pointers** - Store const nextRR = nodes.down[rr] before processing to reduce dependencies
+   - Performance gain: +0.3% to +2.8% across all benchmarks
+
+### Final Performance vs Original Baseline
+With both optimizations applied:
+- Sudoku findRaw: 10,250 ops/sec vs 9,949 baseline = **+3.0%**
+- Pentomino 1 findRaw: 622 ops/sec vs 609 baseline = **+2.1%** 
+- Pentomino 10 findRaw: 94.36 ops/sec vs 90.24 baseline = **+4.6%**
+- Pentomino 100 findRaw: 13.39 ops/sec vs 13.05 baseline = **+2.6%**
+
+### Reverted Optimizations (8 total)
+All other optimizations showed net negative or minimal performance impact:
+- Tests 1-3: Fast path optimizations hurt performance
+- Test 5: Early termination for length 1 helped simple problems but hurt complex ones
+- Tests 6-8: Various caching strategies showed minimal or negative impact  
+- Test 10: Array access caching significantly hurt complex problem performance
 
 ## Planned Optimization Tests
 
