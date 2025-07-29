@@ -177,15 +177,15 @@ All other optimizations showed net negative, minimal, or conceptually flawed app
 - **Decision**: **KEEP** - Massive improvement on Sudoku, minimal regression on Pentomino problems
 - **Notes**: Unit propagation is highly effective for constraint problems with many forced moves like Sudoku
 
-### Phase 2B: Memory Layout Optimization
-- **Description**: Separate hot data (navigation: left/right/up/down) from cold data (metadata: col/rowIndex/data) for better cache locality
+### Phase 2B: Memory Layout Optimization (Retry)
+- **Description**: Separate hot data (navigation: left/right/up/down) from cold data (metadata: col/rowIndex/data) without getters
 - **Results** (vs Test 4+9+2A baseline):
-  - Sudoku findRaw: 14,559 ops/sec vs 14,717 Phase 2A = **-1.1%**
-  - Pentomino 1 findRaw: 578 ops/sec vs 614 Phase 2A = **-5.9%**
-  - Pentomino 10 findRaw: 83.21 ops/sec vs 90.87 Phase 2A = **-8.4%**  
-  - Pentomino 100 findRaw: 12.80 ops/sec vs 13.04 Phase 2A = **-1.8%**
-- **Decision**: **REVERT** - Consistent regression across all benchmarks
-- **Notes**: Memory layout separation added object access overhead that outweighed cache benefits
+  - Sudoku findRaw: 14,218 ops/sec vs 14,717 Phase 2A = **-3.4%**
+  - Pentomino 1 findRaw: 585 ops/sec vs 614 Phase 2A = **-4.7%**
+  - Pentomino 10 findRaw: 91.17 ops/sec vs 90.87 Phase 2A = **+0.3%**  
+  - Pentomino 100 findRaw: 13.00 ops/sec vs 13.04 Phase 2A = **-0.3%**
+- **Decision**: **REVERT** - Net negative performance with additional object indirection overhead
+- **Notes**: Even without getters, the grouped structure adds property access overhead that outweighs cache benefits
 
 ### Phase 3A: Symmetry Breaking
 - **Description**: Post-solution filtering using canonical hashes to eliminate duplicate solutions
