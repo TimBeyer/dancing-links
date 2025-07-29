@@ -181,6 +181,12 @@ All other optimizations showed net negative or minimal performance impact:
 - **Decision**: **REVERT** - Consistent regression across all benchmarks
 - **Notes**: Memory layout separation added object access overhead that outweighed cache benefits
 
+### Phase 3A: Symmetry Breaking
+- **Description**: Post-solution filtering using canonical hashes to eliminate duplicate solutions
+- **Results**: **CONCEPTUAL FAILURE** - No performance improvement expected or measured
+- **Decision**: **REVERT** - Does not eliminate search work, only filters results after computation
+- **Notes**: True symmetry breaking requires constraint matrix preprocessing or search-time pruning, not post-processing
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
