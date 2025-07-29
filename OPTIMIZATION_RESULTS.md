@@ -96,6 +96,16 @@
 - **Decision**: **REVERT** - Mixed results with slight regression on complex problems
 - **Notes**: Local variable caching shows minimal impact, slightly hurts Pentomino performance
 
+### Test 9: Pre-calculate Next Pointers
+- **Description**: Store `const nextRR = nodes.down[rr]` before processing current rr to reduce dependencies in loop iterations
+- **Results** (vs Test 4 baseline):
+  - Sudoku findRaw: 10,250 ops/sec vs 10,220 Test 4 = **+0.3%**
+  - Pentomino 1 findRaw: 622 ops/sec vs 608 Test 4 = **+2.3%**
+  - Pentomino 10 findRaw: 94.36 ops/sec vs 92.47 Test 4 = **+2.0%**  
+  - Pentomino 100 findRaw: 13.39 ops/sec vs 13.03 Test 4 = **+2.8%**
+- **Decision**: **KEEP** - Consistent positive performance across all benchmarks
+- **Notes**: Pre-calculating next pointers improves performance, especially on complex problems
+
 *...continue for each test...*
 
 ## Final Results Summary

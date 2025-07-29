@@ -146,9 +146,11 @@ export function search<T>(config: SearchConfig<T>) {
     columns.next[leftColIndex] = rightColIndex
     columns.prev[rightColIndex] = leftColIndex
 
-    // From top to bottom, left to right: unlink every row node from its column
+    // From top to bottom, left to right: unlink every row node from its column  
     const colHeadIndex = columns.head[colIndex]
-    for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; rr = nodes.down[rr]) {
+    for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; ) {
+      // TEST 9: Pre-calculate next pointer to reduce dependencies
+      const nextRR = nodes.down[rr]
       for (let nn = nodes.right[rr]; nn !== rr; nn = nodes.right[nn]) {
         const uu = nodes.up[nn]
         const dd = nodes.down[nn]
@@ -158,6 +160,7 @@ export function search<T>(config: SearchConfig<T>) {
 
         columns.len[nodes.col[nn]]--
       }
+      rr = nextRR
     }
   }
 
@@ -165,7 +168,9 @@ export function search<T>(config: SearchConfig<T>) {
     const colHeadIndex = columns.head[colIndex]
     
     // From bottom to top, right to left: relink every row node to its column
-    for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; rr = nodes.up[rr]) {
+    for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; ) {
+      // TEST 9: Pre-calculate next pointer to reduce dependencies
+      const nextRR = nodes.up[rr]
       for (let nn = nodes.left[rr]; nn !== rr; nn = nodes.left[nn]) {
         const uu = nodes.up[nn]
         const dd = nodes.down[nn]
@@ -175,6 +180,7 @@ export function search<T>(config: SearchConfig<T>) {
 
         columns.len[nodes.col[nn]]++
       }
+      rr = nextRR
     }
 
     // Relink column to column list
