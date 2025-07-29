@@ -17,7 +17,7 @@ This is a high-performance JavaScript/TypeScript implementation of Knuth's Danci
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm run coverage` - Generate test coverage report with nyc
-- `npm run benchmark` - Run fast library-only performance benchmarks
+- `npm run benchmark` - Run library-only performance benchmarks
 - `npm run benchmark:comparison` - Run comprehensive benchmarks comparing against other libraries
 - `npm run profile` - Generate CPU profile for performance analysis
 
