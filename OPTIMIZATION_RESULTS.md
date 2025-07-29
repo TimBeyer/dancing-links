@@ -205,6 +205,16 @@ All other optimizations showed net negative, minimal, or conceptually flawed app
 - **Decision**: **REVERT** - Significant regression due to expensive heuristic computation
 - **Notes**: Even limited analysis (only columns ≤3) added too much overhead; complex heuristics fail pattern confirmed
 
+### Remaining Opt 1: Cache Warming
+- **Description**: Added `warmCache()` method to prefetch node memory after allocation, touching navigation arrays sequentially
+- **Results** (vs Test 4+9+2A baseline):
+  - Sudoku findRaw: 14,672 ops/sec vs 14,717 Phase 2A = **-0.3%**
+  - Pentomino 1 findRaw: 597 ops/sec vs 614 Phase 2A = **-2.8%**
+  - Pentomino 10 findRaw: 87.49 ops/sec vs 90.87 Phase 2A = **-3.7%**  
+  - Pentomino 100 findRaw: 12.67 ops/sec vs 13.04 Phase 2A = **-2.8%**
+- **Decision**: **REVERT** - Slight but consistent regression across all benchmarks
+- **Notes**: Cache warming overhead outweighed any prefetch benefits; modern CPUs already optimize memory access patterns effectively
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
