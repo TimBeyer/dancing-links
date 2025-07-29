@@ -65,15 +65,24 @@ When implementing performance optimizations:
 5. **Be prepared to revert** - Many "optimizations" actually hurt performance in modern JS
 6. **Isolate variables** - Change only one thing to understand its true impact
 
-**Example workflow:**
-- Baseline: Run benchmarks on current implementation
-- Change: Implement single, focused optimization
-- Measure: Run benchmarks again and compare results
-- Document: Record actual performance delta (positive or negative)
-- Decide: Keep if beneficial, revert if harmful
-- Repeat: Move to next optimization only after completing this cycle
+**Required workflow:**
+- **Baseline**: Run benchmarks on current implementation and record exact numbers
+- **Plan**: Create systematic list of individual optimizations to test
+- **Implement**: Make single, focused change to one function/operation
+- **Test**: Verify functionality still works with `npm run test`
+- **Measure**: Run `npm run benchmark:dev` multiple times and record results
+- **Document**: Update `OPTIMIZATION_RESULTS.md` with exact performance deltas
+- **Decide**: Keep if net positive across all benchmarks, revert if net negative
+- **Commit**: Commit the result (kept or reverted) before next test
+- **Repeat**: Move to next optimization only after completing this cycle
 
-**Never assume** that logical optimizations (loop unrolling, branch reduction, etc.) will improve performance. V8's TurboFan compiler often handles these better than manual optimizations.
+**Proven patterns from systematic testing:**
+- **Branching optimizations often hurt** - Adding `if` statements in hot loops typically reduces performance
+- **Algorithmic improvements help** - Reducing unnecessary work (early termination) provides real gains
+- **Problem-specific behavior** - Same optimization may help simple problems but hurt complex ones
+- **Net effect matters** - Must show improvement across multiple benchmark scenarios
+
+**Never assume** that logical optimizations (loop unrolling, branch reduction, etc.) will improve performance. Systematic measurement is the only reliable approach.
 
 ## Testing
 
