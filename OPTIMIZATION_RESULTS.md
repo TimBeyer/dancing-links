@@ -66,6 +66,26 @@
 - **Decision**: **REVERT** - Massive improvement on Sudoku but significant regressions on Pentomino
 - **Notes**: Shows problem-specific behavior - helps simple constraint matrices, hurts complex ones
 
+### Test 6: Cache Array Access
+- **Description**: Cache `nodes.col[nn]` in local variable to reduce repeated array access in cover/uncover loops
+- **Results** (vs Test 4 baseline):
+  - Sudoku findRaw: 10,115 ops/sec vs 10,220 Test 4 = **-1.0%**
+  - Pentomino 1 findRaw: 606 ops/sec vs 608 Test 4 = **-0.3%**
+  - Pentomino 10 findRaw: 93.19 ops/sec vs 92.47 Test 4 = **+0.8%**  
+  - Pentomino 100 findRaw: 13.09 ops/sec vs 13.03 Test 4 = **+0.5%**
+- **Decision**: **REVERT** - Minimal differences with slight regression on most benchmarks
+- **Notes**: Caching single array access shows no meaningful performance benefit
+
+### Test 7: Inline Forward Function
+- **Description**: Change forward() from function declaration to arrow function `const forward = () =>` to test inlining impact
+- **Results** (vs Test 4 baseline):
+  - Sudoku findRaw: 10,123 ops/sec vs 10,220 Test 4 = **-0.9%**
+  - Pentomino 1 findRaw: 605 ops/sec vs 608 Test 4 = **-0.5%**
+  - Pentomino 10 findRaw: 93.13 ops/sec vs 92.47 Test 4 = **+0.7%**  
+  - Pentomino 100 findRaw: 13.20 ops/sec vs 13.03 Test 4 = **+1.3%**
+- **Decision**: **REVERT** - Mixed results with slight regression on most benchmarks
+- **Notes**: Arrow function declaration shows no meaningful performance benefit over function declaration
+
 *...continue for each test...*
 
 ## Final Results Summary
