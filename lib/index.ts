@@ -202,8 +202,16 @@ export function search<T>(config: SearchConfig<T>) {
       return
     }
 
+    // PHASE 2A: Unit propagation - prioritize columns with length 1
     for (let curColIndex = columns.next[rootNext]; curColIndex !== rootColIndex; curColIndex = columns.next[curColIndex]) {
       const length = columns.len[curColIndex]
+      
+      // Immediate selection for unit constraints
+      if (length === 1) {
+        bestColIndex = curColIndex
+        return
+      }
+      
       if (length < lowestLen) {
         lowestLen = length
         lowest = curColIndex

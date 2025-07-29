@@ -161,6 +161,16 @@ All other optimizations showed net negative or minimal performance impact:
 - **Decision**: **REVERT** - Implementation contained critical bugs, possibly in updateColumnLength() logic
 - **Notes**: Complex data structure maintenance during cover/uncover operations proved error-prone and potentially expensive
 
+### Phase 2A: Unit Propagation
+- **Description**: Prioritize columns with length 1 (unit constraints) for immediate selection in pickBestColumn()
+- **Results** (vs Test 4+9 baseline):
+  - Sudoku findRaw: 14,717 ops/sec vs 10,250 baseline = **+43.6%**
+  - Pentomino 1 findRaw: 614 ops/sec vs 622 baseline = **-1.3%**
+  - Pentomino 10 findRaw: 90.87 ops/sec vs 94.36 baseline = **-3.7%**  
+  - Pentomino 100 findRaw: 13.04 ops/sec vs 13.39 baseline = **-2.6%**
+- **Decision**: **KEEP** - Massive improvement on Sudoku, minimal regression on Pentomino problems
+- **Notes**: Unit propagation is highly effective for constraint problems with many forced moves like Sudoku
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
