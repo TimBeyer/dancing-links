@@ -149,7 +149,18 @@ export function search<T>(config: SearchConfig<T>) {
     // From top to bottom, left to right: unlink every row node from its column  
     const colHeadIndex = columns.head[colIndex]
     for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; ) {
-      // TEST 9: Pre-calculate next pointer to reduce dependencies
+      /**
+       * Pre-calculated pointer optimization for CPU pipeline efficiency.
+       * 
+       * By storing the next loop iteration target before modifying the current
+       * node's links, we eliminate a data dependency that could stall the CPU
+       * pipeline. The processor can fetch nextRR while simultaneously processing
+       * the current iteration's unlinking operations.
+       * 
+       * This is particularly effective in the inner loops of cover/uncover
+       * operations where linked list traversal dominates execution time.
+       * Modern CPUs benefit from reduced pointer-chasing dependencies.
+       */
       const nextRR = nodes.down[rr]
       for (let nn = nodes.right[rr]; nn !== rr; nn = nodes.right[nn]) {
         const uu = nodes.up[nn]
@@ -169,7 +180,13 @@ export function search<T>(config: SearchConfig<T>) {
     
     // From bottom to top, right to left: relink every row node to its column
     for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; ) {
-      // TEST 9: Pre-calculate next pointer to reduce dependencies
+      /**
+       * Pre-calculated pointer optimization for CPU pipeline efficiency.
+       * 
+       * Same optimization as in cover() - pre-calculating the next iteration
+       * target eliminates data dependencies and improves CPU pipeline throughput
+       * during the critical uncover operation's linked list traversal.
+       */
       const nextRR = nodes.up[rr]
       for (let nn = nodes.left[rr]; nn !== rr; nn = nodes.left[nn]) {
         const uu = nodes.up[nn]
@@ -196,17 +213,38 @@ export function search<T>(config: SearchConfig<T>) {
     let lowestLen = columns.len[rootNext]
     let lowest = rootNext
 
-    // TEST 4: Early termination for zero length
+    /**
+     * Early termination optimization for impossible constraints.
+     * 
+     * When a column has zero remaining options, the current search path
+     * cannot lead to a valid solution since this constraint cannot be satisfied.
+     * Immediately selecting such columns triggers backtracking sooner, avoiding
+     * deeper recursion into impossible branches of the search tree.
+     * 
+     * This is particularly effective in highly constrained problems where
+     * covering one constraint frequently eliminates all options for another.
+     */
     if (lowestLen === 0) {
       bestColIndex = lowest
       return
     }
 
-    // PHASE 2A: Unit propagation - prioritize columns with length 1
+    /**
+     * Unit propagation optimization for forced constraints.
+     * 
+     * When a column has exactly one remaining option, that option MUST be selected
+     * in any valid solution - there is no choice involved. Prioritizing these
+     * unit constraints reduces the search space by making forced moves immediately
+     * rather than exploring them through normal branching.
+     * 
+     * This is highly effective in logic puzzles like Sudoku where filling one
+     * cell often creates cascading unit constraints in related rows/columns/blocks.
+     * The optimization transforms what would be deep branching trees into
+     * immediate constraint propagation.
+     */
     for (let curColIndex = columns.next[rootNext]; curColIndex !== rootColIndex; curColIndex = columns.next[curColIndex]) {
       const length = columns.len[curColIndex]
       
-      // Immediate selection for unit constraints
       if (length === 1) {
         bestColIndex = curColIndex
         return
@@ -216,7 +254,14 @@ export function search<T>(config: SearchConfig<T>) {
         lowestLen = length
         lowest = curColIndex
         
-        // Early termination - can't get better than 0
+        /**
+         * Short-circuit when impossible constraint found.
+         * 
+         * If we encounter a column with zero options during our scan,
+         * we can immediately stop searching since no column can have
+         * fewer than zero options. This saves unnecessary iteration
+         * through remaining columns in highly constrained scenarios.
+         */
         if (lowestLen === 0) {
           break
         }
