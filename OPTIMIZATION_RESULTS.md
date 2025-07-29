@@ -86,6 +86,16 @@
 - **Decision**: **REVERT** - Mixed results with slight regression on most benchmarks
 - **Notes**: Arrow function declaration shows no meaningful performance benefit over function declaration
 
+### Test 8: Local Variable Caching
+- **Description**: Cache `const colHeadIndex = columns.head[colIndex]` at start of cover/uncover functions to reduce repeated array access
+- **Results** (vs Test 4 baseline):
+  - Sudoku findRaw: 10,235 ops/sec vs 10,220 Test 4 = **+0.1%**
+  - Pentomino 1 findRaw: 600 ops/sec vs 608 Test 4 = **-1.3%**
+  - Pentomino 10 findRaw: 91.34 ops/sec vs 92.47 Test 4 = **-1.2%**  
+  - Pentomino 100 findRaw: 13.13 ops/sec vs 13.03 Test 4 = **+0.8%**
+- **Decision**: **REVERT** - Mixed results with slight regression on complex problems
+- **Notes**: Local variable caching shows minimal impact, slightly hurts Pentomino performance
+
 *...continue for each test...*
 
 ## Final Results Summary
