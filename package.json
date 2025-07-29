@@ -48,7 +48,8 @@
     "format": "prettier --write '**/*.{ts,js,json,md}'",
     "format:check": "prettier --check '**/*.{ts,js,json,md}'",
     "build:dev": "npm run clean && tsc -p tsconfig.dev.json",
-    "benchmark": "npm run build:dev && node built/benchmark/index.js",
+    "benchmark": "npm run build:dev && node built/benchmark/index-fast.js",
+    "benchmark:comparison": "npm run build:dev && node built/benchmark/index.js",
     "profile": "npm run build:dev && node built/benchmark/profile.js",
     "release": "release-it"
   },
