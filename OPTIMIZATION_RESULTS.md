@@ -155,6 +155,12 @@ All other optimizations showed net negative or minimal performance impact:
 - **Decision**: **REVERT** - Significant regression across all benchmarks
 - **Notes**: Degree calculation overhead outweighs heuristic benefits; V8 optimization likely disrupted by complex control flow
 
+### Phase 1B: Column Length Tracking
+- **Description**: Implement O(1) column selection using length-based bucketing with Map<number, Set<number>>
+- **Results**: **IMPLEMENTATION FAILED** - Caused infinite loop/hanging during benchmark execution
+- **Decision**: **REVERT** - Implementation contained critical bugs, possibly in updateColumnLength() logic
+- **Notes**: Complex data structure maintenance during cover/uncover operations proved error-prone and potentially expensive
+
 ## Planned Optimization Tests
 
 *Each test will be implemented in isolation, benchmarked, and kept/reverted based on results*
