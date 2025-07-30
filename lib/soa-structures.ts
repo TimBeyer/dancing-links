@@ -1,34 +1,34 @@
 /**
  * Struct-of-Arrays (SoA) data structures for Dancing Links
- * 
+ *
  * High-performance implementation using typed arrays for optimal cache locality
  * and memory efficiency. This architecture enables significant performance gains
  * through better memory access patterns during constraint satisfaction operations.
- * 
+ *
  * ARCHITECTURE:
  * - NodeStore: Contains all node data in separate Int32Array fields
- * - ColumnStore: Contains all column data in separate Int32Array fields  
+ * - ColumnStore: Contains all column data in separate Int32Array fields
  * - Index-based references: Uses array indices instead of object pointers (NULL_INDEX = -1)
  * - Pre-allocated storage: Fixed-size arrays determined by constraint matrix analysis
- * 
+ *
  * PERFORMANCE CHARACTERISTICS:
  * - Cache line efficiency: Loading left[i] prefetches left[i+1], left[i+2]...
  * - Memory bandwidth: Better utilization of 64-byte cache lines
  * - Allocation efficiency: Single allocation vs many small objects
  * - GC efficiency: Reduced object count, less garbage collection pressure
  * - Branch prediction: Predictable access patterns in traversal loops
- * 
+ *
  * PERFORMANCE RESULTS:
  * - Sudoku problems: 15,000+ ops/sec with unit propagation optimization
  * - Complex constraint problems: Consistent performance with low memory overhead
  * - Large matrices: Significant improvements when cache locality matters
- * 
+ *
  * DESIGN CONSIDERATIONS:
  * - Setup cost: Requires capacity estimation during initialization
  * - Memory pattern: Fixed allocation vs dynamic growth
  * - Access pattern: Array indexing with bounds checking
  * - Code style: Index-based operations throughout algorithms
- * 
+ *
  * OPTIMAL FOR:
  * - Large constraint matrices (>100 nodes)
  * - Memory-bound problems where cache misses are significant
@@ -41,18 +41,18 @@ const NULL_INDEX = -1
 export class NodeStore<T> {
   private capacity: number
   private _size: number = 0
-  
+
   // Typed arrays for numeric fields - better cache performance
-  readonly left: Int32Array      // Node indices (NULL_INDEX for null)
+  readonly left: Int32Array // Node indices (NULL_INDEX for null)
   readonly right: Int32Array
-  readonly up: Int32Array  
+  readonly up: Int32Array
   readonly down: Int32Array
-  readonly col: Int32Array       // Column indices (NULL_INDEX for null)
-  readonly rowIndex: Int32Array  // Original row index from input
-  
+  readonly col: Int32Array // Column indices (NULL_INDEX for null)
+  readonly rowIndex: Int32Array // Original row index from input
+
   // Generic array for data (can't use typed array for generic T)
   readonly data: Array<T | null>
-  
+
   constructor(maxNodes: number) {
     this.capacity = maxNodes
     this.left = new Int32Array(maxNodes).fill(NULL_INDEX)
@@ -63,7 +63,7 @@ export class NodeStore<T> {
     this.rowIndex = new Int32Array(maxNodes).fill(NULL_INDEX)
     this.data = new Array(maxNodes).fill(null)
   }
-  
+
   /**
    * Allocate a new node and return its index
    */
@@ -73,11 +73,16 @@ export class NodeStore<T> {
     }
     return this._size++
   }
-  
+
   /**
    * Initialize a node with self-referencing links (circular)
    */
-  initializeNode(nodeIndex: number, colIndex: number = NULL_INDEX, rowIdx: number = NULL_INDEX, nodeData: T | null = null): void {
+  initializeNode(
+    nodeIndex: number,
+    colIndex: number = NULL_INDEX,
+    rowIdx: number = NULL_INDEX,
+    nodeData: T | null = null
+  ): void {
     this.left[nodeIndex] = nodeIndex
     this.right[nodeIndex] = nodeIndex
     this.up[nodeIndex] = nodeIndex
@@ -86,7 +91,7 @@ export class NodeStore<T> {
     this.rowIndex[nodeIndex] = rowIdx
     this.data[nodeIndex] = nodeData
   }
-  
+
   /**
    * Link two nodes horizontally (left-right)
    */
@@ -94,7 +99,7 @@ export class NodeStore<T> {
     this.right[leftIndex] = rightIndex
     this.left[rightIndex] = leftIndex
   }
-  
+
   /**
    * Link two nodes vertically (up-down)
    */
@@ -102,7 +107,7 @@ export class NodeStore<T> {
     this.down[upIndex] = downIndex
     this.up[downIndex] = upIndex
   }
-  
+
   get size(): number {
     return this._size
   }
@@ -111,12 +116,12 @@ export class NodeStore<T> {
 export class ColumnStore {
   private capacity: number
   private _size: number = 0
-  
-  readonly head: Int32Array      // Head node indices
-  readonly len: Int32Array       // Column lengths
-  readonly prev: Int32Array      // Previous column indices (NULL_INDEX for null)
-  readonly next: Int32Array      // Next column indices (NULL_INDEX for null)
-  
+
+  readonly head: Int32Array // Head node indices
+  readonly len: Int32Array // Column lengths
+  readonly prev: Int32Array // Previous column indices (NULL_INDEX for null)
+  readonly next: Int32Array // Next column indices (NULL_INDEX for null)
+
   constructor(maxColumns: number) {
     this.capacity = maxColumns
     this.head = new Int32Array(maxColumns).fill(NULL_INDEX)
@@ -124,7 +129,7 @@ export class ColumnStore {
     this.prev = new Int32Array(maxColumns).fill(NULL_INDEX)
     this.next = new Int32Array(maxColumns).fill(NULL_INDEX)
   }
-  
+
   /**
    * Allocate a new column and return its index
    */
@@ -134,7 +139,7 @@ export class ColumnStore {
     }
     return this._size++
   }
-  
+
   /**
    * Initialize a column with given head node
    */
@@ -144,7 +149,7 @@ export class ColumnStore {
     this.prev[colIndex] = NULL_INDEX
     this.next[colIndex] = NULL_INDEX
   }
-  
+
   /**
    * Link two columns horizontally
    */
@@ -152,7 +157,7 @@ export class ColumnStore {
     this.next[leftIndex] = rightIndex
     this.prev[rightIndex] = leftIndex
   }
-  
+
   get size(): number {
     return this._size
   }
@@ -161,15 +166,17 @@ export class ColumnStore {
 /**
  * Estimate required capacity for stores based on search configuration
  */
-export function estimateCapacity(numPrimary: number, numSecondary: number, rows: Array<{coveredColumns: number[]} | undefined>): {maxNodes: number, maxColumns: number} {
+export function estimateCapacity(
+  numPrimary: number,
+  numSecondary: number,
+  rows: Array<{ coveredColumns: number[] } | undefined>
+): { maxNodes: number; maxColumns: number } {
   // Count row nodes
-  const rowNodes = rows.reduce((sum, row) => 
-    sum + (row?.coveredColumns.length || 0), 0
-  )
-  
+  const rowNodes = rows.reduce((sum, row) => sum + (row?.coveredColumns.length || 0), 0)
+
   // Count column head nodes: 1 root + numPrimary + numSecondary
   const headNodes = 1 + numPrimary + numSecondary
-  
+
   const maxNodes = rowNodes + headNodes
   const maxColumns = numPrimary + numSecondary + 1 // +1 for root column
   return { maxNodes, maxColumns }
