@@ -10,7 +10,7 @@ import { getSearchConfig } from '../lib/utils.js'
 import { generateConstraints, parseStringFormat, printBoard } from './sudoku/index.js'
 
 function benchmarkSudoku() {
-  console.log('Benchmark: A solution to the sodoku\n')
+  console.log('Benchmark: A solution to the sudoku\n')
   const sudokuField = parseStringFormat(
     9,
     '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
