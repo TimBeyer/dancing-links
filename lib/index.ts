@@ -1,10 +1,10 @@
 /**
  * Knuth's Dancing Links - High-Performance Implementation
- * 
+ *
  * Implements Knuth's Algorithm X using Dancing Links technique for solving
  * exact cover problems. Uses Struct-of-Arrays architecture with typed arrays
  * for optimal cache locality and memory performance.
- * 
+ *
  * Reference: https://arxiv.org/pdf/cs/0011047.pdf
  * Based on: https://github.com/shreevatsa/knuth-literate-programs/blob/master/programs/dance.pdf
  *
@@ -38,23 +38,25 @@ enum SearchState {
   DONE
 }
 
+const ROOT_COLUMN_OFFSET = 1
+
 export function search<T>(config: SearchConfig<T>) {
   const { numSolutions, numPrimary, numSecondary, rows } = config
-  
+
   // Estimate required capacity and pre-allocate stores
   const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
   const nodes = new NodeStore<T>(maxNodes)
   const columns = new ColumnStore(maxColumns)
-  
+
   const solutions: Result<T>[][] = []
 
   let currentSearchState: SearchState = SearchState.FORWARD
   let running = true
   let level = 0
-  const choice: number[] = []  // Node indices instead of Node objects
+  const choice: number[] = [] // Node indices instead of Node objects
   let bestColIndex: number
   let currentNodeIndex: number
-  
+
   // Create root column (index 0)
   const rootColIndex = columns.allocateColumn()
   const rootNodeIndex = nodes.allocateNode()
@@ -66,10 +68,10 @@ export function search<T>(config: SearchConfig<T>) {
     for (let i = 0; i < numPrimary; i++) {
       const headNodeIndex = nodes.allocateNode()
       nodes.initializeNode(headNodeIndex)
-      
+
       const colIndex = columns.allocateColumn()
       columns.initializeColumn(colIndex, headNodeIndex)
-      
+
       // Link to previous column
       if (i === 0) {
         // First primary column links to root
@@ -79,20 +81,20 @@ export function search<T>(config: SearchConfig<T>) {
         columns.linkColumns(colIndex - 1, colIndex)
       }
     }
-    
+
     // Close the circular link: last primary -> root
     if (numPrimary > 0) {
-      columns.linkColumns(numPrimary, rootColIndex)  // last primary column to root
+      columns.linkColumns(numPrimary, rootColIndex) // last primary column to root
     }
-    
+
     // Create secondary columns (self-linked)
     for (let i = 0; i < numSecondary; i++) {
       const headNodeIndex = nodes.allocateNode()
       nodes.initializeNode(headNodeIndex)
-      
+
       const colIndex = columns.allocateColumn()
       columns.initializeColumn(colIndex, headNodeIndex)
-      
+
       // Secondary columns are self-linked
       columns.linkColumns(colIndex, colIndex)
     }
@@ -107,20 +109,20 @@ export function search<T>(config: SearchConfig<T>) {
 
       for (const columnIndex of row.coveredColumns) {
         const nodeIndex = nodes.allocateNode()
-        nodes.initializeNode(nodeIndex, columnIndex + 1, i, row.data)  // +1 because root is at index 0
+        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, row.data) // +1 because root is at index 0
 
         if (rowStartIndex === NULL_INDEX) {
           rowStartIndex = nodeIndex
         } else {
           // Link horizontally to previous node in row
-          nodes.linkHorizontal(nodeIndex - 1, nodeIndex) 
+          nodes.linkHorizontal(nodeIndex - 1, nodeIndex)
         }
 
         // Link vertically into column
-        const colIndex = columnIndex + 1  // +1 because root is at index 0
+        const colIndex = columnIndex + ROOT_COLUMN_OFFSET // +1 because root is at index 0
         const colHeadIndex = columns.head[colIndex]
         const lastInColIndex = nodes.up[colHeadIndex]
-        
+
         nodes.linkVertical(lastInColIndex, nodeIndex)
         nodes.linkVertical(nodeIndex, colHeadIndex)
 
@@ -137,7 +139,7 @@ export function search<T>(config: SearchConfig<T>) {
 
   /**
    * Cover operation - most performance-critical function
-   * 
+   *
    * SoA OPTIMIZATION: Array access patterns improve cache locality
    * - nodes.down[rr] likely prefetches nodes.down[rr+1], nodes.down[rr+2]...
    * - Better memory bandwidth utilization vs pointer chasing
@@ -151,17 +153,17 @@ export function search<T>(config: SearchConfig<T>) {
     columns.next[leftColIndex] = rightColIndex
     columns.prev[rightColIndex] = leftColIndex
 
-    // From top to bottom, left to right: unlink every row node from its column  
+    // From top to bottom, left to right: unlink every row node from its column
     const colHeadIndex = columns.head[colIndex]
     for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; ) {
       /**
        * Pre-calculated pointer optimization for CPU pipeline efficiency.
-       * 
+       *
        * By storing the next loop iteration target before modifying the current
        * node's links, we eliminate a data dependency that could stall the CPU
        * pipeline. The processor can fetch nextRR while simultaneously processing
        * the current iteration's unlinking operations.
-       * 
+       *
        * This is particularly effective in the inner loops of cover/uncover
        * operations where linked list traversal dominates execution time.
        * Modern CPUs benefit from reduced pointer-chasing dependencies.
@@ -182,12 +184,12 @@ export function search<T>(config: SearchConfig<T>) {
 
   function uncover(colIndex: number) {
     const colHeadIndex = columns.head[colIndex]
-    
+
     // From bottom to top, right to left: relink every row node to its column
     for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; ) {
       /**
        * Pre-calculated pointer optimization for CPU pipeline efficiency.
-       * 
+       *
        * Same optimization as in cover() - pre-calculating the next iteration
        * target eliminates data dependencies and improves CPU pipeline throughput
        * during the critical uncover operation's linked list traversal.
@@ -208,7 +210,7 @@ export function search<T>(config: SearchConfig<T>) {
     // Relink column to column list
     const leftColIndex = columns.prev[colIndex]
     const rightColIndex = columns.next[colIndex]
-    
+
     columns.next[leftColIndex] = colIndex
     columns.prev[rightColIndex] = colIndex
   }
@@ -220,12 +222,12 @@ export function search<T>(config: SearchConfig<T>) {
 
     /**
      * Early termination optimization for impossible constraints.
-     * 
+     *
      * When a column has zero remaining options, the current search path
      * cannot lead to a valid solution since this constraint cannot be satisfied.
      * Immediately selecting such columns triggers backtracking sooner, avoiding
      * deeper recursion into impossible branches of the search tree.
-     * 
+     *
      * This is particularly effective in highly constrained problems where
      * covering one constraint frequently eliminates all options for another.
      */
@@ -236,32 +238,36 @@ export function search<T>(config: SearchConfig<T>) {
 
     /**
      * Unit propagation optimization for forced constraints.
-     * 
+     *
      * When a column has exactly one remaining option, that option MUST be selected
      * in any valid solution - there is no choice involved. Prioritizing these
      * unit constraints reduces the search space by making forced moves immediately
      * rather than exploring them through normal branching.
-     * 
+     *
      * This is highly effective in logic puzzles like Sudoku where filling one
      * cell often creates cascading unit constraints in related rows/columns/blocks.
      * The optimization transforms what would be deep branching trees into
      * immediate constraint propagation.
      */
-    for (let curColIndex = columns.next[rootNext]; curColIndex !== rootColIndex; curColIndex = columns.next[curColIndex]) {
+    for (
+      let curColIndex = columns.next[rootNext];
+      curColIndex !== rootColIndex;
+      curColIndex = columns.next[curColIndex]
+    ) {
       const length = columns.len[curColIndex]
-      
+
       if (length === 1) {
         bestColIndex = curColIndex
         return
       }
-      
+
       if (length < lowestLen) {
         lowestLen = length
         lowest = curColIndex
-        
+
         /**
          * Short-circuit when impossible constraint found.
-         * 
+         *
          * If we encounter a column with zero options during our scan,
          * we can immediately stop searching since no column can have
          * fewer than zero options. This saves unnecessary iteration
