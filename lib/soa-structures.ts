@@ -13,7 +13,7 @@
  *
  * PERFORMANCE CHARACTERISTICS:
  * - Cache line efficiency: Loading left[i] prefetches left[i+1], left[i+2]...
- * - Memory bandwidth: Better utilization of 64-byte cache lines
+ * - Memory bandwidth: Better utilization of typical cache lines
  * - Allocation efficiency: Single allocation vs many small objects
  * - GC efficiency: Reduced object count, less garbage collection pressure
  * - Branch prediction: Predictable access patterns in traversal loops
