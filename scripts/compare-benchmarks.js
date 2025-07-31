@@ -36,21 +36,33 @@ class BenchmarkParser {
   static parseTextOutput(output) {
     const results = [];
     
-    // Match lines like: "dancing-links find x 3,771 ops/sec ±2.06% (92 runs sampled)"
-    const benchmarkRegex = /^(.+?)\s+x\s+([\d,]+)\s+ops\/sec\s+±([\d.]+)%/gm;
+    // Split output into sections by benchmark headers
+    const sections = output.split(/^Benchmark: (.+)$/gm);
     
-    let match;
-    while ((match = benchmarkRegex.exec(output)) !== null) {
-      const [, name, opsPerSecStr, marginStr] = match;
-      const opsPerSec = parseFloat(opsPerSecStr.replace(/,/g, ''));
-      const margin = parseFloat(marginStr);
+    // Process each section (skip first empty element)
+    for (let i = 1; i < sections.length; i += 2) {
+      const benchmarkName = sections[i].trim();
+      const sectionContent = sections[i + 1] || '';
       
-      if (!isNaN(opsPerSec) && !isNaN(margin)) {
-        results.push({
-          name: name.trim(),
-          opsPerSec,
-          margin
-        });
+      // Match lines like: "dancing-links find x 3,771 ops/sec ±2.06% (92 runs sampled)"
+      const benchmarkRegex = /^(.+?)\s+x\s+([\d,]+)\s+ops\/sec\s+±([\d.]+)%/gm;
+      
+      let match;
+      while ((match = benchmarkRegex.exec(sectionContent)) !== null) {
+        const [, libraryName, opsPerSecStr, marginStr] = match;
+        const opsPerSec = parseFloat(opsPerSecStr.replace(/,/g, ''));
+        const margin = parseFloat(marginStr);
+        
+        if (!isNaN(opsPerSec) && !isNaN(margin)) {
+          results.push({
+            // Combine benchmark + library for unique identification
+            name: `${benchmarkName} | ${libraryName.trim()}`,
+            benchmarkName: benchmarkName,
+            libraryName: libraryName.trim(),
+            opsPerSec,
+            margin
+          });
+        }
       }
     }
     
@@ -88,23 +100,54 @@ class BenchmarkComparator {
     }
 
     let markdown = '## 🚀 Benchmark Results\n\n';
-    markdown += '| Benchmark | Baseline (ops/sec) | PR (ops/sec) | Change | Performance |\n';
-    markdown += '|-----------|-------------------|--------------|---------|-------------|\n';
+    
+    // Group comparisons by benchmark type
+    const groupedComparisons = this.groupComparisonsByBenchmark(comparisons);
+    
+    for (const [benchmarkName, benchmarkComparisons] of Object.entries(groupedComparisons)) {
+      markdown += `### ${benchmarkName}\n\n`;
+      markdown += '| Library | Baseline (ops/sec) | PR (ops/sec) | Change | Performance |\n';
+      markdown += '|---------|-------------------|--------------|---------|-------------|\n';
 
-    for (const comp of comparisons) {
-      const changeSign = comp.percentChange >= 0 ? '+' : '';
-      const performanceIcon = this.getPerformanceIcon(comp.percentChange);
+      for (const comp of benchmarkComparisons) {
+        const changeSign = comp.percentChange >= 0 ? '+' : '';
+        const performanceIcon = this.getPerformanceIcon(comp.percentChange);
+        
+        markdown += `| ${comp.pr.libraryName} `;
+        markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `;
+        markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin}% `;
+        markdown += `| ${changeSign}${comp.percentChange.toFixed(2)}% `;
+        markdown += `| ${performanceIcon} |\n`;
+      }
       
-      markdown += `| ${comp.name} `;
-      markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `;
-      markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin}% `;
-      markdown += `| ${changeSign}${comp.percentChange.toFixed(2)}% `;
-      markdown += `| ${performanceIcon} |\n`;
+      markdown += '\n';
     }
 
-    markdown += `\n*Updated: ${new Date().toISOString()}*\n`;
+    markdown += `*Updated: ${new Date().toISOString()}*\n`;
     
     return markdown;
+  }
+
+  /**
+   * Group comparisons by benchmark type for cleaner display
+   */
+  groupComparisonsByBenchmark(comparisons) {
+    const grouped = {};
+    
+    for (const comp of comparisons) {
+      const benchmarkName = comp.pr.benchmarkName;
+      if (!grouped[benchmarkName]) {
+        grouped[benchmarkName] = [];
+      }
+      grouped[benchmarkName].push(comp);
+    }
+    
+    // Sort libraries within each benchmark for consistency
+    for (const benchmarkName of Object.keys(grouped)) {
+      grouped[benchmarkName].sort((a, b) => a.pr.libraryName.localeCompare(b.pr.libraryName));
+    }
+    
+    return grouped;
   }
 
   /**
