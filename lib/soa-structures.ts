@@ -1,9 +1,7 @@
 /**
  * Struct-of-Arrays (SoA) data structures for Dancing Links
  *
- * High-performance implementation using typed arrays for optimal cache locality
- * and memory efficiency. This architecture enables significant performance gains
- * through better memory access patterns during constraint satisfaction operations.
+ * Implementation using typed arrays for better memory efficiency.
  *
  * ARCHITECTURE:
  * - NodeStore: Contains all node data in separate Int32Array fields
@@ -11,29 +9,11 @@
  * - Index-based references: Uses array indices instead of object pointers (NULL_INDEX = -1)
  * - Pre-allocated storage: Fixed-size arrays determined by constraint matrix analysis
  *
- * PERFORMANCE CHARACTERISTICS:
- * - Cache line efficiency: Loading left[i] prefetches left[i+1], left[i+2]...
- * - Memory bandwidth: Better utilization of typical cache lines
- * - Allocation efficiency: Single allocation vs many small objects
- * - GC efficiency: Reduced object count, less garbage collection pressure
- * - Branch prediction: Predictable access patterns in traversal loops
- *
- * PERFORMANCE RESULTS:
- * - Sudoku problems: 15,000+ ops/sec with unit propagation optimization
- * - Complex constraint problems: Consistent performance with low memory overhead
- * - Large matrices: Significant improvements when cache locality matters
- *
  * DESIGN CONSIDERATIONS:
  * - Setup cost: Requires capacity estimation during initialization
  * - Memory pattern: Fixed allocation vs dynamic growth
  * - Access pattern: Array indexing with bounds checking
  * - Code style: Index-based operations throughout algorithms
- *
- * OPTIMAL FOR:
- * - Large constraint matrices (>100 nodes)
- * - Memory-bound problems where cache misses are significant
- * - Long-running searches that amortize initialization costs
- * - Problems benefiting from constraint propagation patterns
  */
 
 const NULL_INDEX = -1
@@ -42,7 +22,7 @@ export class NodeStore<T> {
   private capacity: number
   private _size: number = 0
 
-  // Typed arrays for numeric fields - better cache performance
+  // Typed arrays for numeric fields
   readonly left: Int32Array // Node indices (NULL_INDEX for null)
   readonly right: Int32Array
   readonly up: Int32Array

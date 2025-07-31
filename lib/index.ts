@@ -1,18 +1,11 @@
 /**
- * Knuth's Dancing Links - High-Performance Implementation
+ * Knuth's Dancing Links Implementation
  *
  * Implements Knuth's Algorithm X using Dancing Links technique for solving
- * exact cover problems. Uses Struct-of-Arrays architecture with typed arrays
- * for optimal cache locality and memory performance.
+ * exact cover problems. Uses Struct-of-Arrays architecture with typed arrays.
  *
  * Reference: https://arxiv.org/pdf/cs/0011047.pdf
  * Based on: https://github.com/shreevatsa/knuth-literate-programs/blob/master/programs/dance.pdf
- *
- * PERFORMANCE CHARACTERISTICS:
- * - Sudoku problems: 15,000+ ops/sec with unit propagation
- * - Pentomino tiling: 600+ ops/sec for single solutions
- * - Memory efficiency: Predictable allocation with low GC pressure
- * - Cache optimization: Excellent performance on large constraint matrices
  *
  * ARCHITECTURE:
  * - Struct-of-Arrays data layout using Int32Array for navigation fields
@@ -23,8 +16,7 @@
  * ALGORITHM OPTIMIZATIONS:
  * - Early termination for impossible constraints (columns with 0 options)
  * - Unit propagation for forced moves (columns with 1 option)
- * - Pre-calculated pointers to improve CPU pipeline efficiency
- * - Cache-friendly memory access patterns in cover/uncover operations
+ * - Pre-calculated pointers to reduce data dependencies
  */
 
 import { Result, SearchConfig } from './interfaces.js'
@@ -138,12 +130,7 @@ export function search<T>(config: SearchConfig<T>) {
   }
 
   /**
-   * Cover operation - most performance-critical function
-   *
-   * SoA OPTIMIZATION: Array access patterns improve cache locality
-   * - nodes.down[rr] likely prefetches nodes.down[rr+1], nodes.down[rr+2]...
-   * - Better memory bandwidth utilization vs pointer chasing
-   * - Typed arrays enable potential SIMD vectorization
+   * Cover operation - hide a column and all rows that intersect it
    */
   function cover(colIndex: number) {
     const leftColIndex = columns.prev[colIndex]
@@ -156,18 +143,7 @@ export function search<T>(config: SearchConfig<T>) {
     // From top to bottom, left to right: unlink every row node from its column
     const colHeadIndex = columns.head[colIndex]
     for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; ) {
-      /**
-       * Pre-calculated pointer optimization for CPU pipeline efficiency.
-       *
-       * By storing the next loop iteration target before modifying the current
-       * node's links, we eliminate a data dependency that could stall the CPU
-       * pipeline. The processor can fetch nextRR while simultaneously processing
-       * the current iteration's unlinking operations.
-       *
-       * This is particularly effective in the inner loops of cover/uncover
-       * operations where linked list traversal dominates execution time.
-       * Modern CPUs benefit from reduced pointer-chasing dependencies.
-       */
+      // Store next pointer before modifying current node's links
       const nextRR = nodes.down[rr]
       for (let nn = nodes.right[rr]; nn !== rr; nn = nodes.right[nn]) {
         const uu = nodes.up[nn]
@@ -187,13 +163,7 @@ export function search<T>(config: SearchConfig<T>) {
 
     // From bottom to top, right to left: relink every row node to its column
     for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; ) {
-      /**
-       * Pre-calculated pointer optimization for CPU pipeline efficiency.
-       *
-       * Same optimization as in cover() - pre-calculating the next iteration
-       * target eliminates data dependencies and improves CPU pipeline throughput
-       * during the critical uncover operation's linked list traversal.
-       */
+      // Store next pointer before modifying current node's links
       const nextRR = nodes.up[rr]
       for (let nn = nodes.left[rr]; nn !== rr; nn = nodes.left[nn]) {
         const uu = nodes.up[nn]
