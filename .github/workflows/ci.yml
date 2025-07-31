@@ -46,12 +46,12 @@ jobs:
     - name: Display coverage summary
       run: npx nyc report --reporter=text-summary
 
-    - name: Run benchmarks
+    - name: Run comparison benchmarks
       run: |
         echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-        echo "### Node.js ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "### Node.js ${{ matrix.node-version }} - Performance vs Competing Libraries" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        timeout 300s npm run benchmark 2>&1 | tee benchmark-output.txt || echo "Benchmark failed or timed out"
+        timeout 300s npm run benchmark:comparison 2>&1 | tee benchmark-output.txt || echo "Benchmark failed or timed out"
         cat benchmark-output.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 

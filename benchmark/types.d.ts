@@ -14,11 +14,3 @@ declare module 'dance' {
 declare module 'dancing-links-algorithm' {
   export function solve(matrix: number[][]): any[]
 }
-
-declare module 'v8-profiler-next' {
-  const profiler: {
-    startProfiling(name: string, recordSamples?: boolean): void
-    stopProfiling(name?: string): any
-  }
-  export = profiler
-}
