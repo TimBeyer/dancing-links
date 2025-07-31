@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/TimBeyer/node-dlx/compare/v3.2.0...v3.2.1) (2025-07-31)
+
+
+### Bug Fixes
+
+* use correct npm script for coverage in test workflow ([335db17](https://github.com/TimBeyer/node-dlx/commit/335db1749ce02ba12e03946fb037dc9b006f5b66))
+
 # [3.2.0](https://github.com/TimBeyer/node-dlx/compare/v3.1.0...v3.2.0) (2025-07-31)
 
 ### Bug Fixes
