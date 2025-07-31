@@ -41,7 +41,6 @@ jobs:
         echo "Benchmarking merge-base: ${{ steps.merge-base.outputs.commit }}"
         git checkout ${{ steps.merge-base.outputs.commit }}
         npm ci
-        npm run build:dev
         timeout 300s npm run benchmark:comparison > baseline-results-node${{ matrix.node-version }}.txt 2>&1 || echo "Baseline benchmark failed or timed out"
 
     - name: Benchmark PR branch
@@ -49,7 +48,6 @@ jobs:
         echo "Benchmarking PR: ${{ github.sha }}"
         git checkout ${{ github.sha }}
         npm ci
-        npm run build:dev
         timeout 300s npm run benchmark:comparison > pr-results-node${{ matrix.node-version }}.txt 2>&1 || echo "PR benchmark failed or timed out"
 
     - name: Compare results
