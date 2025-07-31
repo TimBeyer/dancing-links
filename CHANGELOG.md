@@ -1,5 +1,7 @@
 # Changelog
 
+## [3.2.2](https://github.com/TimBeyer/node-dlx/compare/v3.2.1...v3.2.2) (2025-07-31)
+
 ## [3.2.1](https://github.com/TimBeyer/node-dlx/compare/v3.2.0...v3.2.1) (2025-07-31)
 
 
