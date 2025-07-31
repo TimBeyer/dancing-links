@@ -1,8 +1,6 @@
 name: Benchmark
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -133,36 +131,3 @@ jobs:
             -f body="$(cat combined-results.md)"
         fi
 
-  # Keep the original benchmark job for pushes to main/master
-  push-benchmark:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build project
-      run: npm run build
-
-    - name: Run comparison benchmarks
-      run: |
-        echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-        echo "### Node.js ${{ matrix.node-version }} - Performance vs Competing Libraries" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        timeout 300s npm run benchmark:comparison 2>&1 | tee benchmark-output.txt || echo "Benchmark failed or timed out"
-        cat benchmark-output.txt >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
