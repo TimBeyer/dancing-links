@@ -8,6 +8,7 @@
  */
 
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 interface BenchmarkResult {
   name: string;
@@ -229,6 +230,6 @@ function main(): void {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
   main();
 }
