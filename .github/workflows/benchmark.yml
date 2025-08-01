@@ -78,6 +78,17 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history to find merge-base
+
+    - name: Find merge base
+      id: merge-base
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
+        echo "commit=$MERGE_BASE" >> $GITHUB_OUTPUT
+        echo "short-commit=${MERGE_BASE:0:7}" >> $GITHUB_OUTPUT
+        echo "Merge base: $MERGE_BASE"
 
     - name: Download all benchmark results
       uses: actions/download-artifact@v4
@@ -92,7 +103,7 @@ jobs:
         echo "<!-- benchmark-results -->" > combined-results.md
         echo "# 🚀 Benchmark Results" >> combined-results.md
         echo "" >> combined-results.md
-        echo "Performance comparison against merge-base [\`${{ needs.benchmark.outputs.merge-base || 'unknown' }}\`]" >> combined-results.md
+        echo "Performance comparison against merge-base [\`${{ steps.merge-base.outputs.short-commit }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.merge-base.outputs.commit }})" >> combined-results.md
         echo "" >> combined-results.md
         
         # Add results for each Node.js version
@@ -110,8 +121,8 @@ jobs:
         echo "<details>" >> combined-results.md
         echo "<summary>ℹ️ Benchmark Details</summary>" >> combined-results.md
         echo "" >> combined-results.md
-        echo "- **Baseline**: Merge-base commit where this PR branched from ${{ github.base_ref }}" >> combined-results.md
-        echo "- **Comparison**: Current PR head (${{ github.sha }})" >> combined-results.md
+        echo "- **Baseline**: Merge-base commit [\`${{ steps.merge-base.outputs.short-commit }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.merge-base.outputs.commit }}) where this PR branched from ${{ github.base_ref }}" >> combined-results.md
+        echo "- **Comparison**: Current PR head [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> combined-results.md
         echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> combined-results.md
         echo "</details>" >> combined-results.md
         
