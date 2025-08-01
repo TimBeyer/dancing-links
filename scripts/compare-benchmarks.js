@@ -20,63 +20,30 @@ const __dirname = dirname(__filename);
  */
 class BenchmarkParser {
   /**
-   * Parse benchmark output and extract performance metrics
-   * @param {string} output - Raw benchmark output
+   * Parse structured JSON benchmark output
+   * @param {string} output - JSON benchmark output
    * @returns {Array<{name: string, opsPerSec: number, margin: number}>}
    */
   static parse(output) {
-    // Current implementation: regex parsing of text output
-    return this.parseTextOutput(output);
-  }
-
-  /**
-   * Parse text-based benchmark output (current format)
-   * This method can be replaced when structured output is available
-   */
-  static parseTextOutput(output) {
+    const benchmarkSections = JSON.parse(output);
     const results = [];
     
-    // Split output into sections by benchmark headers
-    const sections = output.split(/^Benchmark: (.+)$/gm);
-    
-    // Process each section (skip first empty element)
-    for (let i = 1; i < sections.length; i += 2) {
-      const benchmarkName = sections[i].trim();
-      const sectionContent = sections[i + 1] || '';
+    for (const section of benchmarkSections) {
+      const { benchmarkName, results: sectionResults } = section;
       
-      // Match lines like: "dancing-links find x 3,771 ops/sec ±2.06% (92 runs sampled)"
-      const benchmarkRegex = /^(.+?)\s+x\s+([\d,]+)\s+ops\/sec\s+±([\d.]+)%/gm;
-      
-      let match;
-      while ((match = benchmarkRegex.exec(sectionContent)) !== null) {
-        const [, libraryName, opsPerSecStr, marginStr] = match;
-        const opsPerSec = parseFloat(opsPerSecStr.replace(/,/g, ''));
-        const margin = parseFloat(marginStr);
-        
-        if (!isNaN(opsPerSec) && !isNaN(margin)) {
-          results.push({
-            // Combine benchmark + library for unique identification
-            name: `${benchmarkName} | ${libraryName.trim()}`,
-            benchmarkName: benchmarkName,
-            libraryName: libraryName.trim(),
-            opsPerSec,
-            margin
-          });
-        }
+      for (const result of sectionResults) {
+        results.push({
+          name: `${benchmarkName} | ${result.name}`,
+          benchmarkName: benchmarkName,
+          libraryName: result.name,
+          opsPerSec: result.opsPerSec,
+          margin: result.margin,
+          runs: result.runs
+        });
       }
     }
     
     return results;
-  }
-
-  /**
-   * Future: Parse structured JSON/CSV output
-   * Replace parseTextOutput() call in parse() method when available
-   */
-  static parseStructuredOutput(output) {
-    // TODO: Implement when benchmark tool outputs structured data
-    // Example: return JSON.parse(output).benchmarks;
-    throw new Error('Structured output parsing not yet implemented');
   }
 }
 

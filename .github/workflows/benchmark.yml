@@ -39,20 +39,20 @@ jobs:
         echo "Benchmarking merge-base: ${{ steps.merge-base.outputs.commit }}"
         git checkout ${{ steps.merge-base.outputs.commit }}
         npm ci
-        timeout 300s npm run benchmark:comparison > baseline-results-node${{ matrix.node-version }}.txt 2>&1 || echo "Baseline benchmark failed or timed out"
+        timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>&1 || echo "Baseline benchmark failed or timed out"
 
     - name: Benchmark PR branch
       run: |
         echo "Benchmarking PR: ${{ github.sha }}"
         git checkout ${{ github.sha }}
         npm ci
-        timeout 300s npm run benchmark:comparison > pr-results-node${{ matrix.node-version }}.txt 2>&1 || echo "PR benchmark failed or timed out"
+        timeout 300s npm run benchmark:json > pr-results-node${{ matrix.node-version }}.json 2>&1 || echo "PR benchmark failed or timed out"
 
     - name: Compare results
       id: comparison
       run: |
         # Generate comparison markdown
-        node scripts/compare-benchmarks.js baseline-results-node${{ matrix.node-version }}.txt pr-results-node${{ matrix.node-version }}.txt > comparison-node${{ matrix.node-version }}.md
+        node scripts/compare-benchmarks.js baseline-results-node${{ matrix.node-version }}.json pr-results-node${{ matrix.node-version }}.json > comparison-node${{ matrix.node-version }}.md
         
         # Add Node.js version header
         echo "### Node.js ${{ matrix.node-version }}" > final-comparison-node${{ matrix.node-version }}.md
@@ -65,8 +65,8 @@ jobs:
       with:
         name: benchmark-results-node${{ matrix.node-version }}
         path: |
-          baseline-results-node${{ matrix.node-version }}.txt
-          pr-results-node${{ matrix.node-version }}.txt
+          baseline-results-node${{ matrix.node-version }}.json
+          pr-results-node${{ matrix.node-version }}.json
           final-comparison-node${{ matrix.node-version }}.md
 
   # Job to collect all Node.js results and post PR comment
