@@ -36,12 +36,22 @@ export function find<T = any>(constraints: Constraint<T>[], numSolutions: number
   return search<T>(getSearchConfig(numSolutions, constraints))
 }
 
+/**
+ * @deprecated Use new DancingLinks API for better performance and cleaner interface:
+ * const dlx = new DancingLinks()
+ * const solver = dlx.createSolver()
+ * constraints.forEach(c => solver.addConstraint(c))
+ * return solver.find(numSolutions)
+ */
 export function findRaw<T = any>(config: SearchConfig<T>) {
   return search<T>(config)
 }
 
 // New high-performance API
 export { DancingLinks } from './lib/new-api.js'
+
+// Legacy utilities (deprecated)
+export { getSearchConfig } from './lib/utils.js'
 
 export {
   Constraint,

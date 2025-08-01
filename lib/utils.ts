@@ -38,6 +38,13 @@ function getParams(constraint: Constraint) {
   }
 }
 
+/**
+ * @deprecated Use new DancingLinks API instead:
+ * const dlx = new DancingLinks()
+ * const solver = dlx.createSolver()
+ * constraints.forEach(c => solver.addConstraint(c))
+ * return solver.find(numSolutions)
+ */
 export function getSearchConfig<T = any>(
   numSolutions: number,
   constraints: Constraint<T>[]

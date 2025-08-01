@@ -19,10 +19,10 @@ function benchmarkConstraintCaching() {
   const suite = new Benchmark.Suite()
 
   suite
-    .add('Current API: find() - no caching', function () {
+    .add('Deprecated API: find() - no caching', function () {
       find(ALL_CONSTRAINTS, 1)
     })
-    .add('Current API: findRaw() - manual caching', function () {
+    .add('Deprecated API: findRaw() - manual caching', function () {
       findRaw(searchConfig)
     })
     .add('New API: First solve (pays encoding cost)', function () {
@@ -68,7 +68,7 @@ function benchmarkTemplateReuse() {
   const suite = new Benchmark.Suite()
 
   suite
-    .add('Current API: Repeated find() calls', function () {
+    .add('Deprecated API: Repeated find() calls', function () {
       // Simulate solving 5 similar sudoku puzzles
       for (let i = 0; i < 5; i++) {
         find(baseConstraints, 1)
