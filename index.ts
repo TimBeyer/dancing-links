@@ -11,7 +11,6 @@ import { getSearchConfig } from './lib/utils.js'
  * return solver.findAll()
  */
 export function findAll<T = any>(constraints: Constraint<T>[]) {
-  console.warn('findAll() is deprecated. Use new DancingLinks().createSolver().addConstraints().findAll() for better performance.')
   return search<T>(getSearchConfig(Infinity, constraints))
 }
 
@@ -23,7 +22,6 @@ export function findAll<T = any>(constraints: Constraint<T>[]) {
  * return solver.findOne()
  */
 export function findOne<T = any>(constraints: Constraint<T>[]) {
-  console.warn('findOne() is deprecated. Use new DancingLinks().createSolver().addConstraints().findOne() for better performance.')
   return search<T>(getSearchConfig(1, constraints))
 }
 
@@ -35,7 +33,6 @@ export function findOne<T = any>(constraints: Constraint<T>[]) {
  * return solver.find(numSolutions)
  */
 export function find<T = any>(constraints: Constraint<T>[], numSolutions: number) {
-  console.warn('find() is deprecated. Use new DancingLinks().createSolver().addConstraints().find() for better performance.')
   return search<T>(getSearchConfig(numSolutions, constraints))
 }
 

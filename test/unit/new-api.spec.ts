@@ -12,13 +12,18 @@ describe('New Caching API', function () {
     it('should create a ProblemSolver', function () {
       const dlx = new DancingLinks()
       const solver = dlx.createSolver()
-      expect(solver).to.exist
+      
+      // Add a simple constraint and verify it works
+      solver.addConstraint({ data: 0, row: [1] })
+      expect(() => solver.findAll()).to.not.throw()
     })
 
     it('should create a SolverTemplate', function () {
       const dlx = new DancingLinks()
       const template = dlx.createSolverTemplate()
-      expect(template).to.exist
+      
+      // Just verify we can create solver from template
+      expect(() => template.createSolver()).to.not.throw()
     })
   })
 
