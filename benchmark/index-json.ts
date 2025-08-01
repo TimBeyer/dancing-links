@@ -1,4 +1,5 @@
 import Benchmark from 'benchmark'
+import { writeFileSync } from 'fs'
 
 // import { createConstraints } from './n-queens'
 import { find, findRaw } from '../index.js'
@@ -170,8 +171,7 @@ async function runAllBenchmarks() {
 
   if (outputFile) {
     // Write to file
-    const fs = await import('fs')
-    fs.writeFileSync(outputFile, jsonOutput)
+    writeFileSync(outputFile, jsonOutput)
     console.log(`Benchmark results written to ${outputFile}`)
   } else {
     // Output to stdout
