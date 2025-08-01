@@ -133,6 +133,30 @@ When you write complex code, you MUST write documentation explaining the why, no
 - Test implementation details
 - Duplicate type checking that TypeScript already provides
 
+### Problem-Solving Approach
+
+**ALWAYS plan together first for complex problems before implementing.**
+
+When to **PLAN TOGETHER** (not implement immediately):
+
+- Questions like "Can we think of a better way..." 
+- "Maybe we can build something better..."
+- "Is it a good interface to..."
+- Architecture or design discussions
+- Performance optimization strategies
+- API design questions
+- Complex problem exploration
+
+When to **IMPLEMENT DIRECTLY**:
+
+- "Can you fix the type issue"
+- "Add this specific feature"
+- "Run the tests"
+- Clear, specific implementation requests
+- Bug fixes with known solutions
+
+**Always use judgment**: If unsure whether to plan or implement, err on the side of planning and discussion first. Implementation can always come after we've explored the problem space together.
+
 ## Commit Guidelines
 
 - Commit frequently, ensure tests pass before committing, always ensure that ALL TS types pass
