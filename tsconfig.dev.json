@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "./built"
   },
-  "include": ["./index.ts", "./lib/**/*", "./test/**/*", "./benchmark/**/*"],
+  "include": ["./index.ts", "./lib/**/*", "./test/**/*", "./benchmark/**/*", "./scripts/**/*"],
   "exclude": ["node_modules", "built"]
 }
