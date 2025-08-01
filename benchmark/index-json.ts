@@ -42,12 +42,14 @@ function benchmarkSudoku(): Promise<void> {
       })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
-        results.push({
-          name: benchmark.name,
-          opsPerSec: benchmark.hz,
-          margin: benchmark.stats.rme,
-          runs: benchmark.stats.sample.length
-        })
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
       })
       .on('complete', function () {
         allResults.push({
@@ -75,12 +77,14 @@ function benchmarkOneTiling(): Promise<void> {
       })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
-        results.push({
-          name: benchmark.name,
-          opsPerSec: benchmark.hz,
-          margin: benchmark.stats.rme,
-          runs: benchmark.stats.sample.length
-        })
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
       })
       .on('complete', function () {
         allResults.push({
@@ -108,12 +112,14 @@ function benchmarkTenTilings(): Promise<void> {
       })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
-        results.push({
-          name: benchmark.name,
-          opsPerSec: benchmark.hz,
-          margin: benchmark.stats.rme,
-          runs: benchmark.stats.sample.length
-        })
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
       })
       .on('complete', function () {
         allResults.push({
@@ -141,12 +147,14 @@ function benchmarkHundredTilings(): Promise<void> {
       })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
-        results.push({
-          name: benchmark.name,
-          opsPerSec: benchmark.hz,
-          margin: benchmark.stats.rme,
-          runs: benchmark.stats.sample.length
-        })
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
       })
       .on('complete', function () {
         allResults.push({
