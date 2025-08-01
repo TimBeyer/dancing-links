@@ -21,7 +21,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["./index.ts", "./lib/**/*", "./test/**/*"],
+  "include": ["./index.ts", "./lib/**/*", "./test/**/*", "./scripts/**/*"],
   "exclude": ["node_modules", "built", "benchmark"],
   "ts-node": {
     "esm": true

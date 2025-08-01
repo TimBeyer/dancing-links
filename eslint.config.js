@@ -20,10 +20,7 @@ export default [
     rules: {
       ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'off', // Allow any for generic library
-      '@typescript-eslint/no-inferrable-types': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off'
+      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
     }
   },
   {
@@ -50,10 +47,7 @@ export default [
     rules: {
       ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-inferrable-types': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off'
+      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
     }
   },
   {
@@ -61,6 +55,29 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module'
+    }
+  },
+  {
+    files: ['scripts/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+        project: './tsconfig.json'
+      },
+      globals: {
+        process: 'readonly',
+        console: 'readonly'
+      }
+    },
+    plugins: {
+      '@typescript-eslint': tseslint
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
     }
   },
   {
