@@ -40,7 +40,7 @@ function benchmarkSudoku(): Promise<void> {
       .add('dancing-links findRaw', function () {
         findRaw(searchConfig)
       })
-      .on('cycle', function (event: any) {
+      .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
         results.push({
           name: benchmark.name,
@@ -73,7 +73,7 @@ function benchmarkOneTiling(): Promise<void> {
       .add('dancing-links findRaw', function () {
         findRaw(searchConfig)
       })
-      .on('cycle', function (event: any) {
+      .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
         results.push({
           name: benchmark.name,
@@ -106,7 +106,7 @@ function benchmarkTenTilings(): Promise<void> {
       .add('dancing-links findRaw', function () {
         findRaw(searchConfig)
       })
-      .on('cycle', function (event: any) {
+      .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
         results.push({
           name: benchmark.name,
@@ -139,7 +139,7 @@ function benchmarkHundredTilings(): Promise<void> {
       .add('dancing-links findRaw', function () {
         findRaw(searchConfig)
       })
-      .on('cycle', function (event: any) {
+      .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
         results.push({
           name: benchmark.name,

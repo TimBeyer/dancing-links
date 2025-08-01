@@ -41,7 +41,7 @@ jobs:
         npm ci
         
         # Check if benchmark:json script exists, fallback to creating empty results
-        if npm run-script benchmark:json --if-present --silent > /dev/null 2>&1; then
+        if npm run-script benchmark:json --if-present > /dev/null 2>&1; then
           echo "Found benchmark:json script, running benchmarks..."
           if timeout 300s npm run benchmark:json baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
             echo "Baseline benchmark completed successfully"
