@@ -39,10 +39,19 @@ jobs:
         echo "Benchmarking merge-base: ${{ steps.merge-base.outputs.commit }}"
         git checkout ${{ steps.merge-base.outputs.commit }}
         npm ci
-        if timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
-          echo "Baseline benchmark completed successfully"
+        
+        # Check if benchmark:json script exists, fallback to creating empty results
+        if npm run benchmark:json --silent > /dev/null 2>&1; then
+          echo "Found benchmark:json script, running benchmarks..."
+          if timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
+            echo "Baseline benchmark completed successfully"
+          else
+            echo "Baseline benchmark failed or timed out"
+            echo '[]' > baseline-results-node${{ matrix.node-version }}.json
+          fi
         else
-          echo "Baseline benchmark failed or timed out"
+          echo "benchmark:json script not found in merge-base commit, skipping baseline"
+          echo "Merge-base does not have benchmark:json script" > baseline-error-node${{ matrix.node-version }}.log
           echo '[]' > baseline-results-node${{ matrix.node-version }}.json
         fi
 
@@ -77,6 +86,8 @@ jobs:
         path: |
           baseline-results-node${{ matrix.node-version }}.json
           pr-results-node${{ matrix.node-version }}.json
+          baseline-error-node${{ matrix.node-version }}.log
+          pr-error-node${{ matrix.node-version }}.log
           final-comparison-node${{ matrix.node-version }}.md
 
   # Job to collect all Node.js results and post PR comment
@@ -124,6 +135,29 @@ jobs:
             echo "### Node.js ${version}" >> combined-results.md
             echo "⚠️ Benchmark failed or timed out" >> combined-results.md
             echo "" >> combined-results.md
+            
+            # Add error details if available
+            if [ -f "benchmark-results/benchmark-results-node${version}/baseline-error-node${version}.log" ]; then
+              echo "<details>" >> combined-results.md
+              echo "<summary>Baseline Error Log</summary>" >> combined-results.md
+              echo "" >> combined-results.md
+              echo "\`\`\`" >> combined-results.md
+              head -20 "benchmark-results/benchmark-results-node${version}/baseline-error-node${version}.log" >> combined-results.md
+              echo "\`\`\`" >> combined-results.md
+              echo "</details>" >> combined-results.md
+              echo "" >> combined-results.md
+            fi
+            
+            if [ -f "benchmark-results/benchmark-results-node${version}/pr-error-node${version}.log" ]; then
+              echo "<details>" >> combined-results.md
+              echo "<summary>PR Error Log</summary>" >> combined-results.md
+              echo "" >> combined-results.md
+              echo "\`\`\`" >> combined-results.md
+              head -20 "benchmark-results/benchmark-results-node${version}/pr-error-node${version}.log" >> combined-results.md
+              echo "\`\`\`" >> combined-results.md
+              echo "</details>" >> combined-results.md
+              echo "" >> combined-results.md
+            fi
           fi
         done
         
