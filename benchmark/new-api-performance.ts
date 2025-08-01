@@ -38,7 +38,7 @@ function benchmarkConstraintCaching() {
       const dlx = new DancingLinks()
       const solver1 = dlx.createSolver()
       const solver2 = dlx.createSolver()
-      
+
       // Both solvers use same constraint patterns, triggering cache hits
       for (const constraint of ALL_CONSTRAINTS.slice(0, 10)) {
         solver1.addConstraint(constraint)
@@ -77,12 +77,12 @@ function benchmarkTemplateReuse() {
     .add('New API: Template-based solving', function () {
       const dlx = new DancingLinks()
       const template = dlx.createSolverTemplate()
-      
+
       // Build template once
       for (const constraint of baseConstraints) {
         template.addConstraint(constraint)
       }
-      
+
       // Use template for 5 different puzzles
       for (let i = 0; i < 5; i++) {
         const solver = template.createSolver()
@@ -110,23 +110,24 @@ function benchmarkMemoryEfficiency() {
   const solvers = []
 
   const startTime = Date.now()
-  
+
   for (let i = 0; i < 10; i++) {
     const solver = dlx.createSolver()
-    
+
     // Each solver uses overlapping constraint patterns
     for (let j = 0; j < constraints.length; j++) {
-      if ((i + j) % 3 === 0) { // Create overlap pattern
+      if ((i + j) % 3 === 0) {
+        // Create overlap pattern
         solver.addConstraint(constraints[j]!)
       }
     }
-    
+
     solvers.push(solver)
   }
-  
+
   const buildTime = Date.now() - startTime
   console.log(`Built 10 solvers with overlapping constraints in ${buildTime}ms`)
-  
+
   // Solve with all solvers
   const solveStartTime = Date.now()
   for (const solver of solvers) {
@@ -147,7 +148,7 @@ console.log('='.repeat(60))
 console.log()
 
 benchmarkConstraintCaching()
-benchmarkTemplateReuse() 
+benchmarkTemplateReuse()
 benchmarkMemoryEfficiency()
 
 console.log('='.repeat(60))

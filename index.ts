@@ -55,6 +55,8 @@ export { getSearchConfig } from './lib/utils.js'
 
 export {
   Constraint,
+  BinaryConstraint,
+  SparseConstraint,
   SimpleConstraint,
   ComplexConstraint,
   SearchConfig,
