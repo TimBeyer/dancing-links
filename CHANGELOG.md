@@ -1,5 +1,36 @@
 # Changelog
 
+# [3.3.0](https://github.com/TimBeyer/node-dlx/compare/v3.2.2...v3.3.0) (2025-08-01)
+
+
+### Bug Fixes
+
+* add compare-benchmarks npm script and use in workflow ([0d3f986](https://github.com/TimBeyer/node-dlx/commit/0d3f98600a35360935cc1745b3e819d62002f99a))
+* add null checks for strict TypeScript compliance ([a89b6e2](https://github.com/TimBeyer/node-dlx/commit/a89b6e228dafee8f23cacec6a5dcd719f996eb78))
+* address additional Copilot review comments ([cfccc1d](https://github.com/TimBeyer/node-dlx/commit/cfccc1de1cdda1956c596a4f42fdc3b7fae526e3))
+* address Copilot review comments ([c7f3cc9](https://github.com/TimBeyer/node-dlx/commit/c7f3cc9610483c841805405b643e108f12a9c063))
+* calculate merge-base in comment job for proper display ([2ec7983](https://github.com/TimBeyer/node-dlx/commit/2ec7983b983b0cdd98705ea96cb67c1b1b18f6d4))
+* correct direct execution detection in comparison script ([c6066ee](https://github.com/TimBeyer/node-dlx/commit/c6066eeb2c9053811ac29fda4ee4b4eb4e1e21c4))
+* improve benchmark error handling ([fd2a2b0](https://github.com/TimBeyer/node-dlx/commit/fd2a2b0eb33cadb3cf65dc44a447e55d206a3592))
+* include scripts folder in dev TypeScript build ([8a2ebcb](https://github.com/TimBeyer/node-dlx/commit/8a2ebcb71c85ba37b08ac4f38149719dd8e1da8b))
+* output pure JSON by writing to file instead of stdout ([bb819ef](https://github.com/TimBeyer/node-dlx/commit/bb819efe11122f6d8f3a4f17641f0416204f3ea2))
+* parse benchmark sections correctly ([5341f51](https://github.com/TimBeyer/node-dlx/commit/5341f51ca37d02d0ca746391774bfdf020c98b4a))
+* remove old benchmark file ([983049d](https://github.com/TimBeyer/node-dlx/commit/983049d83054e1fcc06fa56bf39d8ea7f2654aad))
+* use direct package.json check for script existence ([56c6769](https://github.com/TimBeyer/node-dlx/commit/56c6769d59a759c5c4b823dbaf9d95d5319755e2))
+
+
+### Features
+
+* add PR benchmark comparison with automated comments ([d1efae8](https://github.com/TimBeyer/node-dlx/commit/d1efae8d19272fdbe33cd179f5095c9f276134c8))
+* handle first PR scenario gracefully when baseline unavailable ([2812fc8](https://github.com/TimBeyer/node-dlx/commit/2812fc865f6f43443efd872784ae7c4ae59c1b8b))
+* improve benchmark error reporting and handle missing scripts ([1e8533d](https://github.com/TimBeyer/node-dlx/commit/1e8533db71daebb2ea049c7b97958ce03f8c0eef))
+* structured JSON benchmarks ([ab6c3ce](https://github.com/TimBeyer/node-dlx/commit/ab6c3ce2e7e04ae0460c38b4fedfa06342416e07))
+
+
+### Performance Improvements
+
+* remove duplicate build step in benchmark workflow ([a8d8836](https://github.com/TimBeyer/node-dlx/commit/a8d8836f65f6f1fb4cb588c3fbe936d0000f978c))
+
 ## [3.2.2](https://github.com/TimBeyer/node-dlx/compare/v3.2.1...v3.2.2) (2025-07-31)
 
 ## [3.2.1](https://github.com/TimBeyer/node-dlx/compare/v3.2.0...v3.2.1) (2025-07-31)
