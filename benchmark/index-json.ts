@@ -1,7 +1,6 @@
 import Benchmark from 'benchmark'
 import { writeFileSync } from 'fs'
 
-// import { createConstraints } from './n-queens'
 import { find, findRaw } from '../index.js'
 import { ALL_CONSTRAINTS } from './pentomino/field.js'
 import { getSearchConfig } from '../lib/utils.js'

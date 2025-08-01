@@ -8,7 +8,6 @@
  */
 
 import { readFileSync } from 'fs'
-import { fileURLToPath } from 'url'
 
 interface BenchmarkResult {
   name: string
@@ -67,7 +66,8 @@ class BenchmarkParser {
       return results
     } catch (error) {
       console.error('Failed to parse benchmark JSON:', error)
-      console.error('Raw output:', output.substring(0, 200) + '...')
+      console.error('Output length:', output.length, 'characters')
+      console.error('Output preview:', output.substring(0, 100).replace(/[^\x20-\x7E]/g, '?') + '...')
       return []
     }
   }
@@ -230,6 +230,6 @@ function main(): void {
 }
 
 // Run if called directly
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && process.argv[1].endsWith('compare-benchmarks.js')) {
   main()
 }

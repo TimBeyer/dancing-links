@@ -41,7 +41,7 @@ jobs:
         npm ci
         
         # Check if benchmark:json script exists, fallback to creating empty results
-        if npm run benchmark:json --silent > /dev/null 2>&1; then
+        if npm run-script benchmark:json --if-present --silent > /dev/null 2>&1; then
           echo "Found benchmark:json script, running benchmarks..."
           if timeout 300s npm run benchmark:json baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
             echo "Baseline benchmark completed successfully"
@@ -127,36 +127,41 @@ jobs:
         echo "Performance comparison against merge-base [\`${{ steps.merge-base.outputs.short-commit }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.merge-base.outputs.commit }})" >> combined-results.md
         echo "" >> combined-results.md
         
-        # Add results for each Node.js version
-        for version in 18 20 22; do
-          if [ -f "benchmark-results/benchmark-results-node${version}/final-comparison-node${version}.md" ]; then
-            cat "benchmark-results/benchmark-results-node${version}/final-comparison-node${version}.md" >> combined-results.md
-          else
-            echo "### Node.js ${version}" >> combined-results.md
-            echo "⚠️ Benchmark failed or timed out" >> combined-results.md
-            echo "" >> combined-results.md
+        # Add results for each Node.js version (iterate over actual artifacts)
+        for result_dir in benchmark-results/benchmark-results-node*; do
+          if [ -d "$result_dir" ]; then
+            # Extract version from directory name (benchmark-results-node18 -> 18)
+            version=$(basename "$result_dir" | sed 's/benchmark-results-node//')
             
-            # Add error details if available
-            if [ -f "benchmark-results/benchmark-results-node${version}/baseline-error-node${version}.log" ]; then
-              echo "<details>" >> combined-results.md
-              echo "<summary>Baseline Error Log</summary>" >> combined-results.md
+            if [ -f "$result_dir/final-comparison-node${version}.md" ]; then
+              cat "$result_dir/final-comparison-node${version}.md" >> combined-results.md
+            else
+              echo "### Node.js ${version}" >> combined-results.md
+              echo "⚠️ Benchmark failed or timed out" >> combined-results.md
               echo "" >> combined-results.md
-              echo "\`\`\`" >> combined-results.md
-              head -20 "benchmark-results/benchmark-results-node${version}/baseline-error-node${version}.log" >> combined-results.md
-              echo "\`\`\`" >> combined-results.md
-              echo "</details>" >> combined-results.md
-              echo "" >> combined-results.md
-            fi
-            
-            if [ -f "benchmark-results/benchmark-results-node${version}/pr-error-node${version}.log" ]; then
-              echo "<details>" >> combined-results.md
-              echo "<summary>PR Error Log</summary>" >> combined-results.md
-              echo "" >> combined-results.md
-              echo "\`\`\`" >> combined-results.md
-              head -20 "benchmark-results/benchmark-results-node${version}/pr-error-node${version}.log" >> combined-results.md
-              echo "\`\`\`" >> combined-results.md
-              echo "</details>" >> combined-results.md
-              echo "" >> combined-results.md
+              
+              # Add error details if available
+              if [ -f "$result_dir/baseline-error-node${version}.log" ]; then
+                echo "<details>" >> combined-results.md
+                echo "<summary>Baseline Error Log</summary>" >> combined-results.md
+                echo "" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                head -20 "$result_dir/baseline-error-node${version}.log" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                echo "</details>" >> combined-results.md
+                echo "" >> combined-results.md
+              fi
+              
+              if [ -f "$result_dir/pr-error-node${version}.log" ]; then
+                echo "<details>" >> combined-results.md
+                echo "<summary>PR Error Log</summary>" >> combined-results.md
+                echo "" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                head -20 "$result_dir/pr-error-node${version}.log" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                echo "</details>" >> combined-results.md
+                echo "" >> combined-results.md
+              fi
             fi
           fi
         done
