@@ -62,7 +62,7 @@ jobs:
       id: comparison
       run: |
         # Generate comparison markdown
-        node built/scripts/compare-benchmarks.js baseline-results-node${{ matrix.node-version }}.json pr-results-node${{ matrix.node-version }}.json > comparison-node${{ matrix.node-version }}.md
+        npm run compare-benchmarks baseline-results-node${{ matrix.node-version }}.json pr-results-node${{ matrix.node-version }}.json > comparison-node${{ matrix.node-version }}.md
         
         # Add Node.js version header
         echo "### Node.js ${{ matrix.node-version }}" > final-comparison-node${{ matrix.node-version }}.md
