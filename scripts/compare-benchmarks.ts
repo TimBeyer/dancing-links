@@ -67,7 +67,10 @@ class BenchmarkParser {
     } catch (error) {
       console.error('Failed to parse benchmark JSON:', error)
       console.error('Output length:', output.length, 'characters')
-      console.error('Output preview:', output.substring(0, 100).replace(/[^\x20-\x7E]/g, '?') + '...')
+      console.error(
+        'Output preview:',
+        output.substring(0, 100).replace(/[^\x20-\x7E]/g, '?') + '...'
+      )
       return []
     }
   }
