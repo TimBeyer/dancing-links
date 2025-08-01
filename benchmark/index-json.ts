@@ -21,7 +21,7 @@ interface BenchmarkSection {
 const allResults: BenchmarkSection[] = []
 
 function benchmarkSudoku(): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const sudokuField = parseStringFormat(
       9,
       '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
@@ -61,7 +61,7 @@ function benchmarkSudoku(): Promise<void> {
 }
 
 function benchmarkOneTiling(): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -94,7 +94,7 @@ function benchmarkOneTiling(): Promise<void> {
 }
 
 function benchmarkTenTilings(): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -127,7 +127,7 @@ function benchmarkTenTilings(): Promise<void> {
 }
 
 function benchmarkHundredTilings(): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -164,7 +164,7 @@ async function runAllBenchmarks() {
   await benchmarkOneTiling()
   await benchmarkTenTilings()
   await benchmarkHundredTilings()
-  
+
   // Output structured JSON
   console.log(JSON.stringify(allResults, null, 2))
 }
