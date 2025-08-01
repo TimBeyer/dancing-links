@@ -44,25 +44,31 @@ class BenchmarkParser {
    * Parse structured JSON benchmark output
    */
   static parse(output: string): BenchmarkResult[] {
-    const benchmarkSections: BenchmarkSection[] = JSON.parse(output);
-    const results: BenchmarkResult[] = [];
-    
-    for (const section of benchmarkSections) {
-      const { benchmarkName, results: sectionResults } = section;
+    try {
+      const benchmarkSections: BenchmarkSection[] = JSON.parse(output);
+      const results: BenchmarkResult[] = [];
       
-      for (const result of sectionResults) {
-        results.push({
-          name: `${benchmarkName} | ${result.name}`,
-          benchmarkName: benchmarkName,
-          libraryName: result.name,
-          opsPerSec: result.opsPerSec,
-          margin: result.margin,
-          runs: result.runs
-        });
+      for (const section of benchmarkSections) {
+        const { benchmarkName, results: sectionResults } = section;
+        
+        for (const result of sectionResults) {
+          results.push({
+            name: `${benchmarkName} | ${result.name}`,
+            benchmarkName: benchmarkName,
+            libraryName: result.name,
+            opsPerSec: result.opsPerSec,
+            margin: result.margin,
+            runs: result.runs
+          });
+        }
       }
+      
+      return results;
+    } catch (error) {
+      console.error('Failed to parse benchmark JSON:', error);
+      console.error('Raw output:', output.substring(0, 200) + '...');
+      return [];
     }
-    
-    return results;
   }
 }
 
@@ -83,6 +89,18 @@ class BenchmarkComparator {
    */
   generateMarkdown(): string {
     const comparisons = this.calculateComparisons();
+    
+    if (this.baselineResults.length === 0 && this.prResults.length === 0) {
+      return '❌ Both baseline and PR benchmarks failed to run.';
+    }
+    
+    if (this.baselineResults.length === 0) {
+      return '❌ Baseline benchmark failed to run. Cannot compare results.';
+    }
+    
+    if (this.prResults.length === 0) {
+      return '❌ PR benchmark failed to run. Cannot compare results.';
+    }
     
     if (comparisons.length === 0) {
       return '⚠️ No comparable benchmark results found.';

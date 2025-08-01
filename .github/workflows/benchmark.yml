@@ -39,14 +39,24 @@ jobs:
         echo "Benchmarking merge-base: ${{ steps.merge-base.outputs.commit }}"
         git checkout ${{ steps.merge-base.outputs.commit }}
         npm ci
-        timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>&1 || echo "Baseline benchmark failed or timed out"
+        if timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
+          echo "Baseline benchmark completed successfully"
+        else
+          echo "Baseline benchmark failed or timed out"
+          echo '[]' > baseline-results-node${{ matrix.node-version }}.json
+        fi
 
     - name: Benchmark PR branch
       run: |
         echo "Benchmarking PR: ${{ github.sha }}"
         git checkout ${{ github.sha }}
         npm ci
-        timeout 300s npm run benchmark:json > pr-results-node${{ matrix.node-version }}.json 2>&1 || echo "PR benchmark failed or timed out"
+        if timeout 300s npm run benchmark:json > pr-results-node${{ matrix.node-version }}.json 2>pr-error-node${{ matrix.node-version }}.log; then
+          echo "PR benchmark completed successfully"
+        else
+          echo "PR benchmark failed or timed out"
+          echo '[]' > pr-results-node${{ matrix.node-version }}.json
+        fi
 
     - name: Compare results
       id: comparison
