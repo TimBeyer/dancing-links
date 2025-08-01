@@ -49,7 +49,9 @@
     "format:check": "prettier --check '**/*.{ts,js,json,md}' '!CHANGELOG.md'",
     "build:dev": "npm run clean && tsc -p tsconfig.dev.json",
     "benchmark": "npm run build:dev && node built/benchmark/index-library.js",
+    "benchmark:json": "npm run build:dev && node built/benchmark/index-json.js",
     "benchmark:comparison": "npm run build:dev && node built/benchmark/index.js",
+    "compare-benchmarks": "npm run build:dev && node built/scripts/compare-benchmarks.js",
     "profile": "npm run build:dev && node built/benchmark/profile.js",
     "release": "release-it"
   },

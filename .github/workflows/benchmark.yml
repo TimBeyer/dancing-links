@@ -1,14 +1,14 @@
 name: Benchmark
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
 jobs:
   benchmark:
     runs-on: ubuntu-latest
+    # Only run PR comparison for pull requests
+    if: github.event_name == 'pull_request'
 
     strategy:
       matrix:
@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history to find merge-base
 
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
@@ -24,17 +26,168 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build project
-      run: npm run build
-
-    - name: Run comparison benchmarks
+    - name: Find merge base
+      id: merge-base
       run: |
-        echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-        echo "### Node.js ${{ matrix.node-version }} - Performance vs Competing Libraries" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        timeout 300s npm run benchmark:comparison 2>&1 | tee benchmark-output.txt || echo "Benchmark failed or timed out"
-        cat benchmark-output.txt >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        git fetch origin ${{ github.base_ref }}
+        MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
+        echo "commit=$MERGE_BASE" >> $GITHUB_OUTPUT
+        echo "Merge base: $MERGE_BASE"
+
+    - name: Benchmark baseline (merge-base)
+      run: |
+        echo "Benchmarking merge-base: ${{ steps.merge-base.outputs.commit }}"
+        git checkout ${{ steps.merge-base.outputs.commit }}
+        npm ci
+        
+        # Check if benchmark:json script exists in package.json
+        if [ -f package.json ] && grep -q '"benchmark:json"' package.json; then
+          echo "Found benchmark:json script, running benchmarks..."
+          if timeout 300s npm run benchmark:json baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
+            echo "Baseline benchmark completed successfully"
+          else
+            echo "Baseline benchmark failed or timed out"
+            echo '[]' > baseline-results-node${{ matrix.node-version }}.json
+          fi
+        else
+          echo "benchmark:json script not found in merge-base commit, skipping baseline"
+          echo "Merge-base does not have benchmark:json script" > baseline-error-node${{ matrix.node-version }}.log
+          echo '[]' > baseline-results-node${{ matrix.node-version }}.json
+        fi
+
+    - name: Benchmark PR branch
+      run: |
+        echo "Benchmarking PR: ${{ github.sha }}"
+        git checkout ${{ github.sha }}
+        npm ci
+        if timeout 300s npm run benchmark:json pr-results-node${{ matrix.node-version }}.json 2>pr-error-node${{ matrix.node-version }}.log; then
+          echo "PR benchmark completed successfully"
+        else
+          echo "PR benchmark failed or timed out"
+          echo '[]' > pr-results-node${{ matrix.node-version }}.json
+        fi
+
+    - name: Compare results
+      id: comparison
+      run: |
+        # Generate comparison markdown
+        npm run compare-benchmarks baseline-results-node${{ matrix.node-version }}.json pr-results-node${{ matrix.node-version }}.json > comparison-node${{ matrix.node-version }}.md
+        
+        # Add Node.js version header
+        echo "### Node.js ${{ matrix.node-version }}" > final-comparison-node${{ matrix.node-version }}.md
+        echo "" >> final-comparison-node${{ matrix.node-version }}.md
+        cat comparison-node${{ matrix.node-version }}.md >> final-comparison-node${{ matrix.node-version }}.md
+        echo "" >> final-comparison-node${{ matrix.node-version }}.md
+
+    - name: Upload results as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results-node${{ matrix.node-version }}
+        path: |
+          baseline-results-node${{ matrix.node-version }}.json
+          pr-results-node${{ matrix.node-version }}.json
+          baseline-error-node${{ matrix.node-version }}.log
+          pr-error-node${{ matrix.node-version }}.log
+          final-comparison-node${{ matrix.node-version }}.md
+
+  # Job to collect all Node.js results and post PR comment
+  comment:
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history to find merge-base
+
+    - name: Find merge base
+      id: merge-base
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
+        echo "commit=$MERGE_BASE" >> $GITHUB_OUTPUT
+        echo "short-commit=${MERGE_BASE:0:7}" >> $GITHUB_OUTPUT
+        echo "Merge base: $MERGE_BASE"
+
+    - name: Download all benchmark results
+      uses: actions/download-artifact@v4
+      with:
+        path: benchmark-results
+
+    - name: Combine results and post comment
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Combine all Node.js version results
+        echo "<!-- benchmark-results -->" > combined-results.md
+        echo "# 🚀 Benchmark Results" >> combined-results.md
+        echo "" >> combined-results.md
+        echo "Performance comparison against merge-base [\`${{ steps.merge-base.outputs.short-commit }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.merge-base.outputs.commit }})" >> combined-results.md
+        echo "" >> combined-results.md
+        
+        # Add results for each Node.js version (iterate over actual artifacts)
+        for result_dir in benchmark-results/benchmark-results-node*; do
+          if [ -d "$result_dir" ]; then
+            # Extract version from directory name (benchmark-results-node18 -> 18)
+            version=$(basename "$result_dir" | sed 's/benchmark-results-node//')
+            
+            if [ -f "$result_dir/final-comparison-node${version}.md" ]; then
+              cat "$result_dir/final-comparison-node${version}.md" >> combined-results.md
+            else
+              echo "### Node.js ${version}" >> combined-results.md
+              echo "⚠️ Benchmark failed or timed out" >> combined-results.md
+              echo "" >> combined-results.md
+              
+              # Add error details if available
+              if [ -f "$result_dir/baseline-error-node${version}.log" ]; then
+                echo "<details>" >> combined-results.md
+                echo "<summary>Baseline Error Log</summary>" >> combined-results.md
+                echo "" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                head -20 "$result_dir/baseline-error-node${version}.log" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                echo "</details>" >> combined-results.md
+                echo "" >> combined-results.md
+              fi
+              
+              if [ -f "$result_dir/pr-error-node${version}.log" ]; then
+                echo "<details>" >> combined-results.md
+                echo "<summary>PR Error Log</summary>" >> combined-results.md
+                echo "" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                head -20 "$result_dir/pr-error-node${version}.log" >> combined-results.md
+                echo "\`\`\`" >> combined-results.md
+                echo "</details>" >> combined-results.md
+                echo "" >> combined-results.md
+              fi
+            fi
+          fi
+        done
+        
+        echo "" >> combined-results.md
+        echo "<details>" >> combined-results.md
+        echo "<summary>ℹ️ Benchmark Details</summary>" >> combined-results.md
+        echo "" >> combined-results.md
+        echo "- **Baseline**: Merge-base commit [\`${{ steps.merge-base.outputs.short-commit }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.merge-base.outputs.commit }}) where this PR branched from ${{ github.base_ref }}" >> combined-results.md
+        echo "- **Comparison**: Current PR head [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> combined-results.md
+        echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> combined-results.md
+        echo "</details>" >> combined-results.md
+        
+        # Find existing comment or create new one
+        COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
+          --jq '.[] | select(.body | contains("<!-- benchmark-results -->")) | .id' | head -1)
+        
+        if [ -n "$COMMENT_ID" ]; then
+          echo "Updating existing comment: $COMMENT_ID"
+          gh api "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
+            -X PATCH \
+            -f body="$(cat combined-results.md)"
+        else
+          echo "Creating new comment"
+          gh api "repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
+            -X POST \
+            -f body="$(cat combined-results.md)"
+        fi
+
