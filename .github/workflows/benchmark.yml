@@ -43,7 +43,7 @@ jobs:
         # Check if benchmark:json script exists, fallback to creating empty results
         if npm run benchmark:json --silent > /dev/null 2>&1; then
           echo "Found benchmark:json script, running benchmarks..."
-          if timeout 300s npm run benchmark:json > baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
+          if timeout 300s npm run benchmark:json baseline-results-node${{ matrix.node-version }}.json 2>baseline-error-node${{ matrix.node-version }}.log; then
             echo "Baseline benchmark completed successfully"
           else
             echo "Baseline benchmark failed or timed out"
@@ -60,7 +60,7 @@ jobs:
         echo "Benchmarking PR: ${{ github.sha }}"
         git checkout ${{ github.sha }}
         npm ci
-        if timeout 300s npm run benchmark:json > pr-results-node${{ matrix.node-version }}.json 2>pr-error-node${{ matrix.node-version }}.log; then
+        if timeout 300s npm run benchmark:json pr-results-node${{ matrix.node-version }}.json 2>pr-error-node${{ matrix.node-version }}.log; then
           echo "PR benchmark completed successfully"
         else
           echo "PR benchmark failed or timed out"

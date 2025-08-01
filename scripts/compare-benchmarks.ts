@@ -96,17 +96,7 @@ class BenchmarkComparator {
     }
 
     if (this.baselineResults.length === 0) {
-      return `## 🚀 Benchmark Results
-
-### PR Results (No Baseline Comparison)
-
-Baseline comparison not available - this may be the first PR with the benchmark comparison feature, or the merge-base commit doesn't have the \`benchmark:json\` script.
-
-### Current PR Performance
-
-${this.generatePROnlyResults()}
-
-*Updated: ${new Date().toISOString()}*`
+      return '❌ Baseline benchmark failed to run. Cannot compare results.'
     }
 
     if (this.prResults.length === 0) {
@@ -191,50 +181,6 @@ ${this.generatePROnlyResults()}
     }
 
     return comparisons
-  }
-
-  /**
-   * Generate PR-only results without baseline comparison
-   */
-  generatePROnlyResults(): string {
-    const groupedResults = this.groupResultsByBenchmark(this.prResults)
-    let markdown = ''
-    
-    for (const [benchmarkName, results] of Object.entries(groupedResults)) {
-      markdown += `#### ${benchmarkName}\n\n`
-      markdown += '| Library | Performance (ops/sec) |\n'
-      markdown += '|---------|-----------------------|\n'
-
-      for (const result of results) {
-        markdown += `| ${result.libraryName} | ${result.opsPerSec.toLocaleString()} ±${result.margin.toFixed(2)}% |\n`
-      }
-      
-      markdown += '\n'
-    }
-    
-    return markdown
-  }
-
-  /**
-   * Group results by benchmark type (similar to groupComparisonsByBenchmark but for raw results)
-   */
-  groupResultsByBenchmark(results: BenchmarkResult[]): Record<string, BenchmarkResult[]> {
-    const grouped: Record<string, BenchmarkResult[]> = {}
-    
-    for (const result of results) {
-      const benchmarkName = result.benchmarkName
-      if (!grouped[benchmarkName]) {
-        grouped[benchmarkName] = []
-      }
-      grouped[benchmarkName].push(result)
-    }
-    
-    // Sort libraries within each benchmark for consistency
-    for (const benchmarkName of Object.keys(grouped)) {
-      grouped[benchmarkName].sort((a, b) => a.libraryName.localeCompare(b.libraryName))
-    }
-    
-    return grouped
   }
 
   /**

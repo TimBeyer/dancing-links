@@ -165,8 +165,18 @@ async function runAllBenchmarks() {
   await benchmarkTenTilings()
   await benchmarkHundredTilings()
 
-  // Output structured JSON
-  console.log(JSON.stringify(allResults, null, 2))
+  const outputFile = process.argv[2]
+  const jsonOutput = JSON.stringify(allResults, null, 2)
+
+  if (outputFile) {
+    // Write to file
+    const fs = await import('fs')
+    fs.writeFileSync(outputFile, jsonOutput)
+    console.log(`Benchmark results written to ${outputFile}`)
+  } else {
+    // Output to stdout
+    console.log(jsonOutput)
+  }
 }
 
 runAllBenchmarks().catch(console.error)
