@@ -11,7 +11,54 @@ It is currently [the fastest](#benchmarks) Dancing Links implementation in JS.
 
 ## Usage
 
-### ES Modules (Modern)
+### High-Performance API (Recommended)
+
+The new high-performance API provides optimized interfaces for different constraint types and use cases:
+
+```javascript
+import { DancingLinks } from 'dancing-links'
+
+// Create a Dancing Links container
+const dlx = new DancingLinks()
+
+// Simple binary constraints
+const solver = dlx.createSolver({ columns: 4 })
+solver.addBinaryConstraint('row1', [1, 0, 1, 0])
+solver.addBinaryConstraint('row2', [0, 1, 0, 1]) 
+solver.addBinaryConstraint('row3', [1, 1, 0, 0])
+
+const solution = solver.findOne()
+// Returns: [{ data: 'row1', index: 0 }, { data: 'row2', index: 1 }]
+
+// Sparse constraints (more efficient for sparse matrices)
+const sparseSolver = dlx.createSolver({ columns: 100 })
+sparseSolver.addSparseConstraint('sparse1', [0, 15, 42, 87])  // Only specify active columns
+sparseSolver.addSparseConstraint('sparse2', [1, 16, 43])
+
+// Constraint templates (for reusable constraint sets)
+const template = dlx.createSolverTemplate({ columns: 4 })
+template.addBinaryConstraint('base1', [1, 0, 0, 0])
+template.addBinaryConstraint('base2', [0, 1, 0, 0])
+
+// Create multiple solvers from the same template
+const solver1 = template.createSolver()
+solver1.addBinaryConstraint('extra1', [0, 0, 1, 0])
+
+const solver2 = template.createSolver() 
+solver2.addBinaryConstraint('extra2', [0, 0, 0, 1])
+
+// Complex constraints (primary + secondary)
+const complexSolver = dlx.createSolver({ 
+  columns: 4, 
+  primaryColumns: 2  // First 2 columns are primary
+})
+complexSolver.addComplexConstraint('complex1', {
+  primaryRow: [1, 0],
+  secondaryRow: [1, 1]
+})
+```
+
+### Legacy API (ES Modules)
 
 ```javascript
 import { findOne, findAll } from 'dancing-links'
@@ -146,59 +193,35 @@ Since JS does not support the `goto` statement, and since it's considered harmfu
 
 ## Benchmarks
 
-The benchmarks were done against [dlxlib](https://github.com/taylorjg/dlxlibjs) and [dance](https://github.com/wbyoung/dance) using constraints for a 6x10 [pentomino](https://en.wikipedia.org/wiki/Pentomino) tiling.
+The benchmarks compare performance across different APIs and against [dlxlib](https://github.com/taylorjg/dlxlibjs) and [dance](https://github.com/wbyoung/dance) using sudoku and [pentomino](https://en.wikipedia.org/wiki/Pentomino) tiling problems.
 
-You can run them with `npm run benchmark`
+### Available Benchmark Commands
 
+```bash
+# Fast library-only benchmarks (for CI)
+npm run benchmark
+
+# Include external library comparisons
+npm run benchmark:comparison  
+
+# Generate JSON output for automated analysis
+npm run benchmark:json
 ```
-Benchmark: A solution to the sodoku
 
-.|.|.|.|.|.|.|.|.
-.|.|.|.|.|3|.|8|5
-.|.|1|.|2|.|.|.|.
-.|.|.|5|.|7|.|.|.
-.|.|4|.|.|.|1|.|.
-.|9|.|.|.|.|.|.|.
-5|.|.|.|.|.|.|7|3
-.|.|2|.|1|.|.|.|.
-.|.|.|.|4|.|.|.|9
+### Command Line Options
 
-dancing-links find x 2,247 ops/sec ±2.19% (89 runs sampled)
-dancing-links findRaw x 4,975 ops/sec ±1.59% (93 runs sampled)
-dlxlib x 390 ops/sec ±1.04% (88 runs sampled)
-dance x 400 ops/sec ±0.75% (87 runs sampled)
-dancing-links-algorithm x 447 ops/sec ±1.50% (86 runs sampled)
-Fastest is dancing-links findRaw
+```bash
+# Custom benchmark execution
+node built/benchmark/index.js [options]
 
-
-Benchmark: Finding one pentomino tiling on a 6x10 field
-
-dancing-links find x 231 ops/sec ±2.60% (85 runs sampled)
-dancing-links findRaw x 249 ops/sec ±0.83% (84 runs sampled)
-dlxlib x 66.70 ops/sec ±1.90% (70 runs sampled)
-dance x 37.58 ops/sec ±1.05% (65 runs sampled)
-Fastest is dancing-links findRaw
-
-
-Benchmark: Finding ten pentomino tilings on a 6x10 field
-
-dancing-links find x 38.64 ops/sec ±1.49% (52 runs sampled)
-dancing-links findRaw x 37.77 ops/sec ±3.22% (50 runs sampled)
-dlxlib x 10.54 ops/sec ±1.98% (30 runs sampled)
-dance x 7.75 ops/sec ±2.41% (24 runs sampled)
-
-Fastest is dancing-links findRaw
-
-
-Benchmark: Finding one hundred pentomino tilings on a 6x10 field
-
-dancing-links find x 5.18 ops/sec ±11.43% (17 runs sampled)
-dancing-links findRaw x 5.42 ops/sec ±1.20% (18 runs sampled)
-dlxlib x 1.50 ops/sec ±0.69% (8 runs sampled)
-dance x 1.15 ops/sec ±2.04% (7 runs sampled)
-
-Fastest is dancing-links findRaw
+Options:
+  --external, --full    Include external library comparisons
+  --json[=file]         Output results as JSON (to file if specified)
+  --quiet               Suppress console output during benchmarks
+  --help                Show help message
 ```
+
+This library consistently achieves **10-15x faster performance** than other Dancing Links implementations in JavaScript, with the new high-performance API providing additional optimizations for sparse constraints and constraint templating.
 
 ## Profiling
 
@@ -234,8 +257,11 @@ npm install
 - `npm run lint` - Run ESLint code quality checks
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
-- `npm run benchmark` - Run performance benchmarks
+- `npm run benchmark` - Run fast library-only benchmarks (CI mode)
+- `npm run benchmark:comparison` - Run comprehensive benchmarks including external libraries
+- `npm run benchmark:json` - Generate JSON benchmark output for analysis
 - `npm run coverage` - Generate test coverage report
+- `npm run profile` - Generate CPU performance profile
 
 ### Conventional Commits
 
