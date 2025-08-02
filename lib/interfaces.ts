@@ -102,6 +102,12 @@ export interface ComplexBinaryConstraint<T = any> {
 export type SolverMode = 'simple' | 'complex'
 
 /**
+ * Maps solver config types to their corresponding modes
+ */
+export type ConfigToMode<T extends SolverConfig> = 
+  T extends ComplexSolverConfig ? 'complex' : 'simple'
+
+/**
  * Mode-dependent type definitions for clean, descriptive API signatures
  */
 export type SparseColumnIndices<Mode extends SolverMode> = 

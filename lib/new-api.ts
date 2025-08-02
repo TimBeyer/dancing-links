@@ -14,13 +14,12 @@ import {
   SearchConfig,
   Row,
   SolverConfig,
-  SimpleSolverConfig,
-  ComplexSolverConfig,
   ComplexSparseConstraint,
   ComplexBinaryConstraint,
   SparseColumnIndices,
   BinaryColumnValues,
   SolverMode,
+  ConfigToMode,
   isSimpleConstraint,
   isComplexConstraint,
   isSparseConstraint,
@@ -149,38 +148,24 @@ export class DancingLinks<T> {
   private constraintCache = new Map<string, ProcessedRow<T>>()
 
   /**
-   * Create a new problem solver instance (simple - columns only)
+   * Create a new problem solver instance with type-safe mode inference
    */
-  createSolver(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
-
-  /**
-   * Create a new problem solver instance (complex - primary + secondary)
-   */
-  createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
-
-  createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
+  createSolver<C extends SolverConfig>(config: C): ProblemSolver<T, ConfigToMode<C>> {
     if (isComplexSolverConfig(config)) {
-      return new ProblemSolver<T, 'complex'>(this.constraintCache, config)
+      return new ProblemSolver<T, 'complex'>(this.constraintCache, config) as ProblemSolver<T, ConfigToMode<C>>
     } else {
-      return new ProblemSolver<T, 'simple'>(this.constraintCache, config)
+      return new ProblemSolver<T, 'simple'>(this.constraintCache, config) as ProblemSolver<T, ConfigToMode<C>>
     }
   }
 
   /**
-   * Create a new solver template for reusable constraint sets (simple - columns only)
+   * Create a new solver template for reusable constraint sets with type-safe mode inference
    */
-  createSolverTemplate(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
-
-  /**
-   * Create a new solver template for reusable constraint sets (complex - primary + secondary)
-   */
-  createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
-
-  createSolverTemplate(config: SolverConfig): SolverTemplate<T, 'simple'> | SolverTemplate<T, 'complex'> {
+  createSolverTemplate<C extends SolverConfig>(config: C): SolverTemplate<T, ConfigToMode<C>> {
     if (isComplexSolverConfig(config)) {
-      return new SolverTemplate<T, 'complex'>(this.constraintCache, config)
+      return new SolverTemplate<T, 'complex'>(this.constraintCache, config) as SolverTemplate<T, ConfigToMode<C>>
     } else {
-      return new SolverTemplate<T, 'simple'>(this.constraintCache, config)
+      return new SolverTemplate<T, 'simple'>(this.constraintCache, config) as SolverTemplate<T, ConfigToMode<C>>
     }
   }
 }
