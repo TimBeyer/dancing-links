@@ -31,6 +31,8 @@ import {
   ComplexSolverConfig,
   SparseColumnIndices,
   BinaryColumnValues,
+  SparseConstraintBatch,
+  BinaryConstraintBatch,
   SolverMode,
   ConstraintHandler,
   isComplexSolverConfig
@@ -151,7 +153,7 @@ export class SolverTemplate<T, Mode extends SolverMode> {
     return this
   }
 
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this {
+  addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this {
     this.handler.addSparseConstraints(constraints)
     return this
   }
@@ -161,13 +163,18 @@ export class SolverTemplate<T, Mode extends SolverMode> {
     return this
   }
 
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this {
+  addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this {
     this.handler.addBinaryConstraints(constraints)
     return this
   }
 
   addRow(row: Row<T>): this {
     this.handler.addRow(row)
+    return this
+  }
+
+  addRows(rows: Row<T>[]): this {
+    this.handler.addRows(rows)
     return this
   }
 
@@ -184,28 +191,21 @@ export class SolverTemplate<T, Mode extends SolverMode> {
    * ```
    */
   createSolver(): ProblemSolver<T, Mode> {
-    let newHandler: ConstraintHandler<T, Mode>
+    // Get constraints once for batch operation
+    const constraints = this.handler.getConstraints()
     
-    if (this.handler.getNumSecondary() > 0) {
-      // Complex mode
-      const config: ComplexSolverConfig = {
-        primaryColumns: this.handler.getNumPrimary(),
-        secondaryColumns: this.handler.getNumSecondary()
-      }
-      newHandler = new ComplexConstraintHandler<T>(config) as ConstraintHandler<T, Mode>
+    // Use explicit mode detection instead of inferring from getNumSecondary()
+    if (this.handler.mode === 'complex') {
+      const config = this.handler.getConfig() as ComplexSolverConfig
+      const newHandler = new ComplexConstraintHandler<T>(config)
+      newHandler.addRows(constraints)
+      return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
     } else {
-      // Simple mode  
-      const config: SimpleSolverConfig = {
-        columns: this.handler.getNumPrimary()
-      }
-      newHandler = new SimpleConstraintHandler<T>(config) as ConstraintHandler<T, Mode>
+      const config = this.handler.getConfig() as SimpleSolverConfig
+      const newHandler = new SimpleConstraintHandler<T>(config)
+      newHandler.addRows(constraints)
+      return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
     }
-    
-    for (const constraint of this.handler.getConstraints()) {
-      newHandler.addRow(constraint)
-    }
-    
-    return new ProblemSolver<T, Mode>(newHandler)
   }
 }
 
@@ -242,7 +242,7 @@ export class ProblemSolver<T, Mode extends SolverMode> {
     return this
   }
 
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this {
+  addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this {
     this.handler.addSparseConstraints(constraints)
     return this
   }
@@ -252,7 +252,7 @@ export class ProblemSolver<T, Mode extends SolverMode> {
     return this
   }
 
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this {
+  addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this {
     this.handler.addBinaryConstraints(constraints)
     return this
   }
@@ -266,6 +266,11 @@ export class ProblemSolver<T, Mode extends SolverMode> {
    */
   addRow(row: Row<T>): this {
     this.handler.addRow(row)
+    return this
+  }
+
+  addRows(rows: Row<T>[]): this {
+    this.handler.addRows(rows)
     return this
   }
 

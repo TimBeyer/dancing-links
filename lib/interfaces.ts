@@ -123,17 +123,29 @@ export type ConfigForMode<Mode extends SolverMode> =
   Mode extends 'complex' ? ComplexSolverConfig : SimpleSolverConfig
 
 /**
+ * Batch constraint types for clean API signatures
+ */
+export type SparseConstraintBatch<T, Mode extends SolverMode> = 
+  Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>
+
+export type BinaryConstraintBatch<T, Mode extends SolverMode> = 
+  Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>
+
+/**
  * Interface for constraint handling with type-safe operations
  * Provides zero runtime branching through delegation pattern
  */
 export interface ConstraintHandler<T, Mode extends SolverMode> {
+  readonly mode: Mode
   validateConstraints(): this
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this
+  addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this
+  addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this
   addRow(row: Row<T>): this
+  addRows(rows: Row<T>[]): this
   getConstraints(): Row<T>[]
   getNumPrimary(): number
   getNumSecondary(): number
+  getConfig(): ConfigForMode<Mode>
 }

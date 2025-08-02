@@ -10,7 +10,9 @@ import {
   BinaryNumber,
   SimpleSolverConfig,
   ComplexSolverConfig,
-  ConstraintHandler
+  ConstraintHandler,
+  SparseConstraintBatch,
+  BinaryConstraintBatch
 } from './interfaces.js'
 
 /**
@@ -18,11 +20,12 @@ import {
  * Zero branching - columnIndices is always number[], columnValues is always BinaryNumber[]
  */
 export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'> {
+  readonly mode = 'simple' as const
   private constraints: Row<T>[] = []
   private validationEnabled = false
   private numColumns: number
 
-  constructor(config: SimpleSolverConfig) {
+  constructor(private config: SimpleSolverConfig) {
     this.numColumns = config.columns
   }
 
@@ -35,7 +38,7 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
     return this.addSparseConstraints([{ data, columnIndices }])
   }
 
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: number[] }>): this {
+  addSparseConstraints(constraints: SparseConstraintBatch<T, 'simple'>): this {
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnIndices } = constraints[i]
       
@@ -57,7 +60,7 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
     return this.addBinaryConstraints([{ data, columnValues }])
   }
 
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryNumber[] }>): this {
+  addBinaryConstraints(constraints: BinaryConstraintBatch<T, 'simple'>): this {
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnValues } = constraints[i]
       
@@ -84,6 +87,11 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
     return this
   }
 
+  addRows(rows: Row<T>[]): this {
+    this.constraints.push(...rows)
+    return this
+  }
+
   getConstraints(): Row<T>[] {
     return this.constraints
   }
@@ -95,6 +103,10 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
   getNumSecondary(): number {
     return 0
   }
+
+  getConfig(): SimpleSolverConfig {
+    return this.config
+  }
 }
 
 /**
@@ -103,12 +115,13 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
  * columnValues is always { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
  */
 export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'complex'> {
+  readonly mode = 'complex' as const
   private constraints: Row<T>[] = []
   private validationEnabled = false
   private numPrimary: number
   private numSecondary: number
 
-  constructor(config: ComplexSolverConfig) {
+  constructor(private config: ComplexSolverConfig) {
     this.numPrimary = config.primaryColumns
     this.numSecondary = config.secondaryColumns
   }
@@ -122,7 +135,7 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
     return this.addSparseConstraints([{ data, columnIndices }])
   }
 
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: { primary: number[], secondary: number[] } }>): this {
+  addSparseConstraints(constraints: SparseConstraintBatch<T, 'complex'>): this {
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnIndices } = constraints[i]
       const { primary, secondary } = columnIndices
@@ -156,7 +169,7 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
     return this.addBinaryConstraints([{ data, columnValues }])
   }
 
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] } }>): this {
+  addBinaryConstraints(constraints: BinaryConstraintBatch<T, 'complex'>): this {
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnValues } = constraints[i]
       const { primaryRow, secondaryRow } = columnValues
@@ -194,6 +207,11 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
     return this
   }
 
+  addRows(rows: Row<T>[]): this {
+    this.constraints.push(...rows)
+    return this
+  }
+
   getConstraints(): Row<T>[] {
     return this.constraints
   }
@@ -204,5 +222,9 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
 
   getNumSecondary(): number {
     return this.numSecondary
+  }
+
+  getConfig(): ComplexSolverConfig {
+    return this.config
   }
 }
