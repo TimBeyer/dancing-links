@@ -18,8 +18,8 @@ import {
   ComplexSolverConfig,
   ComplexSparseConstraint,
   ComplexBinaryConstraint,
-  SparseColumns,
-  BinaryRow,
+  SparseColumnIndices,
+  BinaryColumnValues,
   isSimpleConstraint,
   isComplexConstraint,
   isSparseConstraint,
@@ -50,16 +50,16 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
    * Add constraint using efficient sparse format (RECOMMENDED)
    * 2-4x faster than binary format, better caching performance
    */
-  addSparseConstraint(data: T, columns: SparseColumns<Mode>): this {
-    this.validateSparseConstraint(columns)
+  addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
+    this.validateSparseConstraint(columnIndices)
 
     let sparseConstraint: SparseConstraint<T> | ComplexSparseConstraint<T>
     
     if (isComplexSolverConfig(this.config)) {
-      const complexColumns = columns as { primary: number[], secondary: number[] }
+      const complexColumns = columnIndices as { primary: number[], secondary: number[] }
       sparseConstraint = { data, ...complexColumns }
     } else {
-      sparseConstraint = { data, columns: columns as number[] }
+      sparseConstraint = { data, columns: columnIndices as number[] }
     }
 
     const processed = ConstraintProcessor.process(sparseConstraint, this.constraintCache, this.config)
@@ -71,16 +71,16 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
    * Add constraint using binary format (for compatibility)
    * Consider using addSparseConstraint() for better performance
    */
-  addBinaryConstraint(data: T, row: BinaryRow<Mode>): this {
-    this.validateBinaryConstraint(row)
+  addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
+    this.validateBinaryConstraint(columnValues)
 
     let binaryConstraint: BinaryConstraint<T> | ComplexBinaryConstraint<T>
     
     if (isComplexSolverConfig(this.config)) {
-      const complexRow = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      const complexRow = columnValues as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
       binaryConstraint = { data, ...complexRow }
     } else {
-      binaryConstraint = { data, row: row as BinaryNumber[] }
+      binaryConstraint = { data, row: columnValues as BinaryNumber[] }
     }
 
     const processed = ConstraintProcessor.process(binaryConstraint, this.constraintCache, this.config)
@@ -88,9 +88,9 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
     return this
   }
 
-  private validateSparseConstraint(columns: any): void {
+  private validateSparseConstraint(columnIndices: any): void {
     if (isComplexSolverConfig(this.config)) {
-      const { primary, secondary } = columns as { primary: number[], secondary: number[] }
+      const { primary, secondary } = columnIndices as { primary: number[], secondary: number[] }
       
       for (const col of primary) {
         if (col < 0 || col >= this.config.primaryColumns) {
@@ -104,7 +104,7 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
         }
       }
     } else {
-      const cols = columns as number[]
+      const cols = columnIndices as number[]
       for (const col of cols) {
         if (col < 0 || col >= this.config.columns) {
           throw new Error(`Column index ${col} exceeds columns limit of ${this.config.columns}`)
@@ -113,9 +113,9 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
     }
   }
 
-  private validateBinaryConstraint(row: any): void {
+  private validateBinaryConstraint(columnValues: any): void {
     if (isComplexSolverConfig(this.config)) {
-      const { primaryRow, secondaryRow } = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      const { primaryRow, secondaryRow } = columnValues as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
       
       if (primaryRow.length !== this.config.primaryColumns) {
         throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.config.primaryColumns}`)
@@ -125,7 +125,7 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
         throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
       }
     } else {
-      const binaryRow = row as BinaryNumber[]
+      const binaryRow = columnValues as BinaryNumber[]
       if (binaryRow.length !== this.config.columns) {
         throw new Error(`Row length ${binaryRow.length} does not match columns ${this.config.columns}`)
       }

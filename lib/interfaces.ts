@@ -97,14 +97,14 @@ export interface ComplexBinaryConstraint<T = any> {
 }
 
 /**
- * Mode-dependent type definitions for clean API signatures
+ * Mode-dependent type definitions for clean, descriptive API signatures
  */
-export type SparseColumns<Mode extends 'simple' | 'complex'> = 
+export type SparseColumnIndices<Mode extends 'simple' | 'complex'> = 
   Mode extends 'complex' 
     ? { primary: number[], secondary: number[] }
     : number[]
 
-export type BinaryRow<Mode extends 'simple' | 'complex'> = 
+export type BinaryColumnValues<Mode extends 'simple' | 'complex'> = 
   Mode extends 'complex'
     ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
     : BinaryNumber[]
