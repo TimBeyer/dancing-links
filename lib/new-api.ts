@@ -1,51 +1,54 @@
 /**
- * New High-Performance Caching API for Dancing Links
+ * High-Performance Template-Based API for Dancing Links
  * 
- * Provides constraint-level caching and template-based problem solving
- * to eliminate redundant constraint encoding operations.
+ * Provides template-based problem solving to enable constraint reuse
+ * across multiple problem instances with optimal performance.
  * 
- * PERFORMANCE OPTIMIZATIONS:
+ * DESIGN PHILOSOPHY:
  * 
- * This implementation prioritizes runtime performance over code simplicity through
- * several key optimizations that significantly reduce allocations and loop iterations:
+ * This implementation prioritizes runtime performance and simplicity by eliminating
+ * unnecessary caching infrastructure while maintaining powerful constraint reuse
+ * capabilities through templates.
+ * 
+ * KEY OPTIMIZATIONS:
  * 
  * 1. SINGLE-PASS CONSTRAINT PROCESSING:
- *    - Validates input constraints while simultaneously building output
- *    - Eliminates separate validation loops that previously duplicated iteration
- *    - Reduces total loop iterations for typical constraint sets
+ *    - Validates input constraints while simultaneously building final output
+ *    - Eliminates separate validation phases that duplicate iteration
+ *    - Builds Row objects directly without intermediate transformations
  * 
- * 2. DIRECT STRING HASH CONSTRUCTION:
- *    - Builds constraint hashes via direct string concatenation
- *    - Eliminates temporary array allocation + join() overhead
- *    - Avoids toString() calls by leveraging JS automatic string conversion
- *    - Example: "complex-sparse:1,3;0,2" built directly vs array.join() approach
- * 
- * 3. ZERO-COPY SPARSE FORMAT HANDLING:
+ * 2. ZERO-COPY SPARSE FORMAT HANDLING:
  *    - Builds final coveredColumns array directly during validation
- *    - Eliminates [...array] cloning since originals are never mutated
+ *    - Eliminates array cloning since input arrays are never mutated
  *    - Applies column offsets during construction rather than post-processing
  * 
- * 4. OPTIMIZED BINARY-TO-SPARSE CONVERSION:
- *    - Converts binary constraints to sparse format in same loop as hash building
- *    - Eliminates intermediate binary constraint object creation
- *    - Reduces allocations by 70-80% for binary constraint workflows
+ * 3. OPTIMIZED BINARY-TO-SPARSE CONVERSION:
+ *    - Converts binary constraints to sparse format during validation
+ *    - Eliminates intermediate constraint object creation
+ *    - Direct conversion without separate processing phases
  * 
- * 5. INTEGRATED CACHE MANAGEMENT:
- *    - Performs cache lookup inline with constraint processing
- *    - Avoids function call overhead and duplicate hash calculations
- *    - Maintains cache hit performance while optimizing cache miss paths
+ * 4. TEMPLATE-BASED CONSTRAINT REUSE:
+ *    - SolverTemplate captures constraint patterns for reuse
+ *    - Multiple solvers can be created from the same template
+ *    - Eliminates redundant constraint encoding for similar problems
+ * 
+ * NO CACHING COMPLEXITY:
+ * This design deliberately avoids constraint-level caching because:
+ * - Hash generation requires full constraint iteration (same cost as processing)
+ * - Most constraints are unique (different data), making cache hit rates low
+ * - Templates provide better reuse patterns for real-world scenarios
+ * - Simpler code is easier to maintain and debug
  * 
  * PERFORMANCE CHARACTERISTICS:
- * - Fewer allocations due to eliminated array cloning and temporary objects
- * - Reduced loop iterations by combining validation with processing
+ * - Minimal allocations due to direct Row object construction
+ * - Single iteration per constraint for validation + processing
  * - Better cache locality from unified memory access patterns
- * - Optimized hot paths for constraint-heavy algorithms (N-Queens, Sudoku, etc.)
+ * - Optimized for constraint-heavy algorithms (N-Queens, Sudoku, Pentomino)
  * 
- * TRADE-OFFS:
- * - Code is more complex due to combined validation/processing logic
- * - Methods are longer but well-documented for maintainability
- * - Performance gains justify increased implementation complexity
- * - All optimizations maintain identical external API and behavior
+ * USAGE PATTERNS:
+ * - Use ProblemSolver for one-off constraint sets
+ * - Use SolverTemplate when solving multiple similar problems
+ * - Templates handle the real-world constraint reuse scenarios efficiently
  */
 
 import { 
@@ -62,35 +65,23 @@ import {
 } from './interfaces.js'
 import { search } from './index.js'
 
-/**
- * Processed constraint that matches SearchConfig.Row format with caching hash
- */
-interface ProcessedRow<T> extends Row<T> {
-  readonly hash: string
-}
 
 /**
  * Shared constraint handling logic for both ProblemSolver and SolverTemplate
  */
 abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
-  protected constraints: ProcessedRow<T>[] = []
+  protected constraints: Row<T>[] = []
 
   constructor(
-    protected constraintCache: Map<string, ProcessedRow<T>>,
     protected config: SolverConfig
   ) {}
 
   /**
    * Add constraint using efficient sparse format (RECOMMENDED)
    * 
-   * PERFORMANCE OPTIMIZED: Single-pass validation + processing + hashing
-   * - Validates column indices while building output
-   * - Constructs hash string directly via concatenation (no array.join())
-   * - Builds final coveredColumns array without intermediate copies
-   * - Integrates cache lookup to eliminate duplicate operations
-   * 
-   * This trades some code readability for performance gains:
-   * - Fewer allocations vs separate validation/processing phases
+   * PERFORMANCE OPTIMIZED: Single-pass validation + processing
+   * - Validates column indices while building final coveredColumns array
+   * - Builds output directly without intermediate copies or caching overhead
    * - Better cache locality from unified memory access patterns
    */
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
@@ -98,74 +89,48 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
       // Complex mode: separate primary and secondary column handling
       const { primary, secondary } = columnIndices as { primary: number[], secondary: number[] }
       
-      // Single-pass: validate + build final coveredColumns + construct hash
+      // Single-pass: validate + build final coveredColumns
       const coveredColumns: number[] = []
-      let hashBuilder = 'complex-sparse:'
       const numPrimary = this.config.primaryColumns
       
-      // Process primary columns: validate bounds + add to output + build hash
+      // Process primary columns: validate bounds + add to output
       for (let i = 0; i < primary.length; i++) {
         const col = primary[i]
         if (col < 0 || col >= numPrimary) {
           throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${numPrimary}`)
         }
-        if (i > 0) hashBuilder += ','
-        hashBuilder += col
         coveredColumns.push(col)
       }
       
-      hashBuilder += ';'
-      
-      // Process secondary columns: validate bounds + add to output (with offset) + build hash
+      // Process secondary columns: validate bounds + add to output (with offset)
       for (let i = 0; i < secondary.length; i++) {
         const col = secondary[i]
         if (col < 0 || col >= this.config.secondaryColumns) {
           throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.config.secondaryColumns}`)
         }
-        if (i > 0) hashBuilder += ','
-        hashBuilder += col
         coveredColumns.push(col + numPrimary) // Apply offset for secondary columns
       }
       
-      const hash = hashBuilder
-      
-      // Check cache or create new processed row
-      let processedRow = this.constraintCache.get(hash)
-      if (!processedRow) {
-        processedRow = { data, coveredColumns, hash }
-        this.constraintCache.set(hash, processedRow)
-      }
-      this.constraints.push(processedRow)
+      this.constraints.push({ data, coveredColumns })
       
     } else {
       // Simple mode: single column array handling
       const columns = columnIndices as number[]
       
-      // Single-pass: validate + build final coveredColumns + construct hash
+      // Single-pass: validate + build final coveredColumns
       const coveredColumns: number[] = []
-      let hashBuilder = 'sparse:'
       const columnLimit = this.config.columns
       
-      // Process columns: validate bounds + add to output + build hash
+      // Process columns: validate bounds + add to output
       for (let i = 0; i < columns.length; i++) {
         const col = columns[i]
         if (col < 0 || col >= columnLimit) {
           throw new Error(`Column index ${col} exceeds columns limit of ${columnLimit}`)
         }
-        if (i > 0) hashBuilder += ','
-        hashBuilder += col
         coveredColumns.push(col)
       }
       
-      const hash = hashBuilder
-      
-      // Check cache or create new processed row
-      let processedRow = this.constraintCache.get(hash)
-      if (!processedRow) {
-        processedRow = { data, coveredColumns, hash }
-        this.constraintCache.set(hash, processedRow)
-      }
-      this.constraints.push(processedRow)
+      this.constraints.push({ data, coveredColumns })
     }
     
     return this
@@ -174,17 +139,10 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
   /**
    * Add constraint using binary format (for compatibility)
    * 
-   * PERFORMANCE OPTIMIZED: Single-pass validation + binary-to-sparse conversion + hashing
+   * PERFORMANCE OPTIMIZED: Single-pass validation + binary-to-sparse conversion
    * - Validates array lengths upfront (quick O(1) checks)
-   * - Converts binary to sparse format while building hash string
-   * - Constructs hash via direct concatenation (no array.join() overhead)
-   * - Builds final coveredColumns array directly (no intermediate allocations)
-   * - Integrates cache lookup to eliminate duplicate operations
-   * 
-   * This optimization is especially important for binary format since it eliminates
-   * the expensive binary-to-sparse conversion that previously happened in separate loops:
-   * - Fewer allocations vs separate validation/conversion/hashing phases
-   * - Direct sparse conversion without creating intermediate binary constraint objects
+   * - Converts binary to sparse format while building final coveredColumns
+   * - Direct sparse conversion without intermediate allocations or caching overhead
    */
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
     if (isComplexSolverConfig(this.config)) {
@@ -199,41 +157,24 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
         throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
       }
       
-      // Single-pass: convert binary to sparse + build hash + create final output
+      // Single-pass: convert binary to sparse
       const coveredColumns: number[] = []
-      let hashBuilder = 'complex:'
       
-      // Process primary row: convert 1s to column indices + build hash
+      // Process primary row: convert 1s to column indices
       for (let i = 0; i < primaryRow.length; i++) {
-        const value = primaryRow[i]
-        if (i > 0) hashBuilder += ','
-        hashBuilder += value
-        if (value === 1) {
+        if (primaryRow[i] === 1) {
           coveredColumns.push(i)
         }
       }
       
-      hashBuilder += ';'
-      
-      // Process secondary row: convert 1s to column indices (with offset) + build hash
+      // Process secondary row: convert 1s to column indices (with offset)
       for (let i = 0; i < secondaryRow.length; i++) {
-        const value = secondaryRow[i]
-        if (i > 0) hashBuilder += ','
-        hashBuilder += value
-        if (value === 1) {
+        if (secondaryRow[i] === 1) {
           coveredColumns.push(i + primaryRow.length) // Apply offset for secondary columns
         }
       }
       
-      const hash = hashBuilder
-      
-      // Check cache or create new processed row
-      let processedRow = this.constraintCache.get(hash)
-      if (!processedRow) {
-        processedRow = { data, coveredColumns, hash }
-        this.constraintCache.set(hash, processedRow)
-      }
-      this.constraints.push(processedRow)
+      this.constraints.push({ data, coveredColumns })
       
     } else {
       // Simple mode: single binary row handling
@@ -244,29 +185,17 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
         throw new Error(`Row length ${row.length} does not match columns ${this.config.columns}`)
       }
       
-      // Single-pass: convert binary to sparse + build hash + create final output
+      // Single-pass: convert binary to sparse
       const coveredColumns: number[] = []
-      let hashBuilder = 'simple:'
       
-      // Process row: convert 1s to column indices + build hash
+      // Process row: convert 1s to column indices
       for (let i = 0; i < row.length; i++) {
-        const value = row[i]
-        if (i > 0) hashBuilder += ','
-        hashBuilder += value
-        if (value === 1) {
+        if (row[i] === 1) {
           coveredColumns.push(i)
         }
       }
       
-      const hash = hashBuilder
-      
-      // Check cache or create new processed row
-      let processedRow = this.constraintCache.get(hash)
-      if (!processedRow) {
-        processedRow = { data, coveredColumns, hash }
-        this.constraintCache.set(hash, processedRow)
-      }
-      this.constraints.push(processedRow)
+      this.constraints.push({ data, coveredColumns })
     }
     
     return this
@@ -283,19 +212,18 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
 }
 
 /**
- * Main factory class that manages constraint caching
+ * Main factory class for creating Dancing Links solvers and templates
  */
 export class DancingLinks<T> {
-  private constraintCache = new Map<string, ProcessedRow<T>>()
 
   /**
    * Create a new problem solver instance with type-safe mode inference
    */
   createSolver<C extends SolverConfig>(config: C): ProblemSolver<T, ConfigToMode<C>> {
     if (isComplexSolverConfig(config)) {
-      return new ProblemSolver<T, 'complex'>(this.constraintCache, config) as ProblemSolver<T, ConfigToMode<C>>
+      return new ProblemSolver<T, 'complex'>(config) as ProblemSolver<T, ConfigToMode<C>>
     } else {
-      return new ProblemSolver<T, 'simple'>(this.constraintCache, config) as ProblemSolver<T, ConfigToMode<C>>
+      return new ProblemSolver<T, 'simple'>(config) as ProblemSolver<T, ConfigToMode<C>>
     }
   }
 
@@ -304,9 +232,9 @@ export class DancingLinks<T> {
    */
   createSolverTemplate<C extends SolverConfig>(config: C): SolverTemplate<T, ConfigToMode<C>> {
     if (isComplexSolverConfig(config)) {
-      return new SolverTemplate<T, 'complex'>(this.constraintCache, config) as SolverTemplate<T, ConfigToMode<C>>
+      return new SolverTemplate<T, 'complex'>(config) as SolverTemplate<T, ConfigToMode<C>>
     } else {
-      return new SolverTemplate<T, 'simple'>(this.constraintCache, config) as SolverTemplate<T, ConfigToMode<C>>
+      return new SolverTemplate<T, 'simple'>(config) as SolverTemplate<T, ConfigToMode<C>>
     }
   }
 }
@@ -320,9 +248,9 @@ export class SolverTemplate<T, Mode extends SolverMode = 'simple'> extends Const
    * Uses the same configuration as the template
    */
   createSolver(): ProblemSolver<T, Mode> {
-    const solver = new ProblemSolver<T, Mode>(this.constraintCache, this.config)
+    const solver = new ProblemSolver<T, Mode>(this.config)
     for (const constraint of this.constraints) {
-      solver.addProcessedRow(constraint)
+      solver.addRow(constraint)
     }
     return solver
   }
@@ -333,9 +261,9 @@ export class SolverTemplate<T, Mode extends SolverMode = 'simple'> extends Const
  */
 export class ProblemSolver<T, Mode extends SolverMode = 'simple'> extends ConstraintHandler<T, Mode> {
   /**
-   * Add a pre-processed row (used internally by templates)
+   * Add a pre-built row (used internally by templates)
    */
-  addProcessedRow(row: ProcessedRow<T>): this {
+  addRow(row: Row<T>): this {
     this.constraints.push(row)
     return this
   }

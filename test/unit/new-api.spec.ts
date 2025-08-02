@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { DancingLinks } from '../../lib/new-api.js'
 import { SimpleConstraint } from '../../lib/interfaces.js'
 
-describe('New Caching API', function () {
+describe('New Template-Based API', function () {
   describe('DancingLinks Factory', function () {
     it('should create a DancingLinks instance', function () {
       const dlx = new DancingLinks<number>()
@@ -262,8 +262,8 @@ describe('New Caching API', function () {
     })
   })
 
-  describe('Constraint Caching', function () {
-    it('should cache identical constraints across different solvers', function () {
+  describe('Constraint Processing', function () {
+    it('should process identical constraints across different solvers', function () {
       const dlx = new DancingLinks<string>()
       
       const constraint1 = { data: 'test1', row: [1, 0, 1] as (0 | 1)[] }
