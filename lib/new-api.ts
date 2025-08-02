@@ -20,6 +20,7 @@ import {
   ComplexBinaryConstraint,
   SparseColumnIndices,
   BinaryColumnValues,
+  SolverMode,
   isSimpleConstraint,
   isComplexConstraint,
   isSparseConstraint,
@@ -38,7 +39,7 @@ interface ProcessedRow<T> extends Row<T> {
 /**
  * Shared constraint handling logic for both ProblemSolver and SolverTemplate
  */
-abstract class ConstraintHandler<T, Mode extends 'simple' | 'complex' = 'simple'> {
+abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
   protected constraints: ProcessedRow<T>[] = []
 
   constructor(
@@ -187,7 +188,7 @@ export class DancingLinks<T> {
 /**
  * Template for reusable constraint sets
  */
-export class SolverTemplate<T, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
+export class SolverTemplate<T, Mode extends SolverMode = 'simple'> extends ConstraintHandler<T, Mode> {
   /**
    * Create a solver with template constraints pre-loaded
    * Uses the same configuration as the template
@@ -204,7 +205,7 @@ export class SolverTemplate<T, Mode extends 'simple' | 'complex' = 'simple'> ext
 /**
  * Problem solver with type-safe constraint handling and dimension enforcement
  */
-export class ProblemSolver<T, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
+export class ProblemSolver<T, Mode extends SolverMode = 'simple'> extends ConstraintHandler<T, Mode> {
   /**
    * Add a pre-processed row (used internally by templates)
    */
