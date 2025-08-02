@@ -62,28 +62,60 @@ export class DancingLinks {
   }
 
   /**
-   * Create a new solver template for reusable constraint sets
+   * Create a new solver template for reusable constraint sets (simple - columns only)
    */
-  createSolverTemplate<T = any>(): SolverTemplate<T> {
-    return new SolverTemplate<T>(this.constraintCache)
+  createSolverTemplate<T = any>(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
+
+  /**
+   * Create a new solver template for reusable constraint sets (complex - primary + secondary)
+   */
+  createSolverTemplate<T = any>(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
+
+  createSolverTemplate<T = any>(config: SolverConfig): SolverTemplate<T, any> {
+    if (isComplexSolverConfig(config)) {
+      return new SolverTemplate<T, 'complex'>(this.constraintCache, config)
+    } else {
+      return new SolverTemplate<T, 'simple'>(this.constraintCache, config)
+    }
   }
 }
 
 /**
  * Template for reusable constraint sets
  */
-export class SolverTemplate<T = any> {
+export class SolverTemplate<T = any, Mode extends 'simple' | 'complex' = 'simple'> {
   private baseConstraints: ProcessedConstraint<T>[] = []
 
-  constructor(private constraintCache: Map<string, ProcessedConstraint>) {}
+  constructor(
+    private constraintCache: Map<string, ProcessedConstraint>,
+    private config: SolverConfig
+  ) {}
 
   /**
    * Add constraint using efficient sparse format (RECOMMENDED)
    * 2-4x faster than binary format, better caching performance
    * @example template.addSparseConstraint("baseRule1", [0, 4, 7])
    */
-  addSparseConstraint(data: T, columns: number[]): this {
-    const sparseConstraint: SparseConstraint<T> = { data, columns }
+  addSparseConstraint(
+    data: T,
+    columns: Mode extends 'complex' 
+      ? ComplexSparseConstraint<T>['primary'] extends never 
+        ? { primary: number[], secondary: number[] }
+        : { primary: number[], secondary: number[] }
+      : number[]
+  ): this {
+    // Validate dimensions
+    this.validateSparseConstraint(columns)
+
+    let sparseConstraint: SparseConstraint<T> | ComplexSparseConstraint<T>
+    
+    if (isComplexSolverConfig(this.config)) {
+      const complexColumns = columns as { primary: number[], secondary: number[] }
+      sparseConstraint = { data, ...complexColumns }
+    } else {
+      sparseConstraint = { data, columns: columns as number[] }
+    }
+
     const processed = ConstraintProcessor.process(sparseConstraint, this.constraintCache)
     this.baseConstraints.push(processed)
     return this
@@ -94,8 +126,24 @@ export class SolverTemplate<T = any> {
    * Consider using addSparseConstraint() for better performance
    * @example template.addBinaryConstraint("baseRule1", [1, 0, 0, 0, 1, 0, 0, 1])
    */
-  addBinaryConstraint(data: T, row: BinaryNumber[]): this {
-    const binaryConstraint: BinaryConstraint<T> = { data, row }
+  addBinaryConstraint(
+    data: T,
+    row: Mode extends 'complex'
+      ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      : BinaryNumber[]
+  ): this {
+    // Validate dimensions
+    this.validateBinaryConstraint(row)
+
+    let binaryConstraint: BinaryConstraint<T> | ComplexBinaryConstraint<T>
+    
+    if (isComplexSolverConfig(this.config)) {
+      const complexRow = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      binaryConstraint = { data, ...complexRow }
+    } else {
+      binaryConstraint = { data, row: row as BinaryNumber[] }
+    }
+
     const processed = ConstraintProcessor.process(binaryConstraint, this.constraintCache)
     this.baseConstraints.push(processed)
     return this
@@ -104,16 +152,58 @@ export class SolverTemplate<T = any> {
 
   /**
    * Create a solver with template constraints pre-loaded
-   * Must specify dimension configuration explicitly
+   * Uses the same configuration as the template
    */
-  createSolver<Mode extends 'simple' | 'complex'>(
-    config: Mode extends 'complex' ? ComplexSolverConfig : SimpleSolverConfig
-  ): ProblemSolver<T, Mode> {
-    const solver = new ProblemSolver<T, Mode>(this.constraintCache, config as SolverConfig)
+  createSolver(): ProblemSolver<T, Mode> {
+    const solver = new ProblemSolver<T, Mode>(this.constraintCache, this.config)
     for (const constraint of this.baseConstraints) {
       solver.addProcessedConstraint(constraint)
     }
     return solver
+  }
+
+  private validateSparseConstraint(columns: any): void {
+    if (isComplexSolverConfig(this.config)) {
+      const { primary, secondary } = columns as { primary: number[], secondary: number[] }
+      
+      for (const col of primary) {
+        if (col < 0 || col >= this.config.primaryColumns) {
+          throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${this.config.primaryColumns}`)
+        }
+      }
+      
+      for (const col of secondary) {
+        if (col < 0 || col >= this.config.secondaryColumns) {
+          throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.config.secondaryColumns}`)
+        }
+      }
+    } else {
+      const cols = columns as number[]
+      for (const col of cols) {
+        if (col < 0 || col >= this.config.columns) {
+          throw new Error(`Column index ${col} exceeds columns limit of ${this.config.columns}`)
+        }
+      }
+    }
+  }
+
+  private validateBinaryConstraint(row: any): void {
+    if (isComplexSolverConfig(this.config)) {
+      const { primaryRow, secondaryRow } = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      
+      if (primaryRow.length !== this.config.primaryColumns) {
+        throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.config.primaryColumns}`)
+      }
+      
+      if (secondaryRow.length !== this.config.secondaryColumns) {
+        throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
+      }
+    } else {
+      const binaryRow = row as BinaryNumber[]
+      if (binaryRow.length !== this.config.columns) {
+        throw new Error(`Row length ${binaryRow.length} does not match columns ${this.config.columns}`)
+      }
+    }
   }
 }
 
@@ -152,7 +242,7 @@ export class ProblemSolver<T = any, Mode extends 'simple' | 'complex' = 'simple'
       sparseConstraint = { data, columns: columns as number[] }
     }
 
-    const processed = ConstraintProcessor.process(sparseConstraint as Constraint<T>, this.constraintCache)
+    const processed = ConstraintProcessor.process(sparseConstraint, this.constraintCache)
     this.constraints.push(processed)
     return this
   }
@@ -179,7 +269,7 @@ export class ProblemSolver<T = any, Mode extends 'simple' | 'complex' = 'simple'
       binaryConstraint = { data, row: row as BinaryNumber[] }
     }
 
-    const processed = ConstraintProcessor.process(binaryConstraint as Constraint<T>, this.constraintCache)
+    const processed = ConstraintProcessor.process(binaryConstraint, this.constraintCache)
     this.constraints.push(processed)
     return this
   }

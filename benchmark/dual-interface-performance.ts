@@ -160,7 +160,7 @@ function benchmarkTemplateReuse() {
     })
     .add('Template-based solving', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate()
+      const template = dlx.createSolverTemplate({ columns: 72 })
       
       // Build template once
       for (const constraint of sparseConstraints) {
@@ -169,7 +169,7 @@ function benchmarkTemplateReuse() {
       
       // Use template for 3 problems
       for (let i = 0; i < 3; i++) {
-        const solver = template.createSolver({ columns: 72 })
+        const solver = template.createSolver()
         solver.findOne()
       }
     })

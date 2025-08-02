@@ -20,10 +20,10 @@ describe('New Caching API', function () {
 
     it('should create a SolverTemplate', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate()
+      const template = dlx.createSolverTemplate({ columns: 1 })
       
       // Just verify we can create solver from template
-      expect(() => template.createSolver({ columns: 1 })).to.not.throw()
+      expect(() => template.createSolver()).to.not.throw()
     })
   })
 
@@ -96,13 +96,13 @@ describe('New Caching API', function () {
   describe('SolverTemplate', function () {
     it('should create solvers with template constraints pre-loaded', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate<number>()
+      const template = dlx.createSolverTemplate<number>({ columns: 3 })
 
       template
         .addBinaryConstraint(0, [1, 0, 0])
         .addBinaryConstraint(1, [0, 1, 0])
 
-      const solver = template.createSolver({ columns: 3 })
+      const solver = template.createSolver()
       solver.addBinaryConstraint(2, [0, 0, 1])
 
       const solutions = solver.findAll()
@@ -119,14 +119,14 @@ describe('New Caching API', function () {
 
     it('should enable constraint reuse across multiple solvers', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate<string>()
+      const template = dlx.createSolverTemplate<string>({ columns: 2 })
 
       template
         .addBinaryConstraint('base1', [1, 0])
         .addBinaryConstraint('base2', [0, 1])
 
-      const solver1 = template.createSolver({ columns: 2 })
-      const solver2 = template.createSolver({ columns: 2 })
+      const solver1 = template.createSolver()
+      const solver2 = template.createSolver()
 
       const solutions1 = solver1.findAll()
       const solutions2 = solver2.findAll()
@@ -152,13 +152,22 @@ describe('New Caching API', function () {
 
     it('should support fluent interface for adding constraints', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate<number>()
+      const template = dlx.createSolverTemplate<number>({ columns: 3 })
 
       const result = template
         .addBinaryConstraint(0, [1, 0, 0])
         .addBinaryConstraint(1, [0, 1, 0])
 
       expect(result).to.equal(template)
+    })
+
+    it('should validate template constraints at creation time', function () {
+      const dlx = new DancingLinks()
+      const template = dlx.createSolverTemplate({ columns: 3 })
+
+      // Should validate constraints when adding to template
+      expect(() => template.addSparseConstraint('test', [0, 3])).to.throw('Column index 3 exceeds columns limit of 3')
+      expect(() => template.addBinaryConstraint('test', [1, 0])).to.throw('Row length 2 does not match columns 3')
     })
   })
 
@@ -239,13 +248,13 @@ describe('New Caching API', function () {
 
     it('should support templates with both constraint formats', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate<string>()
+      const template = dlx.createSolverTemplate<string>({ columns: 3 })
 
       // Mix sparse and binary constraints in template
       template.addSparseConstraint('sparse-base', [0])
-      template.addBinaryConstraint('binary-base', [0, 1])
+      template.addBinaryConstraint('binary-base', [0, 1, 0])
 
-      const solver = template.createSolver({ columns: 3 })
+      const solver = template.createSolver()
       solver.addSparseConstraint('sparse-extra', [2])
 
       const solutions = solver.findAll()

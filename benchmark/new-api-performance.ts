@@ -76,7 +76,7 @@ function benchmarkTemplateReuse() {
     })
     .add('New API: Template-based solving', function () {
       const dlx = new DancingLinks()
-      const template = dlx.createSolverTemplate()
+      const template = dlx.createSolverTemplate({ columns: 324 }) // 9x9 sudoku has 324 columns
 
       // Build template once
       for (const constraint of baseConstraints) {
@@ -85,7 +85,7 @@ function benchmarkTemplateReuse() {
 
       // Use template for 5 different puzzles
       for (let i = 0; i < 5; i++) {
-        const solver = template.createSolver({ columns: 324 }) // 9x9 sudoku has 324 columns
+        const solver = template.createSolver()
         solver.findOne()
       }
     })
