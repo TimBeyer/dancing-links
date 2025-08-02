@@ -10,9 +10,10 @@ import { getSearchConfig } from '../lib/utils.js'
 import { ALL_CONSTRAINTS } from './pentomino/field.js'
 import { generateConstraints, parseStringFormat, printBoard } from './sudoku/index.js'
 
-// External library imports (conditional)
-let dlxlib: any, dance: any, dancingLinksAlgorithm: any
-let externalLibrariesAvailable = false
+// External library imports
+import * as dlxlib from 'dlxlib'
+import * as dance from 'dance'
+import * as dancingLinksAlgorithm from 'dancing-links-algorithm'
 
 /**
  * Parse command line arguments
@@ -45,20 +46,6 @@ function parseArgs(): BenchmarkOptions {
   return { includeExternal, jsonOutput, jsonFile, quiet }
 }
 
-/**
- * Dynamic import of external libraries
- */
-async function loadExternalLibraries() {
-  try {
-    dlxlib = await import('dlxlib')
-    dance = await import('dance') 
-    dancingLinksAlgorithm = await import('dancing-links-algorithm')
-    externalLibrariesAvailable = true
-  } catch (error) {
-    console.warn('External libraries not available, running in library-only mode')
-    externalLibrariesAvailable = false
-  }
-}
 
 /**
  * Benchmark result interfaces
@@ -178,7 +165,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     })
 
     // External libraries (if requested and available)
-    if (options.includeExternal && externalLibrariesAvailable) {
+    if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
         dlxlib.solve(plainRows)
       })
@@ -286,7 +273,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     })
 
     // External libraries (if requested and available)
-    if (options.includeExternal && externalLibrariesAvailable) {
+    if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
         dlxlib.solve(plainRows, null, null, 1)
       })
@@ -390,7 +377,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     })
 
     // External libraries (if requested and available)
-    if (options.includeExternal && externalLibrariesAvailable) {
+    if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
         dlxlib.solve(plainRows, null, null, 10)
       })
@@ -494,7 +481,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     })
 
     // External libraries (if requested and available)
-    if (options.includeExternal && externalLibrariesAvailable) {
+    if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
         dlxlib.solve(plainRows, null, null, 100)
       })
@@ -560,10 +547,6 @@ function outputResults(options: BenchmarkOptions) {
 async function runAllBenchmarks() {
   const options = parseArgs()
   
-  // Load external libraries if needed
-  if (options.includeExternal) {
-    await loadExternalLibraries()
-  }
   
   if (!options.quiet) {
     console.log('============================================================')
@@ -574,20 +557,6 @@ async function runAllBenchmarks() {
       console.log('Mode: Library-only (fast CI mode)')
     }
     console.log('============================================================')
-    console.log()
-    
-    // Validate column counts to ensure hardcoded values are correct
-    console.log('Validating constraint dimensions...')
-    
-    // Sudoku validation
-    const sudokuField = parseStringFormat(9, '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9')
-    const sudokuConstraints = generateConstraints(9, sudokuField)
-    const sudokuMaxColumn = Math.max(...sudokuConstraints.flatMap(c => c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)))
-    console.log(`Sudoku: Expected 324 columns, actual max column index: ${sudokuMaxColumn} (${sudokuMaxColumn + 1} columns)`)
-    
-    // Pentomino validation  
-    const pentominoMaxColumn = Math.max(...ALL_CONSTRAINTS.flatMap(c => c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)))
-    console.log(`Pentomino: Expected 72 columns, actual max column index: ${pentominoMaxColumn} (${pentominoMaxColumn + 1} columns)`)
     console.log()
   }
 
