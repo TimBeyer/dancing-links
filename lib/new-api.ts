@@ -23,7 +23,6 @@
  */
 
 import { 
-  BinaryNumber,
   Result, 
   SearchConfig,
   Row,
@@ -33,275 +32,17 @@ import {
   SparseColumnIndices,
   BinaryColumnValues,
   SolverMode,
-  ConfigForMode,
+  ConstraintHandler,
   isComplexSolverConfig
 } from './interfaces.js'
+import { SimpleConstraintHandler, ComplexConstraintHandler } from './constraint-handlers.js'
 import { search } from './index.js'
 
 
 /**
- * Base class providing constraint handling logic for both ProblemSolver and SolverTemplate.
- * 
- * @template T The type of data associated with each constraint
- * @template Mode Either 'simple' or 'complex' solver mode
+ * Removed abstract base class - replaced with delegation pattern
+ * See SimpleConstraintHandler and ComplexConstraintHandler for implementations
  */
-abstract class ConstraintHandler<T, Mode extends SolverMode> {
-  protected constraints: Row<T>[] = []
-  protected validationEnabled = false
-  protected isComplexMode: boolean
-  protected numPrimary: number
-  protected numSecondary: number
-
-  constructor(
-    protected config: ConfigForMode<Mode>
-  ) {
-    this.isComplexMode = isComplexSolverConfig(config)
-    if (this.isComplexMode) {
-      const complexConfig = config as ComplexSolverConfig
-      this.numPrimary = complexConfig.primaryColumns
-      this.numSecondary = complexConfig.secondaryColumns
-    } else {
-      const simpleConfig = config as SimpleSolverConfig
-      this.numPrimary = simpleConfig.columns
-      this.numSecondary = 0
-    }
-  }
-
-  /**
-   * Enable constraint validation for debugging.
-   * Validation checks column bounds but reduces performance.
-   * 
-   * @returns This instance for method chaining
-   * 
-   * @example
-   * ```typescript
-   * solver
-   *   .validateConstraints() // Enable validation for debugging
-   *   .addSparseConstraint('data', [0, 2, 4])
-   *   .solve()
-   * ```
-   */
-  validateConstraints(): this {
-    this.validationEnabled = true
-    return this
-  }
-
-  /**
-   * Add a constraint using sparse format (recommended for performance).
-   * 
-   * @param data - User data to associate with this constraint
-   * @param columnIndices - Column indices that this constraint covers
-   * @returns This instance for method chaining
-   * 
-   * @example
-   * ```typescript
-   * // Simple mode: array of column indices
-   * solver.addSparseConstraint('data', [0, 2, 4])
-   * 
-   * // Complex mode: separate primary and secondary
-   * solver.addSparseConstraint('data', { 
-   *   primary: [0, 1], 
-   *   secondary: [0, 2] 
-   * })
-   * ```
-   */
-  addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
-    return this.addSparseConstraints([{ data, columnIndices }])
-  }
-
-  /**
-   * Add multiple constraints using sparse format (batch operation for better performance).
-   * 
-   * @param constraints - Array of constraints to add
-   * @returns This instance for method chaining
-   * 
-   * @example
-   * ```typescript
-   * solver.addSparseConstraints([
-   *   { data: 'row1', columnIndices: [0, 2, 4] },
-   *   { data: 'row2', columnIndices: [1, 3, 5] },
-   *   { data: 'row3', columnIndices: [0, 1] }
-   * ])
-   * ```
-   */
-  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this {
-    // Main optimized implementation - V8 can optimize this entire loop
-    for (let i = 0; i < constraints.length; i++) {
-      const { data, columnIndices } = constraints[i]
-      
-      if (this.isComplexMode) {
-        // Complex mode: separate primary and secondary column handling
-        const { primary, secondary } = columnIndices as { primary: number[], secondary: number[] }
-        
-        // Optional validation for debugging
-        if (this.validationEnabled) {
-          for (let j = 0; j < primary.length; j++) {
-            const col = primary[j]
-            if (col < 0 || col >= this.numPrimary) {
-              throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${this.numPrimary}`)
-            }
-          }
-        }
-        
-        // Validate secondary columns and build with offset
-        const coveredColumns: number[] = [...primary] // Copy primary directly
-        for (let j = 0; j < secondary.length; j++) {
-          const col = secondary[j]
-          if (this.validationEnabled) {
-            if (col < 0 || col >= this.numSecondary) {
-              throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.numSecondary}`)
-            }
-          }
-          coveredColumns.push(col + this.numPrimary) // Apply offset for secondary columns
-        }
-        
-        this.constraints.push(new Row(coveredColumns, data))
-        
-      } else {
-        // Simple mode: validate input and pass through directly
-        const columns = columnIndices as number[]
-        
-        // Optional validation for debugging
-        if (this.validationEnabled) {
-          for (let j = 0; j < columns.length; j++) {
-            const col = columns[j]
-            if (col < 0 || col >= this.numPrimary) {
-              throw new Error(`Column index ${col} exceeds columns limit of ${this.numPrimary}`)
-            }
-          }
-        }
-        
-        // Use input array directly as coveredColumns (no copying needed)
-        this.constraints.push(new Row(columns, data))
-      }
-    }
-    return this
-  }
-
-  /**
-   * Add a constraint using binary format (0s and 1s).
-   * 
-   * @param data - User data to associate with this constraint
-   * @param columnValues - Binary array where 1 indicates the constraint covers that column
-   * @returns This instance for method chaining
-   * 
-   * @remarks Consider using addSparseConstraint() for better performance.
-   * 
-   * @example
-   * ```typescript
-   * // Simple mode: binary array
-   * solver.addBinaryConstraint('data', [1, 0, 1, 0, 1])
-   * 
-   * // Complex mode: separate primary and secondary rows
-   * solver.addBinaryConstraint('data', {
-   *   primaryRow: [1, 1, 0],
-   *   secondaryRow: [1, 0, 1]
-   * })
-   * ```
-   */
-  addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
-    return this.addBinaryConstraints([{ data, columnValues }])
-  }
-
-  /**
-   * Add multiple constraints using binary format (batch operation for better performance).
-   * 
-   * @param constraints - Array of constraints to add
-   * @returns This instance for method chaining
-   * 
-   * @example
-   * ```typescript
-   * solver.addBinaryConstraints([
-   *   { data: 'row1', columnValues: [1, 0, 1, 0, 1] },
-   *   { data: 'row2', columnValues: [0, 1, 0, 1, 0] },
-   *   { data: 'row3', columnValues: [1, 1, 0, 0, 0] }
-   * ])
-   * ```
-   */
-  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this {
-    // Main optimized implementation - V8 can optimize this entire loop
-    for (let i = 0; i < constraints.length; i++) {
-      const { data, columnValues } = constraints[i]
-      
-      if (this.isComplexMode) {
-        // Complex mode: separate primary and secondary row handling
-        const { primaryRow, secondaryRow } = columnValues as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
-        
-        // Optional validation for debugging
-        if (this.validationEnabled) {
-          if (primaryRow.length !== this.numPrimary) {
-            throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.numPrimary}`)
-          }
-          if (secondaryRow.length !== this.numSecondary) {
-            throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.numSecondary}`)
-          }
-        }
-        
-        // Single-pass: convert binary to sparse
-        const coveredColumns: number[] = []
-        
-        // Process primary row: convert 1s to column indices
-        for (let j = 0; j < primaryRow.length; j++) {
-          if (primaryRow[j] === 1) {
-            coveredColumns.push(j)
-          }
-        }
-        
-        // Process secondary row: convert 1s to column indices (with offset)
-        for (let j = 0; j < secondaryRow.length; j++) {
-          if (secondaryRow[j] === 1) {
-            coveredColumns.push(j + primaryRow.length) // Apply offset for secondary columns
-          }
-        }
-        
-        this.constraints.push(new Row(coveredColumns, data))
-        
-      } else {
-        // Simple mode: single binary row handling
-        const row = columnValues as BinaryNumber[]
-        
-        // Optional validation for debugging
-        if (this.validationEnabled) {
-          if (row.length !== this.numPrimary) {
-            throw new Error(`Row length ${row.length} does not match columns ${this.numPrimary}`)
-          }
-        }
-        
-        // Single-pass: convert binary to sparse
-        const coveredColumns: number[] = []
-        
-        // Process row: convert 1s to column indices
-        for (let j = 0; j < row.length; j++) {
-          if (row[j] === 1) {
-            coveredColumns.push(j)
-          }
-        }
-        
-        this.constraints.push(new Row(coveredColumns, data))
-      }
-    }
-    return this
-  }
-
-
-  /**
-   * Get the number of primary columns for this solver.
-   * @returns Number of primary columns
-   * @protected
-   */
-  protected getNumPrimary(): number {
-    return this.numPrimary
-  }
-
-  /**
-   * Get the number of secondary columns for this solver.
-   * @returns Number of secondary columns (0 for simple mode)
-   * @protected
-   */
-  protected getNumSecondary(): number {
-    return this.numSecondary
-  }
-}
 
 /**
  * Factory class for creating Dancing Links solvers and templates with type safety.
@@ -339,9 +80,11 @@ export class DancingLinks<T> {
   createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
   createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
-      return new ProblemSolver<T, 'complex'>(config)
+      const handler = new ComplexConstraintHandler<T>(config)
+      return new ProblemSolver<T, 'complex'>(handler)
     } else {
-      return new ProblemSolver<T, 'simple'>(config)
+      const handler = new SimpleConstraintHandler<T>(config)
+      return new ProblemSolver<T, 'simple'>(handler)
     }
   }
 
@@ -365,9 +108,11 @@ export class DancingLinks<T> {
   createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
   createSolverTemplate(config: SolverConfig): SolverTemplate<T, 'simple'> | SolverTemplate<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
-      return new SolverTemplate<T, 'complex'>(config)
+      const handler = new ComplexConstraintHandler<T>(config)
+      return new SolverTemplate<T, 'complex'>(handler)
     } else {
-      return new SolverTemplate<T, 'simple'>(config)
+      const handler = new SimpleConstraintHandler<T>(config)
+      return new SolverTemplate<T, 'simple'>(handler)
     }
   }
 }
@@ -393,7 +138,39 @@ export class DancingLinks<T> {
  * solver2.addSparseConstraint('specific2', [1, 2])
  * ```
  */
-export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
+export class SolverTemplate<T, Mode extends SolverMode> {
+  constructor(private handler: ConstraintHandler<T, Mode>) {}
+
+  validateConstraints(): this {
+    this.handler.validateConstraints()
+    return this
+  }
+
+  addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
+    this.handler.addSparseConstraint(data, columnIndices)
+    return this
+  }
+
+  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this {
+    this.handler.addSparseConstraints(constraints)
+    return this
+  }
+
+  addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
+    this.handler.addBinaryConstraint(data, columnValues)
+    return this
+  }
+
+  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this {
+    this.handler.addBinaryConstraints(constraints)
+    return this
+  }
+
+  addRow(row: Row<T>): this {
+    this.handler.addRow(row)
+    return this
+  }
+
   /**
    * Create a new solver instance with this template's constraints pre-loaded.
    * 
@@ -407,11 +184,28 @@ export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandle
    * ```
    */
   createSolver(): ProblemSolver<T, Mode> {
-    const solver = new ProblemSolver<T, Mode>(this.config)
-    for (const constraint of this.constraints) {
-      solver.addRow(constraint)
+    let newHandler: ConstraintHandler<T, Mode>
+    
+    if (this.handler.getNumSecondary() > 0) {
+      // Complex mode
+      const config: ComplexSolverConfig = {
+        primaryColumns: this.handler.getNumPrimary(),
+        secondaryColumns: this.handler.getNumSecondary()
+      }
+      newHandler = new ComplexConstraintHandler<T>(config) as ConstraintHandler<T, Mode>
+    } else {
+      // Simple mode  
+      const config: SimpleSolverConfig = {
+        columns: this.handler.getNumPrimary()
+      }
+      newHandler = new SimpleConstraintHandler<T>(config) as ConstraintHandler<T, Mode>
     }
-    return solver
+    
+    for (const constraint of this.handler.getConstraints()) {
+      newHandler.addRow(constraint)
+    }
+    
+    return new ProblemSolver<T, Mode>(newHandler)
   }
 }
 
@@ -435,7 +229,34 @@ export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandle
  * console.log(`Found ${solutions.length} solutions`)
  * ```
  */
-export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
+export class ProblemSolver<T, Mode extends SolverMode> {
+  constructor(private handler: ConstraintHandler<T, Mode>) {}
+
+  validateConstraints(): this {
+    this.handler.validateConstraints()
+    return this
+  }
+
+  addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
+    this.handler.addSparseConstraint(data, columnIndices)
+    return this
+  }
+
+  addSparseConstraints(constraints: Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>): this {
+    this.handler.addSparseConstraints(constraints)
+    return this
+  }
+
+  addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
+    this.handler.addBinaryConstraint(data, columnValues)
+    return this
+  }
+
+  addBinaryConstraints(constraints: Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>): this {
+    this.handler.addBinaryConstraints(constraints)
+    return this
+  }
+
   /**
    * Add a pre-built constraint row (used internally by templates).
    * 
@@ -444,7 +265,7 @@ export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler
    * @internal
    */
   addRow(row: Row<T>): this {
-    this.constraints.push(row)
+    this.handler.addRow(row)
     return this
   }
 
@@ -498,15 +319,16 @@ export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler
   }
 
   private solve(numSolutions: number): Result<T>[][] {
-    if (this.constraints.length === 0) {
+    const constraints = this.handler.getConstraints()
+    if (constraints.length === 0) {
       throw new Error('Cannot solve problem with no constraints')
     }
 
     const searchConfig: SearchConfig<T> = {
-      numPrimary: this.getNumPrimary(),
-      numSecondary: this.getNumSecondary(),
+      numPrimary: this.handler.getNumPrimary(),
+      numSecondary: this.handler.getNumSecondary(),
       numSolutions,
-      rows: this.constraints  // Direct assignment! No transformation needed
+      rows: constraints
     }
     
     return search<T>(searchConfig)

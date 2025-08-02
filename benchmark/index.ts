@@ -119,6 +119,16 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(Infinity, constraints)
     const sparseConstraints = createSparseConstraints(constraints)
     const plainRows = constraints.map(c => c.row)
+    
+    // Pre-format constraints for batch operations
+    const binaryConstraintsBatch = constraints.map(c => ({
+      data: c.data,
+      columnValues: c.row
+    }))
+    const sparseConstraintsBatch = sparseConstraints.map(c => ({
+      data: c.data,
+      columnIndices: c.columns
+    }))
 
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -135,18 +145,14 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
-      for (const constraint of constraints) {
-        solver.addBinaryConstraint(constraint.data, constraint.row)
-      }
+      solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findAll()
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 324 })
-      for (const constraint of sparseConstraints) {
-        solver.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findAll()
     })
 
@@ -155,9 +161,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
       const template = dlx.createSolverTemplate({ columns: 324 })
       
       // Build template with base constraints
-      for (const constraint of sparseConstraints) {
-        template.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      template.addSparseConstraints(sparseConstraintsBatch)
       
       // Use template
       const solver = template.createSolver()
@@ -223,6 +227,16 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
+    
+    // Pre-format constraints for batch operations
+    const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
+      data: c.data,
+      columnValues: c.row
+    }))
+    const sparseConstraintsBatch = sparseConstraints.map(c => ({
+      data: c.data,
+      columnIndices: c.columns
+    }))
 
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -239,18 +253,14 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of ALL_CONSTRAINTS) {
-        solver.addBinaryConstraint(constraint.data, constraint.row)
-      }
+      solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findOne()
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of sparseConstraints) {
-        solver.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findOne()
     })
 
@@ -259,9 +269,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
       const template = dlx.createSolverTemplate({ columns: 72 })
       
       // Build template with base constraints
-      for (const constraint of sparseConstraints) {
-        template.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      template.addSparseConstraints(sparseConstraintsBatch)
       
       // Use template
       const solver = template.createSolver()
@@ -323,6 +331,16 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
+    
+    // Pre-format constraints for batch operations
+    const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
+      data: c.data,
+      columnValues: c.row
+    }))
+    const sparseConstraintsBatch = sparseConstraints.map(c => ({
+      data: c.data,
+      columnIndices: c.columns
+    }))
 
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -339,18 +357,14 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of ALL_CONSTRAINTS) {
-        solver.addBinaryConstraint(constraint.data, constraint.row)
-      }
+      solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(10)
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of sparseConstraints) {
-        solver.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(10)
     })
 
@@ -359,9 +373,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
       const template = dlx.createSolverTemplate({ columns: 72 })
       
       // Build template with base constraints
-      for (const constraint of sparseConstraints) {
-        template.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      template.addSparseConstraints(sparseConstraintsBatch)
       
       // Use template
       const solver = template.createSolver()
@@ -423,6 +435,16 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
+    
+    // Pre-format constraints for batch operations
+    const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
+      data: c.data,
+      columnValues: c.row
+    }))
+    const sparseConstraintsBatch = sparseConstraints.map(c => ({
+      data: c.data,
+      columnIndices: c.columns
+    }))
 
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
@@ -439,18 +461,14 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of ALL_CONSTRAINTS) {
-        solver.addBinaryConstraint(constraint.data, constraint.row)
-      }
+      solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(100)
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
       const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
-      for (const constraint of sparseConstraints) {
-        solver.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(100)
     })
 
@@ -459,9 +477,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
       const template = dlx.createSolverTemplate({ columns: 72 })
       
       // Build template with base constraints
-      for (const constraint of sparseConstraints) {
-        template.addSparseConstraint(constraint.data, constraint.columns)
-      }
+      template.addSparseConstraints(sparseConstraintsBatch)
       
       // Use template
       const solver = template.createSolver()
@@ -549,6 +565,20 @@ async function runAllBenchmarks() {
       console.log('Mode: Library-only (fast CI mode)')
     }
     console.log('============================================================')
+    console.log()
+    
+    // Validate column counts to ensure hardcoded values are correct
+    console.log('Validating constraint dimensions...')
+    
+    // Sudoku validation
+    const sudokuField = parseStringFormat(9, '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9')
+    const sudokuConstraints = generateConstraints(9, sudokuField)
+    const sudokuMaxColumn = Math.max(...sudokuConstraints.flatMap(c => c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)))
+    console.log(`Sudoku: Expected 324 columns, actual max column index: ${sudokuMaxColumn} (${sudokuMaxColumn + 1} columns)`)
+    
+    // Pentomino validation  
+    const pentominoMaxColumn = Math.max(...ALL_CONSTRAINTS.flatMap(c => c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)))
+    console.log(`Pentomino: Expected 72 columns, actual max column index: ${pentominoMaxColumn} (${pentominoMaxColumn + 1} columns)`)
     console.log()
   }
 
