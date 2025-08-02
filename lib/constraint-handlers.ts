@@ -153,7 +153,7 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
         }
       }
 
-      const coveredColumns: number[] = [...primary]
+      const coveredColumns: number[] = [].concat(primary)
       for (let j = 0; j < secondary.length; j++) {
         const col = secondary[j]
         if (this.validationEnabled) {

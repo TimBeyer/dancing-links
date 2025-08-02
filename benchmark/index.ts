@@ -67,8 +67,8 @@ const allResults: BenchmarkSection[] = []
 /**
  * Create sparse constraints from binary constraints
  */
-function createSparseConstraints<T>(binaryConstraints: Array<{ data: T; row: number[] }>) {
-  return binaryConstraints.map(c => ({
+function createSparseConstraints<T>(constraints: Array<{ data: T; row: number[] }>) {
+  return constraints.map(c => ({
     data: c.data,
     columns: c.row.map((val, idx) => (val === 1 ? idx : -1)).filter(idx => idx !== -1)
   }))
