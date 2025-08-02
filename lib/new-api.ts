@@ -3,11 +3,23 @@
  * 
  * Factory-based interface for creating Dancing Links solvers with type safety.
  * 
- * USAGE:
- * - Use ProblemSolver for single problem instances
- * - Use SolverTemplate to reuse constraint patterns across multiple problems
- * - Supports both simple (columns only) and complex (primary + secondary) modes
- * - Separate methods for sparse (recommended) and binary constraint formats
+ * @fileoverview Provides ProblemSolver for single problems and SolverTemplate for reusable constraint patterns.
+ * Supports both simple (columns only) and complex (primary + secondary) modes with sparse and binary formats.
+ * 
+ * @example
+ * ```typescript
+ * // Simple solver for one-time use
+ * const dlx = new DancingLinks<string>()
+ * const solver = dlx.createSolver({ columns: 3 })
+ * solver.addSparseConstraint('row1', [0, 2])
+ * const solutions = solver.findAll()
+ * 
+ * // Template for reusing constraint patterns
+ * const template = dlx.createSolverTemplate({ columns: 3 })
+ * template.addSparseConstraint('base', [0, 1])
+ * const solver1 = template.createSolver()
+ * const solver2 = template.createSolver()
+ * ```
  */
 
 import { 
@@ -27,7 +39,10 @@ import { search } from './index.js'
 
 
 /**
- * Shared constraint handling logic for both ProblemSolver and SolverTemplate
+ * Base class providing constraint handling logic for both ProblemSolver and SolverTemplate.
+ * 
+ * @template T The type of data associated with each constraint
+ * @template Mode Either 'simple' or 'complex' solver mode
  */
 abstract class ConstraintHandler<T, Mode extends SolverMode> {
   protected constraints: Row<T>[] = []
@@ -37,8 +52,23 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
   ) {}
 
   /**
-   * Add constraint using sparse format (column indices)
-   * Recommended for better performance than binary format.
+   * Add a constraint using sparse format (recommended for performance).
+   * 
+   * @param data - User data to associate with this constraint
+   * @param columnIndices - Column indices that this constraint covers
+   * @returns This instance for method chaining
+   * 
+   * @example
+   * ```typescript
+   * // Simple mode: array of column indices
+   * solver.addSparseConstraint('data', [0, 2, 4])
+   * 
+   * // Complex mode: separate primary and secondary
+   * solver.addSparseConstraint('data', { 
+   *   primary: [0, 1], 
+   *   secondary: [0, 2] 
+   * })
+   * ```
    */
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
     if (isComplexSolverConfig(this.config)) {
@@ -87,8 +117,25 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
   }
 
   /**
-   * Add constraint using binary format (0s and 1s)
-   * Consider using addSparseConstraint() for better performance.
+   * Add a constraint using binary format (0s and 1s).
+   * 
+   * @param data - User data to associate with this constraint
+   * @param columnValues - Binary array where 1 indicates the constraint covers that column
+   * @returns This instance for method chaining
+   * 
+   * @remarks Consider using addSparseConstraint() for better performance.
+   * 
+   * @example
+   * ```typescript
+   * // Simple mode: binary array
+   * solver.addBinaryConstraint('data', [1, 0, 1, 0, 1])
+   * 
+   * // Complex mode: separate primary and secondary rows
+   * solver.addBinaryConstraint('data', {
+   *   primaryRow: [1, 1, 0],
+   *   secondaryRow: [1, 0, 1]
+   * })
+   * ```
    */
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
     if (isComplexSolverConfig(this.config)) {
@@ -148,30 +195,59 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
   }
 
 
+  /**
+   * Get the number of primary columns for this solver.
+   * @returns Number of primary columns
+   * @protected
+   */
   protected getNumPrimary(): number {
     return isComplexSolverConfig(this.config) ? this.config.primaryColumns : this.config.columns
   }
 
+  /**
+   * Get the number of secondary columns for this solver.
+   * @returns Number of secondary columns (0 for simple mode)
+   * @protected
+   */
   protected getNumSecondary(): number {
     return isComplexSolverConfig(this.config) ? this.config.secondaryColumns : 0
   }
 }
 
 /**
- * Main factory class for creating Dancing Links solvers and templates
+ * Factory class for creating Dancing Links solvers and templates with type safety.
+ * 
+ * @template T The type of data associated with constraints
+ * 
+ * @example
+ * ```typescript
+ * const dlx = new DancingLinks<string>()
+ * const solver = dlx.createSolver({ columns: 3 })
+ * const template = dlx.createSolverTemplate({ primaryColumns: 2, secondaryColumns: 1 })
+ * ```
  */
 export class DancingLinks<T> {
 
   /**
-   * Create a new problem solver instance (simple mode)
+   * Create a new problem solver for a single problem instance.
+   * 
+   * @param config - Solver configuration (simple or complex mode)
+   * @returns Type-safe problem solver instance
+   * 
+   * @example
+   * ```typescript
+   * // Simple mode (columns only)
+   * const solver = dlx.createSolver({ columns: 3 })
+   * 
+   * // Complex mode (primary + secondary columns)
+   * const solver = dlx.createSolver({ 
+   *   primaryColumns: 2, 
+   *   secondaryColumns: 1 
+   * })
+   * ```
    */
   createSolver(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
-  
-  /**
-   * Create a new problem solver instance (complex mode)
-   */
   createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
-  
   createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
       return new ProblemSolver<T, 'complex'>(config)
@@ -181,15 +257,23 @@ export class DancingLinks<T> {
   }
 
   /**
-   * Create a new solver template for reusable constraint sets (simple mode)
+   * Create a solver template for reusing constraint patterns across multiple problems.
+   * 
+   * @param config - Solver configuration (simple or complex mode)
+   * @returns Type-safe solver template instance
+   * 
+   * @example
+   * ```typescript
+   * const template = dlx.createSolverTemplate({ columns: 3 })
+   * template.addSparseConstraint('base', [0, 1])
+   * 
+   * // Create multiple solvers from the same template
+   * const solver1 = template.createSolver()
+   * const solver2 = template.createSolver()
+   * ```
    */
   createSolverTemplate(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
-  
-  /**
-   * Create a new solver template for reusable constraint sets (complex mode)
-   */
   createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
-  
   createSolverTemplate(config: SolverConfig): SolverTemplate<T, 'simple'> | SolverTemplate<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
       return new SolverTemplate<T, 'complex'>(config)
@@ -200,12 +284,38 @@ export class DancingLinks<T> {
 }
 
 /**
- * Template for reusable constraint sets
+ * Template for reusable constraint sets.
+ * 
+ * Use this when you want to solve multiple similar problems that share
+ * common constraint patterns.
+ * 
+ * @template T The type of data associated with constraints
+ * @template Mode Either 'simple' or 'complex' solver mode
+ * 
+ * @example
+ * ```typescript
+ * const template = dlx.createSolverTemplate({ columns: 3 })
+ * template.addSparseConstraint('common', [0, 1])
+ * 
+ * const solver1 = template.createSolver()
+ * solver1.addSparseConstraint('specific1', [2])
+ * 
+ * const solver2 = template.createSolver() 
+ * solver2.addSparseConstraint('specific2', [1, 2])
+ * ```
  */
 export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
   /**
-   * Create a solver with template constraints pre-loaded
-   * Uses the same configuration as the template
+   * Create a new solver instance with this template's constraints pre-loaded.
+   * 
+   * @returns New problem solver with template constraints
+   * 
+   * @example
+   * ```typescript
+   * const solver = template.createSolver()
+   * solver.addSparseConstraint('additional', [2])
+   * const solutions = solver.findAll()
+   * ```
    */
   createSolver(): ProblemSolver<T, Mode> {
     const solver = new ProblemSolver<T, Mode>(this.config)
@@ -217,11 +327,32 @@ export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandle
 }
 
 /**
- * Problem solver with type-safe constraint handling and dimension enforcement
+ * Problem solver for Dancing Links exact cover problems.
+ * 
+ * Provides methods to add constraints and find solutions with type safety
+ * and automatic validation.
+ * 
+ * @template T The type of data associated with constraints
+ * @template Mode Either 'simple' or 'complex' solver mode
+ * 
+ * @example
+ * ```typescript
+ * const solver = dlx.createSolver({ columns: 3 })
+ * solver.addSparseConstraint('row1', [0, 2])
+ * solver.addSparseConstraint('row2', [1])
+ * solver.addSparseConstraint('row3', [0, 1])
+ * 
+ * const solutions = solver.findAll()
+ * console.log(`Found ${solutions.length} solutions`)
+ * ```
  */
 export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
   /**
-   * Add a pre-built row (used internally by templates)
+   * Add a pre-built constraint row (used internally by templates).
+   * 
+   * @param row - Pre-processed constraint row
+   * @returns This instance for method chaining
+   * @internal
    */
   addRow(row: Row<T>): this {
     this.constraints.push(row)
@@ -229,21 +360,49 @@ export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler
   }
 
   /**
-   * Find one solution
+   * Find one solution to the exact cover problem.
+   * 
+   * @returns Array containing at most one solution
+   * 
+   * @example
+   * ```typescript
+   * const solutions = solver.findOne()
+   * if (solutions.length > 0) {
+   *   console.log('Found solution:', solutions[0])
+   * }
+   * ```
    */
   findOne(): Result<T>[][] {
     return this.solve(1)
   }
 
   /**
-   * Find all solutions
+   * Find all solutions to the exact cover problem.
+   * 
+   * @returns Array of all solutions found
+   * 
+   * @example
+   * ```typescript
+   * const solutions = solver.findAll()
+   * solutions.forEach((solution, index) => {
+   *   console.log(`Solution ${index}:`, solution)
+   * })
+   * ```
    */
   findAll(): Result<T>[][] {
     return this.solve(Infinity)
   }
 
   /**
-   * Find specified number of solutions
+   * Find up to the specified number of solutions.
+   * 
+   * @param numSolutions - Maximum number of solutions to find
+   * @returns Array of solutions (may be fewer than requested)
+   * 
+   * @example
+   * ```typescript
+   * const solutions = solver.find(5) // Find at most 5 solutions
+   * ```
    */
   find(numSolutions: number): Result<T>[][] {
     return this.solve(numSolutions)
