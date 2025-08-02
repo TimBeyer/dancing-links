@@ -12,7 +12,7 @@
  * 1. SINGLE-PASS CONSTRAINT PROCESSING:
  *    - Validates input constraints while simultaneously building output
  *    - Eliminates separate validation loops that previously duplicated iteration
- *    - Reduces total loop iterations by 40-60% for typical constraint sets
+ *    - Reduces total loop iterations for typical constraint sets
  * 
  * 2. DIRECT STRING HASH CONSTRUCTION:
  *    - Builds constraint hashes via direct string concatenation
@@ -36,8 +36,8 @@
  *    - Maintains cache hit performance while optimizing cache miss paths
  * 
  * PERFORMANCE CHARACTERISTICS:
- * - 50-70% reduction in allocations for sparse constraints
- * - 70-80% reduction in allocations for binary constraints  
+ * - Fewer allocations due to eliminated array cloning and temporary objects
+ * - Reduced loop iterations by combining validation with processing
  * - Better cache locality from unified memory access patterns
  * - Optimized hot paths for constraint-heavy algorithms (N-Queens, Sudoku, etc.)
  * 
@@ -89,8 +89,8 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
    * - Builds final coveredColumns array without intermediate copies
    * - Integrates cache lookup to eliminate duplicate operations
    * 
-   * This trades some code readability for significant performance gains:
-   * - 50-70% fewer allocations vs separate validation/processing phases
+   * This trades some code readability for performance gains:
+   * - Fewer allocations vs separate validation/processing phases
    * - Better cache locality from unified memory access patterns
    */
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
@@ -183,7 +183,7 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
    * 
    * This optimization is especially important for binary format since it eliminates
    * the expensive binary-to-sparse conversion that previously happened in separate loops:
-   * - 70-80% fewer allocations vs separate validation/conversion/hashing phases
+   * - Fewer allocations vs separate validation/conversion/hashing phases
    * - Direct sparse conversion without creating intermediate binary constraint objects
    */
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
