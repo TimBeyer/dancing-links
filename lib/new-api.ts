@@ -158,7 +158,7 @@ export class DancingLinks<T> {
    */
   createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
 
-  createSolver(config: SolverConfig): ProblemSolver<T, any> {
+  createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
       return new ProblemSolver<T, 'complex'>(this.constraintCache, config)
     } else {
@@ -176,7 +176,7 @@ export class DancingLinks<T> {
    */
   createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
 
-  createSolverTemplate(config: SolverConfig): SolverTemplate<T, any> {
+  createSolverTemplate(config: SolverConfig): SolverTemplate<T, 'simple'> | SolverTemplate<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
       return new SolverTemplate<T, 'complex'>(this.constraintCache, config)
     } else {
