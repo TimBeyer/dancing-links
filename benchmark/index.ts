@@ -1,150 +1,587 @@
 import Benchmark from 'benchmark'
-import * as dlxlib from 'dlxlib'
-import * as dance from 'dance'
-import * as dancingLinksAlgorithm from 'dancing-links-algorithm'
+import { writeFileSync } from 'fs'
 
-// import { createConstraints } from './n-queens'
+// Core library imports
 import { find, findRaw } from '../index.js'
-import { ALL_CONSTRAINTS } from './pentomino/field.js'
+import { DancingLinks } from '../lib/new-api.js'
 import { getSearchConfig } from '../lib/utils.js'
+
+// Problem imports
+import { ALL_CONSTRAINTS } from './pentomino/field.js'
 import { generateConstraints, parseStringFormat, printBoard } from './sudoku/index.js'
 
-function benchmarkSudoku() {
-  console.log('Benchmark: A solution to the sudoku\n')
-  const sudokuField = parseStringFormat(
-    9,
-    '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
-  )
-  console.log(printBoard(9, sudokuField), '\n')
+// External library imports (conditional)
+let dlxlib: any, dance: any, dancingLinksAlgorithm: any
+let externalLibrariesAvailable = false
 
-  // Picked from https://github.com/attractivechaos/plb/blob/master/sudoku/sudoku.txt
-  const constraints = generateConstraints(9, sudokuField)
-  const plainRows = constraints.map(c => c.row)
-  const searchConfig = getSearchConfig(Infinity, constraints)
+/**
+ * Parse command line arguments
+ */
+interface BenchmarkOptions {
+  includeExternal: boolean
+  jsonOutput: boolean
+  jsonFile?: string
+  quiet: boolean
+}
 
-  const suite = new Benchmark.Suite()
+function parseArgs(): BenchmarkOptions {
+  const args = process.argv.slice(2)
+  
+  const includeExternal = args.includes('--external') || args.includes('--full')
+  const jsonFlag = args.find(arg => arg.startsWith('--json'))
+  const jsonOutput = !!jsonFlag || args.includes('--json')
+  const jsonFile = jsonFlag?.includes('=') ? jsonFlag.split('=')[1] : undefined
+  const quiet = args.includes('--quiet')
 
-  suite
-    .add('dancing-links find', function () {
+  return { includeExternal, jsonOutput, jsonFile, quiet }
+}
+
+/**
+ * Dynamic import of external libraries
+ */
+async function loadExternalLibraries() {
+  try {
+    dlxlib = await import('dlxlib')
+    dance = await import('dance') 
+    dancingLinksAlgorithm = await import('dancing-links-algorithm')
+    externalLibrariesAvailable = true
+  } catch (error) {
+    console.warn('External libraries not available, running in library-only mode')
+    externalLibrariesAvailable = false
+  }
+}
+
+/**
+ * Benchmark result interfaces
+ */
+interface BenchmarkResult {
+  name: string
+  opsPerSec: number
+  margin: number
+  runs: number
+}
+
+interface BenchmarkSection {
+  benchmarkName: string
+  results: BenchmarkResult[]
+}
+
+const allResults: BenchmarkSection[] = []
+
+/**
+ * Create sparse constraints from binary constraints
+ */
+function createSparseConstraints<T>(binaryConstraints: Array<{data: T, row: number[]}>) {
+  return binaryConstraints.map(c => ({
+    data: c.data,
+    columns: c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)
+  }))
+}
+
+/**
+ * Add benchmark test to suite
+ */
+function addBenchmarkTest(
+  suite: Benchmark.Suite,
+  name: string,
+  fn: () => void,
+  deprecated = false
+) {
+  const displayName = deprecated ? `${name} [DEPRECATED - remove in v4.0]` : name
+  suite.add(displayName, fn)
+}
+
+/**
+ * Sudoku benchmark
+ */
+function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
+  return new Promise(resolve => {
+    if (!options.quiet) {
+      console.log('Benchmark: A solution to the sudoku\\n')
+      const sudokuField = parseStringFormat(
+        9,
+        '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
+      )
+      console.log(printBoard(9, sudokuField), '\\n')
+    }
+
+    const sudokuField = parseStringFormat(
+      9,
+      '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
+    )
+    const constraints = generateConstraints(9, sudokuField)
+    const searchConfig = getSearchConfig(Infinity, constraints)
+    const sparseConstraints = createSparseConstraints(constraints)
+    const plainRows = constraints.map(c => c.row)
+
+    const suite = new Benchmark.Suite()
+    const results: BenchmarkResult[] = []
+
+    // Our library implementations
+    addBenchmarkTest(suite, 'dancing-links find', () => {
       find(constraints, Infinity)
-    })
-    .add('dancing-links findRaw', function () {
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
       findRaw(searchConfig)
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
+      for (const constraint of constraints) {
+        solver.addBinaryConstraint(constraint.data, constraint.row)
+      }
+      solver.findAll()
     })
-    .add('dlxlib', function () {
-      dlxlib.solve(plainRows)
+
+    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 324 })
+      for (const constraint of sparseConstraints) {
+        solver.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      solver.findAll()
     })
-    .add('dance', function () {
-      dance.solve(plainRows, {})
+
+    addBenchmarkTest(suite, 'dancing-links template', () => {
+      const dlx = new DancingLinks<any>()
+      const template = dlx.createSolverTemplate({ columns: 324 })
+      
+      // Build template with base constraints
+      for (const constraint of sparseConstraints) {
+        template.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      
+      // Use template
+      const solver = template.createSolver()
+      solver.findAll()
     })
-    .add('dancing-links-algorithm', function () {
-      dancingLinksAlgorithm.solve(plainRows)
-    })
-    .on('cycle', function (event: any) {
-      console.log(String(event.target))
-    })
-    .on('complete', function (this: any) {
-      console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
-    })
-    .run()
+
+    // External libraries (if requested and available)
+    if (options.includeExternal && externalLibrariesAvailable) {
+      addBenchmarkTest(suite, 'dlxlib', () => {
+        dlxlib.solve(plainRows)
+      })
+
+      addBenchmarkTest(suite, 'dance', () => {
+        dance.solve(plainRows, {})
+      })
+
+      addBenchmarkTest(suite, 'dancing-links-algorithm', () => {
+        dancingLinksAlgorithm.solve(plainRows)
+      })
+    }
+
+    suite
+      .on('cycle', function (event: Benchmark.Event) {
+        const benchmark = event.target
+        if (!options.quiet) {
+          console.log(String(event.target))
+        }
+        
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
+      })
+      .on('complete', function (this: any) {
+        if (!options.quiet) {
+          console.log('Fastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+        }
+        
+        allResults.push({
+          benchmarkName: 'A solution to the sudoku',
+          results
+        })
+        resolve()
+      })
+      .run()
+  })
 }
-function benchmarkOneTiling() {
-  console.log('Benchmark: Finding one pentomino tiling on a 6x10 field\n')
 
-  const dlxlibConstraints = ALL_CONSTRAINTS.map(constraint => constraint.row)
-  const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
+/**
+ * Pentomino benchmark (one solution)
+ */
+function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
+  return new Promise(resolve => {
+    if (!options.quiet) {
+      console.log('Benchmark: Finding one pentomino tiling on a 6x10 field\\n')
+    }
 
-  const suite = new Benchmark.Suite()
+    const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
+    const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
+    const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
-  suite
-    .add('dancing-links find', function () {
+    const suite = new Benchmark.Suite()
+    const results: BenchmarkResult[] = []
+
+    // Our library implementations
+    addBenchmarkTest(suite, 'dancing-links find', () => {
       find(ALL_CONSTRAINTS, 1)
-    })
-    .add('dancing-links findRaw', function () {
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
       findRaw(searchConfig)
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of ALL_CONSTRAINTS) {
+        solver.addBinaryConstraint(constraint.data, constraint.row)
+      }
+      solver.findOne()
     })
-    .add('dlxlib', function () {
-      dlxlib.solve(dlxlibConstraints, null, null, 1)
+
+    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of sparseConstraints) {
+        solver.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      solver.findOne()
     })
-    .add('dance', function () {
-      dance.solve(dlxlibConstraints, {
-        maxSolutions: 1
+
+    addBenchmarkTest(suite, 'dancing-links template', () => {
+      const dlx = new DancingLinks<any>()
+      const template = dlx.createSolverTemplate({ columns: 72 })
+      
+      // Build template with base constraints
+      for (const constraint of sparseConstraints) {
+        template.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      
+      // Use template
+      const solver = template.createSolver()
+      solver.findOne()
+    })
+
+    // External libraries (if requested and available)
+    if (options.includeExternal && externalLibrariesAvailable) {
+      addBenchmarkTest(suite, 'dlxlib', () => {
+        dlxlib.solve(plainRows, null, null, 1)
       })
-    })
-    .on('cycle', function (event: any) {
-      console.log(String(event.target))
-    })
-    .on('complete', function (this: any) {
-      console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
-    })
-    .run()
+
+      addBenchmarkTest(suite, 'dance', () => {
+        dance.solve(plainRows, { maxSolutions: 1 })
+      })
+    }
+
+    suite
+      .on('cycle', function (event: Benchmark.Event) {
+        const benchmark = event.target
+        if (!options.quiet) {
+          console.log(String(event.target))
+        }
+        
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
+      })
+      .on('complete', function (this: any) {
+        if (!options.quiet) {
+          console.log('Fastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+        }
+        
+        allResults.push({
+          benchmarkName: 'Finding one pentomino tiling on a 6x10 field',
+          results
+        })
+        resolve()
+      })
+      .run()
+  })
 }
 
-function benchmarkTenTilings() {
-  console.log('Benchmark: Finding ten pentomino tilings on a 6x10 field\n')
+/**
+ * Pentomino benchmark (ten solutions)
+ */
+function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
+  return new Promise(resolve => {
+    if (!options.quiet) {
+      console.log('Benchmark: Finding ten pentomino tilings on a 6x10 field\\n')
+    }
 
-  const dlxlibConstraints = ALL_CONSTRAINTS.map(constraint => constraint.row)
-  const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
+    const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
+    const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
+    const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
-  const suite = new Benchmark.Suite()
+    const suite = new Benchmark.Suite()
+    const results: BenchmarkResult[] = []
 
-  suite
-    .add('dancing-links find', function () {
+    // Our library implementations
+    addBenchmarkTest(suite, 'dancing-links find', () => {
       find(ALL_CONSTRAINTS, 10)
-    })
-    .add('dancing-links findRaw', function () {
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
       findRaw(searchConfig)
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of ALL_CONSTRAINTS) {
+        solver.addBinaryConstraint(constraint.data, constraint.row)
+      }
+      solver.find(10)
     })
-    .add('dlxlib', function () {
-      dlxlib.solve(dlxlibConstraints, null, null, 10)
+
+    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of sparseConstraints) {
+        solver.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      solver.find(10)
     })
-    .add('dance', function () {
-      dance.solve(dlxlibConstraints, {
-        maxSolutions: 10
+
+    addBenchmarkTest(suite, 'dancing-links template', () => {
+      const dlx = new DancingLinks<any>()
+      const template = dlx.createSolverTemplate({ columns: 72 })
+      
+      // Build template with base constraints
+      for (const constraint of sparseConstraints) {
+        template.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      
+      // Use template
+      const solver = template.createSolver()
+      solver.find(10)
+    })
+
+    // External libraries (if requested and available)
+    if (options.includeExternal && externalLibrariesAvailable) {
+      addBenchmarkTest(suite, 'dlxlib', () => {
+        dlxlib.solve(plainRows, null, null, 10)
       })
-    })
-    .on('cycle', function (event: any) {
-      console.log(String(event.target))
-    })
-    .on('complete', function (this: any) {
-      console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
-    })
-    .run()
+
+      addBenchmarkTest(suite, 'dance', () => {
+        dance.solve(plainRows, { maxSolutions: 10 })
+      })
+    }
+
+    suite
+      .on('cycle', function (event: Benchmark.Event) {
+        const benchmark = event.target
+        if (!options.quiet) {
+          console.log(String(event.target))
+        }
+        
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
+      })
+      .on('complete', function (this: any) {
+        if (!options.quiet) {
+          console.log('\\nFastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+        }
+        
+        allResults.push({
+          benchmarkName: 'Finding ten pentomino tilings on a 6x10 field',
+          results
+        })
+        resolve()
+      })
+      .run()
+  })
 }
 
-function benchmarkHundredTilings() {
-  console.log('Benchmark: Finding one hundred pentomino tilings on a 6x10 field\n')
+/**
+ * Pentomino benchmark (hundred solutions)
+ */
+function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
+  return new Promise(resolve => {
+    if (!options.quiet) {
+      console.log('Benchmark: Finding one hundred pentomino tilings on a 6x10 field\\n')
+    }
 
-  const dlxlibConstraints = ALL_CONSTRAINTS.map(constraint => constraint.row)
-  const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
+    const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
+    const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
+    const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
-  const suite = new Benchmark.Suite()
+    const suite = new Benchmark.Suite()
+    const results: BenchmarkResult[] = []
 
-  suite
-    .add('dancing-links find', function () {
+    // Our library implementations
+    addBenchmarkTest(suite, 'dancing-links find', () => {
       find(ALL_CONSTRAINTS, 100)
-    })
-    .add('dancing-links findRaw', function () {
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
       findRaw(searchConfig)
+    }, true)
+
+    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of ALL_CONSTRAINTS) {
+        solver.addBinaryConstraint(constraint.data, constraint.row)
+      }
+      solver.find(100)
     })
-    .add('dlxlib', function () {
-      dlxlib.solve(dlxlibConstraints, null, null, 100)
+
+    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+      const dlx = new DancingLinks<any>()
+      const solver = dlx.createSolver({ columns: 72 })
+      for (const constraint of sparseConstraints) {
+        solver.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      solver.find(100)
     })
-    .add('dance', function () {
-      dance.solve(dlxlibConstraints, {
-        maxSolutions: 100
+
+    addBenchmarkTest(suite, 'dancing-links template', () => {
+      const dlx = new DancingLinks<any>()
+      const template = dlx.createSolverTemplate({ columns: 72 })
+      
+      // Build template with base constraints
+      for (const constraint of sparseConstraints) {
+        template.addSparseConstraint(constraint.data, constraint.columns)
+      }
+      
+      // Use template
+      const solver = template.createSolver()
+      solver.find(100)
+    })
+
+    // External libraries (if requested and available)
+    if (options.includeExternal && externalLibrariesAvailable) {
+      addBenchmarkTest(suite, 'dlxlib', () => {
+        dlxlib.solve(plainRows, null, null, 100)
       })
-    })
-    .on('cycle', function (event: any) {
-      console.log(String(event.target))
-    })
-    .on('complete', function (this: any) {
-      console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
-    })
-    .run()
+
+      addBenchmarkTest(suite, 'dance', () => {
+        dance.solve(plainRows, { maxSolutions: 100 })
+      })
+    }
+
+    suite
+      .on('cycle', function (event: Benchmark.Event) {
+        const benchmark = event.target
+        if (!options.quiet) {
+          console.log(String(event.target))
+        }
+        
+        if (benchmark.name && benchmark.hz && benchmark.stats) {
+          results.push({
+            name: benchmark.name,
+            opsPerSec: benchmark.hz,
+            margin: benchmark.stats.rme,
+            runs: benchmark.stats.sample.length
+          })
+        }
+      })
+      .on('complete', function (this: any) {
+        if (!options.quiet) {
+          console.log('\\nFastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+        }
+        
+        allResults.push({
+          benchmarkName: 'Finding one hundred pentomino tilings on a 6x10 field',
+          results
+        })
+        resolve()
+      })
+      .run()
+  })
 }
 
-benchmarkSudoku()
-benchmarkOneTiling()
-benchmarkTenTilings()
-benchmarkHundredTilings()
+/**
+ * Output results
+ */
+function outputResults(options: BenchmarkOptions) {
+  if (options.jsonOutput) {
+    const jsonOutput = JSON.stringify(allResults, null, 2)
+    
+    if (options.jsonFile) {
+      writeFileSync(options.jsonFile, jsonOutput)
+      if (!options.quiet) {
+        console.log(`Benchmark results written to ${options.jsonFile}`)
+      }
+    } else {
+      console.log(jsonOutput)
+    }
+  }
+}
+
+/**
+ * Main benchmark runner
+ */
+async function runAllBenchmarks() {
+  const options = parseArgs()
+  
+  // Load external libraries if needed
+  if (options.includeExternal) {
+    await loadExternalLibraries()
+  }
+  
+  if (!options.quiet) {
+    console.log('============================================================')
+    console.log('DANCING LINKS PERFORMANCE BENCHMARKS')
+    if (options.includeExternal) {
+      console.log('Mode: Full comparison (including external libraries)')
+    } else {
+      console.log('Mode: Library-only (fast CI mode)')
+    }
+    console.log('============================================================')
+    console.log()
+  }
+
+  // Run all benchmarks
+  await benchmarkSudoku(options)
+  await benchmarkOneTiling(options)
+  await benchmarkTenTilings(options)
+  await benchmarkHundredTilings(options)
+
+  // Output results
+  outputResults(options)
+  
+  if (!options.quiet && !options.jsonOutput) {
+    console.log('============================================================')
+    console.log('BENCHMARK COMPLETE')
+    console.log('============================================================')
+  }
+}
+
+/**
+ * Show usage information
+ */
+function showUsage() {
+  console.log(`
+Usage: node benchmark/index.js [options]
+
+Options:
+  --external, --full    Include external library comparisons (dlxlib, dance, etc.)
+  --json[=file]         Output results as JSON (to file if specified)
+  --quiet               Suppress console output during benchmarks
+  --help                Show this help message
+
+Examples:
+  node benchmark/index.js                      # Fast mode (library only)
+  node benchmark/index.js --external           # Full comparison mode
+  node benchmark/index.js --json=results.json  # Fast mode with JSON output
+  node benchmark/index.js --external --json    # Full mode with JSON to stdout
+`)
+}
+
+// Run benchmarks or show help
+if (process.argv.includes('--help')) {
+  showUsage()
+} else {
+  runAllBenchmarks().catch(console.error)
+}
