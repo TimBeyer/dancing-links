@@ -21,7 +21,13 @@ import { DancingLinks } from 'dancing-links'
 // Create a Dancing Links container
 const dlx = new DancingLinks()
 
-// Simple binary constraints
+// ⚡ SPARSE CONSTRAINTS (RECOMMENDED - most efficient for sparse matrices)
+// Only specify active column indices instead of full binary arrays
+const sparseSolver = dlx.createSolver({ columns: 100 })
+sparseSolver.addSparseConstraint('sparse1', [0, 15, 42, 87])  // Only active columns
+sparseSolver.addSparseConstraint('sparse2', [1, 16, 43, 99])
+
+// Binary constraints (use when constraints are dense)
 const solver = dlx.createSolver({ columns: 4 })
 solver.addBinaryConstraint('row1', [1, 0, 1, 0])
 solver.addBinaryConstraint('row2', [0, 1, 0, 1]) 
@@ -30,22 +36,17 @@ solver.addBinaryConstraint('row3', [1, 1, 0, 0])
 const solution = solver.findOne()
 // Returns: [{ data: 'row1', index: 0 }, { data: 'row2', index: 1 }]
 
-// Sparse constraints (more efficient for sparse matrices)
-const sparseSolver = dlx.createSolver({ columns: 100 })
-sparseSolver.addSparseConstraint('sparse1', [0, 15, 42, 87])  // Only specify active columns
-sparseSolver.addSparseConstraint('sparse2', [1, 16, 43])
-
-// Constraint templates (for reusable constraint sets)
-const template = dlx.createSolverTemplate({ columns: 4 })
-template.addBinaryConstraint('base1', [1, 0, 0, 0])
-template.addBinaryConstraint('base2', [0, 1, 0, 0])
+// Constraint templates (for reusable constraint sets) - use sparse for best performance
+const template = dlx.createSolverTemplate({ columns: 20 })
+template.addSparseConstraint('base1', [0, 5, 10])      // Base constraints
+template.addSparseConstraint('base2', [1, 6, 11])
 
 // Create multiple solvers from the same template
 const solver1 = template.createSolver()
-solver1.addBinaryConstraint('extra1', [0, 0, 1, 0])
+solver1.addSparseConstraint('extra1', [2, 7, 12])     // Additional constraints
 
 const solver2 = template.createSolver() 
-solver2.addBinaryConstraint('extra2', [0, 0, 0, 1])
+solver2.addSparseConstraint('extra2', [3, 8, 13])
 
 // Complex constraints (primary + secondary)
 const complexSolver = dlx.createSolver({ 
