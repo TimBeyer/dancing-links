@@ -31,18 +31,18 @@ import { search } from './index.js'
 /**
  * Processed constraint that matches SearchConfig.Row format with caching hash
  */
-interface ProcessedRow<T = any> extends Row<T> {
+interface ProcessedRow<T> extends Row<T> {
   readonly hash: string
 }
 
 /**
  * Shared constraint handling logic for both ProblemSolver and SolverTemplate
  */
-abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 'simple'> {
+abstract class ConstraintHandler<T, Mode extends 'simple' | 'complex' = 'simple'> {
   protected constraints: ProcessedRow<T>[] = []
 
   constructor(
-    protected constraintCache: Map<string, ProcessedRow>,
+    protected constraintCache: Map<string, ProcessedRow<T>>,
     protected config: SolverConfig
   ) {}
 
@@ -144,20 +144,20 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
 /**
  * Main factory class that manages constraint caching
  */
-export class DancingLinks {
-  private constraintCache = new Map<string, ProcessedRow>()
+export class DancingLinks<T> {
+  private constraintCache = new Map<string, ProcessedRow<T>>()
 
   /**
    * Create a new problem solver instance (simple - columns only)
    */
-  createSolver<T = any>(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
+  createSolver(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
 
   /**
    * Create a new problem solver instance (complex - primary + secondary)
    */
-  createSolver<T = any>(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
+  createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
 
-  createSolver<T = any>(config: SolverConfig): ProblemSolver<T, any> {
+  createSolver(config: SolverConfig): ProblemSolver<T, any> {
     if (isComplexSolverConfig(config)) {
       return new ProblemSolver<T, 'complex'>(this.constraintCache, config)
     } else {
@@ -168,14 +168,14 @@ export class DancingLinks {
   /**
    * Create a new solver template for reusable constraint sets (simple - columns only)
    */
-  createSolverTemplate<T = any>(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
+  createSolverTemplate(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
 
   /**
    * Create a new solver template for reusable constraint sets (complex - primary + secondary)
    */
-  createSolverTemplate<T = any>(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
+  createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
 
-  createSolverTemplate<T = any>(config: SolverConfig): SolverTemplate<T, any> {
+  createSolverTemplate(config: SolverConfig): SolverTemplate<T, any> {
     if (isComplexSolverConfig(config)) {
       return new SolverTemplate<T, 'complex'>(this.constraintCache, config)
     } else {
@@ -187,7 +187,7 @@ export class DancingLinks {
 /**
  * Template for reusable constraint sets
  */
-export class SolverTemplate<T = any, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
+export class SolverTemplate<T, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
   /**
    * Create a solver with template constraints pre-loaded
    * Uses the same configuration as the template
@@ -204,7 +204,7 @@ export class SolverTemplate<T = any, Mode extends 'simple' | 'complex' = 'simple
 /**
  * Problem solver with type-safe constraint handling and dimension enforcement
  */
-export class ProblemSolver<T = any, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
+export class ProblemSolver<T, Mode extends 'simple' | 'complex' = 'simple'> extends ConstraintHandler<T, Mode> {
   /**
    * Add a pre-processed row (used internally by templates)
    */
@@ -257,7 +257,7 @@ export class ProblemSolver<T = any, Mode extends 'simple' | 'complex' = 'simple'
 class ConstraintProcessor {
   static process<T>(
     constraint: Constraint<T> | ComplexSparseConstraint<T> | ComplexBinaryConstraint<T>, 
-    cache: Map<string, ProcessedRow>, 
+    cache: Map<string, ProcessedRow<T>>, 
     config: SolverConfig
   ): ProcessedRow<T> {
     const hash = this.hashConstraint(constraint)

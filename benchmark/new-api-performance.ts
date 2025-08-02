@@ -26,7 +26,7 @@ function benchmarkConstraintCaching() {
       findRaw(searchConfig)
     })
     .add('New API: First solve (pays encoding cost)', function () {
-      const dlx = new DancingLinks()
+      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       for (const constraint of ALL_CONSTRAINTS) {
         solver.addBinaryConstraint(constraint.data, constraint.row)
@@ -35,7 +35,7 @@ function benchmarkConstraintCaching() {
     })
     .add('New API: Cached solve (reuses encoded constraints)', function () {
       // Simulate reusing the same constraint patterns with different data
-      const dlx = new DancingLinks()
+      const dlx = new DancingLinks<any>()
       const solver1 = dlx.createSolver({ columns: 72 })
       const solver2 = dlx.createSolver({ columns: 72 })
 
@@ -75,7 +75,7 @@ function benchmarkTemplateReuse() {
       }
     })
     .add('New API: Template-based solving', function () {
-      const dlx = new DancingLinks()
+      const dlx = new DancingLinks<any>()
       const template = dlx.createSolverTemplate({ columns: 324 }) // 9x9 sudoku has 324 columns
 
       // Build template once
