@@ -18,6 +18,8 @@ import {
   ComplexSolverConfig,
   ComplexSparseConstraint,
   ComplexBinaryConstraint,
+  SparseColumns,
+  BinaryRow,
   isSimpleConstraint,
   isComplexConstraint,
   isSparseConstraint,
@@ -48,12 +50,7 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
    * Add constraint using efficient sparse format (RECOMMENDED)
    * 2-4x faster than binary format, better caching performance
    */
-  addSparseConstraint(
-    data: T,
-    columns: Mode extends 'complex' 
-      ? { primary: number[], secondary: number[] }
-      : number[]
-  ): this {
+  addSparseConstraint(data: T, columns: SparseColumns<Mode>): this {
     this.validateSparseConstraint(columns)
 
     let sparseConstraint: SparseConstraint<T> | ComplexSparseConstraint<T>
@@ -74,12 +71,7 @@ abstract class ConstraintHandler<T = any, Mode extends 'simple' | 'complex' = 's
    * Add constraint using binary format (for compatibility)
    * Consider using addSparseConstraint() for better performance
    */
-  addBinaryConstraint(
-    data: T,
-    row: Mode extends 'complex'
-      ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
-      : BinaryNumber[]
-  ): this {
+  addBinaryConstraint(data: T, row: BinaryRow<Mode>): this {
     this.validateBinaryConstraint(row)
 
     let binaryConstraint: BinaryConstraint<T> | ComplexBinaryConstraint<T>

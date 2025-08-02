@@ -95,3 +95,16 @@ export interface ComplexBinaryConstraint<T = any> {
   primaryRow: BinaryNumber[]
   secondaryRow: BinaryNumber[]
 }
+
+/**
+ * Mode-dependent type definitions for clean API signatures
+ */
+export type SparseColumns<Mode extends 'simple' | 'complex'> = 
+  Mode extends 'complex' 
+    ? { primary: number[], secondary: number[] }
+    : number[]
+
+export type BinaryRow<Mode extends 'simple' | 'complex'> = 
+  Mode extends 'complex'
+    ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+    : BinaryNumber[]
