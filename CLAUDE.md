@@ -105,6 +105,60 @@ Make sure to leave relevant and detailed comments on complex parts of the codeba
 
 When you write complex code, you MUST write documentation explaining the why, not the what.
 
+### Performance-Critical Code Guidelines
+
+**DO** use for performance-critical code:
+
+- `for...of` loops over `.forEach()`
+- Manual loops over `.map()` and `.reduce()` for data transformation
+- Low-level iteration patterns in hot paths
+
+**DON'T** use for performance-critical code:
+
+- Array utility methods (`.map`, `.reduce`, `.forEach`) - provably slower than loops
+- Functional programming patterns that create intermediate arrays
+- Method chaining that allocates temporary objects
+
+### Testing Guidelines
+
+**DO** in tests:
+
+- Test functionality and behavior
+- Focus on input/output verification
+- Test edge cases and error conditions
+
+**DON'T** in tests:
+
+- Test method existence with `.to.have.property` - TypeScript ensures this
+- Test implementation details
+- Duplicate type checking that TypeScript already provides
+
+### Problem-Solving Approach
+
+**ALWAYS plan together first for complex problems before implementing.**
+
+When to **PLAN TOGETHER** (not implement immediately):
+
+- Questions like "Can we think of a better way..."
+- "Maybe we can build something better..."
+- "Is it a good interface to..."
+- Architecture or design discussions
+- Performance optimization strategies
+- API design questions
+- Complex problem exploration
+
+When to **IMPLEMENT DIRECTLY**:
+
+- "Can you fix the type issue"
+- "Add this specific feature"
+- "Run the tests"
+- Clear, specific implementation requests
+- Bug fixes with known solutions
+
+**Always use judgment**: If unsure whether to plan or implement, err on the side of planning and discussion first. Implementation can always come after we've explored the problem space together.
+
 ## Commit Guidelines
 
 - Commit frequently, ensure tests pass before committing, always ensure that ALL TS types pass
+
+- Always do work in branches and create one if we're not in a branch already. Commit frequently.

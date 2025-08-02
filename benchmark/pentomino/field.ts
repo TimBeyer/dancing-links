@@ -19,7 +19,7 @@ function getIndex(x: number, y: number, width: number) {
   return y * width + x
 }
 
-interface PlacedPentomino {
+export interface PlacedPentomino {
   x: number
   y: number
   p: Pentomino
