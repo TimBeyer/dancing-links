@@ -7,8 +7,8 @@ import { DancingLinks } from '../lib/new-api.js'
 import { getSearchConfig } from '../lib/utils.js'
 
 // Problem imports
-import { ALL_CONSTRAINTS } from './pentomino/field.js'
-import { generateConstraints, parseStringFormat, printBoard } from './sudoku/index.js'
+import { ALL_CONSTRAINTS, PlacedPentomino } from './pentomino/field.js'
+import { generateConstraints, parseStringFormat, printBoard, SudokuInput } from './sudoku/index.js'
 
 // External library imports
 import * as dlxlib from 'dlxlib'
@@ -126,6 +126,11 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
       columnIndices: c.columns
     }))
 
+    // Create reusable instances
+    const dlx = new DancingLinks<SudokuInput>()
+    const template = dlx.createSolverTemplate({ columns: 324 })
+    template.addSparseConstraints(sparseConstraintsBatch)
+
     const suite = new Benchmark.Suite()
     const results: BenchmarkResult[] = []
 
@@ -139,27 +144,18 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     }, true)
 
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findAll()
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 324 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findAll()
     })
 
     addBenchmarkTest(suite, 'dancing-links template', () => {
-      const dlx = new DancingLinks<any>()
-      const template = dlx.createSolverTemplate({ columns: 324 })
-      
-      // Build template with base constraints
-      template.addSparseConstraints(sparseConstraintsBatch)
-      
-      // Use template
       const solver = template.createSolver()
       solver.findAll()
     })
@@ -246,28 +242,24 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
       findRaw(searchConfig)
     }, true)
 
+    // Create reusable instances
+    const dlx = new DancingLinks<PlacedPentomino>()
+    const template = dlx.createSolverTemplate({ columns: 72 })
+    template.addSparseConstraints(sparseConstraintsBatch)
+
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findOne()
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findOne()
     })
 
     addBenchmarkTest(suite, 'dancing-links template', () => {
-      const dlx = new DancingLinks<any>()
-      const template = dlx.createSolverTemplate({ columns: 72 })
-      
-      // Build template with base constraints
-      template.addSparseConstraints(sparseConstraintsBatch)
-      
-      // Use template
       const solver = template.createSolver()
       solver.findOne()
     })
@@ -350,28 +342,24 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
       findRaw(searchConfig)
     }, true)
 
+    // Create reusable instances
+    const dlx = new DancingLinks<PlacedPentomino>()
+    const template = dlx.createSolverTemplate({ columns: 72 })
+    template.addSparseConstraints(sparseConstraintsBatch)
+
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(10)
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(10)
     })
 
     addBenchmarkTest(suite, 'dancing-links template', () => {
-      const dlx = new DancingLinks<any>()
-      const template = dlx.createSolverTemplate({ columns: 72 })
-      
-      // Build template with base constraints
-      template.addSparseConstraints(sparseConstraintsBatch)
-      
-      // Use template
       const solver = template.createSolver()
       solver.find(10)
     })
@@ -454,28 +442,24 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
       findRaw(searchConfig)
     }, true)
 
+    // Create reusable instances
+    const dlx = new DancingLinks<PlacedPentomino>()
+    const template = dlx.createSolverTemplate({ columns: 72 })
+    template.addSparseConstraints(sparseConstraintsBatch)
+
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(100)
     })
 
     addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
-      const dlx = new DancingLinks<any>()
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(100)
     })
 
     addBenchmarkTest(suite, 'dancing-links template', () => {
-      const dlx = new DancingLinks<any>()
-      const template = dlx.createSolverTemplate({ columns: 72 })
-      
-      // Build template with base constraints
-      template.addSparseConstraints(sparseConstraintsBatch)
-      
-      // Use template
       const solver = template.createSolver()
       solver.find(100)
     })
