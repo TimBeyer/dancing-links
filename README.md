@@ -222,7 +222,7 @@ Options:
   --help                Show help message
 ```
 
-This library consistently achieves **10-15x faster performance** than other Dancing Links implementations in JavaScript, with the new high-performance API providing additional optimizations for sparse constraints and constraint templating.
+Benchmarks show this library outperforms other Dancing Links implementations in JavaScript, with the new high-performance API providing additional optimizations for sparse constraints and constraint templating.
 
 ## Profiling
 

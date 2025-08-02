@@ -16,6 +16,7 @@ interface BenchmarkResult {
   opsPerSec: number
   margin: number
   runs?: number
+  deprecated?: boolean
 }
 
 interface BenchmarkSection {
@@ -25,6 +26,7 @@ interface BenchmarkSection {
     opsPerSec: number
     margin: number
     runs: number
+    deprecated?: boolean
   }>
 }
 
@@ -58,7 +60,8 @@ class BenchmarkParser {
             libraryName: result.name,
             opsPerSec: result.opsPerSec,
             margin: result.margin,
-            runs: result.runs
+            runs: result.runs,
+            deprecated: result.deprecated || false
           })
         }
       }
@@ -106,32 +109,56 @@ class BenchmarkComparator {
       return '❌ PR benchmark failed to run. Cannot compare results.'
     }
 
-    if (comparisons.length === 0) {
-      return '⚠️ No comparable benchmark results found.'
-    }
-
     let markdown = '## 🚀 Benchmark Results\n\n'
 
-    // Group comparisons by benchmark type
-    const groupedComparisons = this.groupComparisonsByBenchmark(comparisons)
+    // Show comparisons for matched results
+    if (comparisons.length > 0) {
+      const groupedComparisons = this.groupComparisonsByBenchmark(comparisons)
 
-    for (const [benchmarkName, benchmarkComparisons] of Object.entries(groupedComparisons)) {
-      markdown += `### ${benchmarkName}\n\n`
-      markdown += '| Library | Baseline (ops/sec) | PR (ops/sec) | Change | Performance |\n'
-      markdown += '|---------|-------------------|--------------|---------|-------------|\n'
+      for (const [benchmarkName, benchmarkComparisons] of Object.entries(groupedComparisons)) {
+        markdown += `### ${benchmarkName}\n\n`
+        markdown += '| Library | Baseline (ops/sec) | PR (ops/sec) | Change | Performance |\n'
+        markdown += '|---------|-------------------|--------------|---------|-------------|\n'
 
-      for (const comp of benchmarkComparisons) {
-        const changeSign = comp.percentChange >= 0 ? '+' : ''
-        const performanceIcon = this.getPerformanceIcon(comp.percentChange)
+        for (const comp of benchmarkComparisons) {
+          const changeSign = comp.percentChange >= 0 ? '+' : ''
+          const performanceIcon = this.getPerformanceIcon(comp.percentChange)
+          const libraryName = comp.pr.deprecated ? `${comp.pr.libraryName} (deprecated)` : comp.pr.libraryName
 
-        markdown += `| ${comp.pr.libraryName} `
-        markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `
-        markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin}% `
-        markdown += `| ${changeSign}${comp.percentChange.toFixed(2)}% `
-        markdown += `| ${performanceIcon} |\n`
+          markdown += `| ${libraryName} `
+          markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `
+          markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin}% `
+          markdown += `| ${changeSign}${comp.percentChange.toFixed(2)}% `
+          markdown += `| ${performanceIcon} |\n`
+        }
+
+        markdown += '\n'
       }
+    }
 
-      markdown += '\n'
+    // Show raw results for unmatched items
+    const unmatchedResults = this.getUnmatchedResults(comparisons)
+    if (unmatchedResults.baselineOnly.length > 0 || unmatchedResults.prOnly.length > 0) {
+      markdown += '### Unmatched Results\n\n'
+      
+      if (unmatchedResults.baselineOnly.length > 0) {
+        markdown += '#### Baseline Only\n\n'
+        markdown += this.generateRawResultsTable(unmatchedResults.baselineOnly)
+      }
+      
+      if (unmatchedResults.prOnly.length > 0) {
+        markdown += '#### PR Only\n\n'
+        markdown += this.generateRawResultsTable(unmatchedResults.prOnly)
+      }
+    }
+
+    // If no comparisons at all, show everything as raw
+    if (comparisons.length === 0) {
+      markdown += '⚠️ No matching benchmark names found between baseline and PR.\n\n'
+      markdown += '### Raw Baseline Results\n\n'
+      markdown += this.generateRawResultsTable(this.baselineResults)
+      markdown += '\n### Raw PR Results\n\n'
+      markdown += this.generateRawResultsTable(this.prResults)
     }
 
     markdown += `*Updated: ${new Date().toISOString()}*\n`
@@ -162,6 +189,18 @@ class BenchmarkComparator {
   }
 
   /**
+   * Get unmatched results from baseline and PR
+   */
+  getUnmatchedResults(comparisons: ComparisonResult[]) {
+    const matchedNames = new Set(comparisons.map(c => c.name))
+    
+    const baselineOnly = this.baselineResults.filter(b => !matchedNames.has(b.name))
+    const prOnly = this.prResults.filter(p => !matchedNames.has(p.name))
+    
+    return { baselineOnly, prOnly }
+  }
+
+  /**
    * Calculate performance comparisons between baseline and PR
    */
   calculateComparisons(): ComparisonResult[] {
@@ -184,6 +223,27 @@ class BenchmarkComparator {
     }
 
     return comparisons
+  }
+
+  /**
+   * Generate raw results table when no comparisons are possible
+   */
+  generateRawResultsTable(results: BenchmarkResult[]): string {
+    if (results.length === 0) {
+      return '*No results available*\n'
+    }
+
+    let markdown = '| Benchmark | Library | ops/sec | Margin | Runs |\n'
+    markdown += '|-----------|---------|---------|--------|------|\n'
+
+    for (const result of results) {
+      const libraryName = result.deprecated ? `${result.libraryName} (deprecated)` : result.libraryName
+      markdown += `| ${result.benchmarkName} | ${libraryName} `
+      markdown += `| ${result.opsPerSec.toLocaleString()} | ±${result.margin}% `
+      markdown += `| ${result.runs || 'N/A'} |\n`
+    }
+
+    return markdown + '\n'
   }
 
   /**

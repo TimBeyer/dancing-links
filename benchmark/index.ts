@@ -59,6 +59,7 @@ interface BenchmarkResult {
   opsPerSec: number
   margin: number
   runs: number
+  deprecated?: boolean
 }
 
 interface BenchmarkSection {
@@ -81,14 +82,19 @@ function createSparseConstraints<T>(binaryConstraints: Array<{data: T, row: numb
 /**
  * Add benchmark test to suite
  */
+// Track deprecated tests separately since Benchmark.js doesn't support custom metadata
+const deprecatedTests = new Set<string>()
+
 function addBenchmarkTest(
   suite: Benchmark.Suite,
   name: string,
   fn: () => void,
   deprecated = false
 ) {
-  const displayName = deprecated ? `${name} [DEPRECATED - remove in v4.0]` : name
-  suite.add(displayName, fn)
+  suite.add(name, fn)
+  if (deprecated) {
+    deprecatedTests.add(name)
+  }
 }
 
 /**
@@ -97,12 +103,12 @@ function addBenchmarkTest(
 function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
   return new Promise(resolve => {
     if (!options.quiet) {
-      console.log('Benchmark: A solution to the sudoku\\n')
+      console.log('Benchmark: A solution to the sudoku\n')
       const sudokuField = parseStringFormat(
         9,
         '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
       )
-      console.log(printBoard(9, sudokuField), '\\n')
+      console.log(printBoard(9, sudokuField), '\n')
     }
 
     const sudokuField = parseStringFormat(
@@ -185,13 +191,14 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
             name: benchmark.name,
             opsPerSec: benchmark.hz,
             margin: benchmark.stats.rme,
-            runs: benchmark.stats.sample.length
+            runs: benchmark.stats.sample.length,
+            deprecated: deprecatedTests.has(benchmark.name || '')
           })
         }
       })
       .on('complete', function (this: any) {
         if (!options.quiet) {
-          console.log('Fastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+          console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
         
         allResults.push({
@@ -210,7 +217,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
 function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
   return new Promise(resolve => {
     if (!options.quiet) {
-      console.log('Benchmark: Finding one pentomino tiling on a 6x10 field\\n')
+      console.log('Benchmark: Finding one pentomino tiling on a 6x10 field\n')
     }
 
     const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
@@ -284,13 +291,14 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
             name: benchmark.name,
             opsPerSec: benchmark.hz,
             margin: benchmark.stats.rme,
-            runs: benchmark.stats.sample.length
+            runs: benchmark.stats.sample.length,
+            deprecated: deprecatedTests.has(benchmark.name || '')
           })
         }
       })
       .on('complete', function (this: any) {
         if (!options.quiet) {
-          console.log('Fastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+          console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
         
         allResults.push({
@@ -309,7 +317,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
 function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
   return new Promise(resolve => {
     if (!options.quiet) {
-      console.log('Benchmark: Finding ten pentomino tilings on a 6x10 field\\n')
+      console.log('Benchmark: Finding ten pentomino tilings on a 6x10 field\n')
     }
 
     const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
@@ -383,13 +391,14 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
             name: benchmark.name,
             opsPerSec: benchmark.hz,
             margin: benchmark.stats.rme,
-            runs: benchmark.stats.sample.length
+            runs: benchmark.stats.sample.length,
+            deprecated: deprecatedTests.has(benchmark.name || '')
           })
         }
       })
       .on('complete', function (this: any) {
         if (!options.quiet) {
-          console.log('\\nFastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+          console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
         
         allResults.push({
@@ -408,7 +417,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
 function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
   return new Promise(resolve => {
     if (!options.quiet) {
-      console.log('Benchmark: Finding one hundred pentomino tilings on a 6x10 field\\n')
+      console.log('Benchmark: Finding one hundred pentomino tilings on a 6x10 field\n')
     }
 
     const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
@@ -482,13 +491,14 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
             name: benchmark.name,
             opsPerSec: benchmark.hz,
             margin: benchmark.stats.rme,
-            runs: benchmark.stats.sample.length
+            runs: benchmark.stats.sample.length,
+            deprecated: deprecatedTests.has(benchmark.name || '')
           })
         }
       })
       .on('complete', function (this: any) {
         if (!options.quiet) {
-          console.log('\\nFastest is ' + this.filter('fastest').map('name') + '\\n\\n')
+          console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
         
         allResults.push({
