@@ -115,3 +115,9 @@ export type BinaryColumnValues<Mode extends SolverMode> =
   Mode extends 'complex'
     ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
     : BinaryNumber[]
+
+/**
+ * Mode-dependent config type mapping
+ */
+export type ConfigForMode<Mode extends SolverMode> = 
+  Mode extends 'complex' ? ComplexSolverConfig : SimpleSolverConfig
