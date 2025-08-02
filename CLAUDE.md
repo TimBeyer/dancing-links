@@ -109,7 +109,7 @@ When you write complex code, you MUST write documentation explaining the why, no
 
 **DO** use for performance-critical code:
 
-- `for...of` loops over `.forEach()` 
+- `for...of` loops over `.forEach()`
 - Manual loops over `.map()` and `.reduce()` for data transformation
 - Low-level iteration patterns in hot paths
 
@@ -139,7 +139,7 @@ When you write complex code, you MUST write documentation explaining the why, no
 
 When to **PLAN TOGETHER** (not implement immediately):
 
-- Questions like "Can we think of a better way..." 
+- Questions like "Can we think of a better way..."
 - "Maybe we can build something better..."
 - "Is it a good interface to..."
 - Architecture or design discussions

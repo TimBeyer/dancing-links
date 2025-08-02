@@ -19,9 +19,9 @@ import { DancingLinks } from 'dancing-links'
 const dlx = new DancingLinks<string>()
 const solver = dlx.createSolver({ columns: 3 })
 
-solver.addSparseConstraint('row1', [0, 2])    // Constraint active in columns 0 and 2
-solver.addSparseConstraint('row2', [1])       // Constraint active in column 1  
-solver.addSparseConstraint('row3', [0, 1])    // Constraint active in columns 0 and 1
+solver.addSparseConstraint('row1', [0, 2]) // Constraint active in columns 0 and 2
+solver.addSparseConstraint('row2', [1]) // Constraint active in column 1
+solver.addSparseConstraint('row3', [0, 1]) // Constraint active in columns 0 and 1
 
 const solutions = solver.findAll()
 // Returns: [[{ data: 'row1', index: 0 }, { data: 'row2', index: 1 }]]
@@ -84,7 +84,7 @@ const solver1 = template.createSolver()
 solver1.addSparseConstraint('extra1', [2, 7, 12])
 const solutions1 = solver1.findAll()
 
-const solver2 = template.createSolver() 
+const solver2 = template.createSolver()
 solver2.addSparseConstraint('extra2', [3, 8, 13])
 const solutions2 = solver2.findAll()
 ```
@@ -94,21 +94,21 @@ const solutions2 = solver2.findAll()
 For problems requiring both primary constraints (must be covered exactly once) and secondary constraints (can be covered multiple times):
 
 ```ts
-const solver = dlx.createSolver({ 
-  primaryColumns: 2,     // First 2 columns are primary
-  secondaryColumns: 2    // Next 2 columns are secondary
+const solver = dlx.createSolver({
+  primaryColumns: 2, // First 2 columns are primary
+  secondaryColumns: 2 // Next 2 columns are secondary
 })
 
-// Method 1: Add constraints separately  
+// Method 1: Add constraints separately
 solver.addSparseConstraint('constraint1', {
-  primaryColumns: [0],      // Must cover primary column 0
-  secondaryColumns: [1]     // May cover secondary column 1
+  primaryColumns: [0], // Must cover primary column 0
+  secondaryColumns: [1] // May cover secondary column 1
 })
 
 // Method 2: Add as binary constraint
 solver.addBinaryConstraint('constraint2', {
-  primaryRow: [0, 1],       // Binary values for primary columns
-  secondaryRow: [1, 0]      // Binary values for secondary columns  
+  primaryRow: [0, 1], // Binary values for primary columns
+  secondaryRow: [1, 0] // Binary values for secondary columns
 })
 ```
 
@@ -118,7 +118,7 @@ solver.addBinaryConstraint('constraint2', {
 // Find one solution
 const oneSolution = solver.findOne()
 
-// Find all solutions  
+// Find all solutions
 const allSolutions = solver.findAll()
 
 // Find up to N solutions
@@ -145,7 +145,7 @@ The benchmarks compare performance across different constraint formats and again
 # Fast library-only benchmarks
 npm run benchmark
 
-# Include external library comparisons  
+# Include external library comparisons
 npm run benchmark:comparison
 
 # Generate JSON output

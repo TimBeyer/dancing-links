@@ -123,7 +123,9 @@ class BenchmarkComparator {
         for (const comp of benchmarkComparisons) {
           const changeSign = comp.percentChange >= 0 ? '+' : ''
           const performanceIcon = this.getPerformanceIcon(comp.percentChange)
-          const libraryName = comp.pr.deprecated ? `${comp.pr.libraryName} (deprecated)` : comp.pr.libraryName
+          const libraryName = comp.pr.deprecated
+            ? `${comp.pr.libraryName} (deprecated)`
+            : comp.pr.libraryName
 
           markdown += `| ${libraryName} `
           markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `
@@ -140,12 +142,12 @@ class BenchmarkComparator {
     const unmatchedResults = this.getUnmatchedResults(comparisons)
     if (unmatchedResults.baselineOnly.length > 0 || unmatchedResults.prOnly.length > 0) {
       markdown += '### Unmatched Results\n\n'
-      
+
       if (unmatchedResults.baselineOnly.length > 0) {
         markdown += '#### Baseline Only\n\n'
         markdown += this.generateRawResultsTable(unmatchedResults.baselineOnly)
       }
-      
+
       if (unmatchedResults.prOnly.length > 0) {
         markdown += '#### PR Only\n\n'
         markdown += this.generateRawResultsTable(unmatchedResults.prOnly)
@@ -193,10 +195,10 @@ class BenchmarkComparator {
    */
   getUnmatchedResults(comparisons: ComparisonResult[]) {
     const matchedNames = new Set(comparisons.map(c => c.name))
-    
+
     const baselineOnly = this.baselineResults.filter(b => !matchedNames.has(b.name))
     const prOnly = this.prResults.filter(p => !matchedNames.has(p.name))
-    
+
     return { baselineOnly, prOnly }
   }
 
@@ -237,7 +239,9 @@ class BenchmarkComparator {
     markdown += '|-----------|---------|---------|--------|------|\n'
 
     for (const result of results) {
-      const libraryName = result.deprecated ? `${result.libraryName} (deprecated)` : result.libraryName
+      const libraryName = result.deprecated
+        ? `${result.libraryName} (deprecated)`
+        : result.libraryName
       markdown += `| ${result.benchmarkName} | ${libraryName} `
       markdown += `| ${result.opsPerSec.toLocaleString()} | ±${result.margin}% `
       markdown += `| ${result.runs || 'N/A'} |\n`

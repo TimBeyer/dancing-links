@@ -43,7 +43,12 @@ export function isSparseConstraint(arg: any): arg is SparseConstraint {
 }
 
 export function isComplexSparseConstraint(arg: any): arg is ComplexSparseConstraint {
-  return arg.primary !== undefined && arg.secondary !== undefined && Array.isArray(arg.primary) && Array.isArray(arg.secondary)
+  return (
+    arg.primary !== undefined &&
+    arg.secondary !== undefined &&
+    Array.isArray(arg.primary) &&
+    Array.isArray(arg.secondary)
+  )
 }
 
 /**
@@ -106,30 +111,33 @@ export type SolverMode = 'simple' | 'complex'
 /**
  * Mode-dependent type definitions for clean, descriptive API signatures
  */
-export type SparseColumnIndices<Mode extends SolverMode> = 
-  Mode extends 'complex' 
-    ? { primary: number[], secondary: number[] }
-    : number[]
+export type SparseColumnIndices<Mode extends SolverMode> = Mode extends 'complex'
+  ? { primary: number[]; secondary: number[] }
+  : number[]
 
-export type BinaryColumnValues<Mode extends SolverMode> = 
-  Mode extends 'complex'
-    ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
-    : BinaryNumber[]
+export type BinaryColumnValues<Mode extends SolverMode> = Mode extends 'complex'
+  ? { primaryRow: BinaryNumber[]; secondaryRow: BinaryNumber[] }
+  : BinaryNumber[]
 
 /**
  * Mode-dependent config type mapping
  */
-export type ConfigForMode<Mode extends SolverMode> = 
-  Mode extends 'complex' ? ComplexSolverConfig : SimpleSolverConfig
+export type ConfigForMode<Mode extends SolverMode> = Mode extends 'complex'
+  ? ComplexSolverConfig
+  : SimpleSolverConfig
 
 /**
  * Batch constraint types for clean API signatures
  */
-export type SparseConstraintBatch<T, Mode extends SolverMode> = 
-  Array<{ data: T, columnIndices: SparseColumnIndices<Mode> }>
+export type SparseConstraintBatch<T, Mode extends SolverMode> = Array<{
+  data: T
+  columnIndices: SparseColumnIndices<Mode>
+}>
 
-export type BinaryConstraintBatch<T, Mode extends SolverMode> = 
-  Array<{ data: T, columnValues: BinaryColumnValues<Mode> }>
+export type BinaryConstraintBatch<T, Mode extends SolverMode> = Array<{
+  data: T
+  columnValues: BinaryColumnValues<Mode>
+}>
 
 /**
  * Interface for constraint handling with type-safe operations

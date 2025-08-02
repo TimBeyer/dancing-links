@@ -27,12 +27,12 @@ interface BenchmarkOptions {
 
 function parseArgs(): BenchmarkOptions {
   const args = process.argv.slice(2)
-  
+
   const includeExternal = args.includes('--external') || args.includes('--full')
   const jsonFlag = args.find(arg => arg.startsWith('--json'))
   const jsonOutput = !!jsonFlag || args.includes('--json')
   const quiet = args.includes('--quiet')
-  
+
   // Support both --json=filename and positional filename argument
   let jsonFile: string | undefined
   if (jsonFlag?.includes('=')) {
@@ -45,7 +45,6 @@ function parseArgs(): BenchmarkOptions {
 
   return { includeExternal, jsonOutput, jsonFile, quiet }
 }
-
 
 /**
  * Benchmark result interfaces
@@ -68,10 +67,10 @@ const allResults: BenchmarkSection[] = []
 /**
  * Create sparse constraints from binary constraints
  */
-function createSparseConstraints<T>(binaryConstraints: Array<{data: T, row: number[]}>) {
+function createSparseConstraints<T>(binaryConstraints: Array<{ data: T; row: number[] }>) {
   return binaryConstraints.map(c => ({
     data: c.data,
-    columns: c.row.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1)
+    columns: c.row.map((val, idx) => (val === 1 ? idx : -1)).filter(idx => idx !== -1)
   }))
 }
 
@@ -115,7 +114,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(Infinity, constraints)
     const sparseConstraints = createSparseConstraints(constraints)
     const plainRows = constraints.map(c => c.row)
-    
+
     // Pre-format constraints for batch operations
     const binaryConstraintsBatch = constraints.map(c => ({
       data: c.data,
@@ -135,13 +134,23 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(suite, 'dancing-links find', () => {
-      find(constraints, Infinity)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links find',
+      () => {
+        find(constraints, Infinity)
+      },
+      true
+    )
 
-    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
-      findRaw(searchConfig)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links findRaw',
+      () => {
+        findRaw(searchConfig)
+      },
+      true
+    )
 
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
@@ -181,7 +190,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log(String(event.target))
         }
-        
+
         if (benchmark.name && benchmark.hz && benchmark.stats) {
           results.push({
             name: benchmark.name,
@@ -196,7 +205,7 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
-        
+
         allResults.push({
           benchmarkName: 'A solution to the sudoku',
           results
@@ -219,7 +228,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
-    
+
     // Pre-format constraints for batch operations
     const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
       data: c.data,
@@ -234,13 +243,23 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(suite, 'dancing-links find', () => {
-      find(ALL_CONSTRAINTS, 1)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links find',
+      () => {
+        find(ALL_CONSTRAINTS, 1)
+      },
+      true
+    )
 
-    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
-      findRaw(searchConfig)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links findRaw',
+      () => {
+        findRaw(searchConfig)
+      },
+      true
+    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
@@ -281,7 +300,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log(String(event.target))
         }
-        
+
         if (benchmark.name && benchmark.hz && benchmark.stats) {
           results.push({
             name: benchmark.name,
@@ -296,7 +315,7 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
-        
+
         allResults.push({
           benchmarkName: 'Finding one pentomino tiling on a 6x10 field',
           results
@@ -319,7 +338,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
-    
+
     // Pre-format constraints for batch operations
     const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
       data: c.data,
@@ -334,13 +353,23 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(suite, 'dancing-links find', () => {
-      find(ALL_CONSTRAINTS, 10)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links find',
+      () => {
+        find(ALL_CONSTRAINTS, 10)
+      },
+      true
+    )
 
-    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
-      findRaw(searchConfig)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links findRaw',
+      () => {
+        findRaw(searchConfig)
+      },
+      true
+    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
@@ -381,7 +410,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log(String(event.target))
         }
-        
+
         if (benchmark.name && benchmark.hz && benchmark.stats) {
           results.push({
             name: benchmark.name,
@@ -396,7 +425,7 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
-        
+
         allResults.push({
           benchmarkName: 'Finding ten pentomino tilings on a 6x10 field',
           results
@@ -419,7 +448,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
-    
+
     // Pre-format constraints for batch operations
     const binaryConstraintsBatch = ALL_CONSTRAINTS.map(c => ({
       data: c.data,
@@ -434,13 +463,23 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(suite, 'dancing-links find', () => {
-      find(ALL_CONSTRAINTS, 100)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links find',
+      () => {
+        find(ALL_CONSTRAINTS, 100)
+      },
+      true
+    )
 
-    addBenchmarkTest(suite, 'dancing-links findRaw', () => {
-      findRaw(searchConfig)
-    }, true)
+    addBenchmarkTest(
+      suite,
+      'dancing-links findRaw',
+      () => {
+        findRaw(searchConfig)
+      },
+      true
+    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
@@ -481,7 +520,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log(String(event.target))
         }
-        
+
         if (benchmark.name && benchmark.hz && benchmark.stats) {
           results.push({
             name: benchmark.name,
@@ -496,7 +535,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
         if (!options.quiet) {
           console.log('\nFastest is ' + this.filter('fastest').map('name') + '\n\n')
         }
-        
+
         allResults.push({
           benchmarkName: 'Finding one hundred pentomino tilings on a 6x10 field',
           results
@@ -513,7 +552,7 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
 function outputResults(options: BenchmarkOptions) {
   if (options.jsonOutput) {
     const jsonOutput = JSON.stringify(allResults, null, 2)
-    
+
     if (options.jsonFile) {
       writeFileSync(options.jsonFile, jsonOutput)
       if (!options.quiet) {
@@ -530,8 +569,7 @@ function outputResults(options: BenchmarkOptions) {
  */
 async function runAllBenchmarks() {
   const options = parseArgs()
-  
-  
+
   if (!options.quiet) {
     console.log('============================================================')
     console.log('DANCING LINKS PERFORMANCE BENCHMARKS')
@@ -552,7 +590,7 @@ async function runAllBenchmarks() {
 
   // Output results
   outputResults(options)
-  
+
   if (!options.quiet && !options.jsonOutput) {
     console.log('============================================================')
     console.log('BENCHMARK COMPLETE')

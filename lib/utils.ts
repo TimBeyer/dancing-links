@@ -3,12 +3,11 @@ import {
   Row,
   isSimpleConstraint,
   isComplexConstraint,
-  SearchConfig
+  SearchConfig,
+  BinaryNumber
 } from './interfaces.js'
 
-type BinaryInt = 0 | 1
-
-function binaryToSparseRow(binaryRow: BinaryInt[], offset: number = 0): number[] {
+function binaryToSparseRow(binaryRow: BinaryNumber[], offset: number = 0): number[] {
   const sparseRow: number[] = []
 
   for (let i = 0; i < binaryRow.length; i++) {
@@ -41,8 +40,8 @@ function getParams(constraint: Constraint) {
 /**
  * @deprecated Use new DancingLinks API instead:
  * const dlx = new DancingLinks()
- * const solver = dlx.createSolver()
- * constraints.forEach(c => solver.addConstraint(c))
+ * const solver = dlx.createSolver({ columns: numColumns })
+ * constraints.forEach(c => solver.addBinaryConstraint(c.data, c.row))
  * return solver.find(numSolutions)
  */
 export function getSearchConfig<T = any>(
