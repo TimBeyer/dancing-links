@@ -46,10 +46,30 @@ import { search } from './index.js'
  */
 abstract class ConstraintHandler<T, Mode extends SolverMode> {
   protected constraints: Row<T>[] = []
+  protected validationEnabled = false
 
   constructor(
     protected config: SolverConfig
   ) {}
+
+  /**
+   * Enable constraint validation for debugging.
+   * Validation checks column bounds but reduces performance.
+   * 
+   * @returns This instance for method chaining
+   * 
+   * @example
+   * ```typescript
+   * solver
+   *   .validateConstraints() // Enable validation for debugging
+   *   .addSparseConstraint('data', [0, 2, 4])
+   *   .solve()
+   * ```
+   */
+  validateConstraints(): this {
+    this.validationEnabled = true
+    return this
+  }
 
   /**
    * Add a constraint using sparse format (recommended for performance).
@@ -76,11 +96,13 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       const { primary, secondary } = columnIndices as { primary: number[], secondary: number[] }
       const numPrimary = this.config.primaryColumns
       
-      // Validate primary columns (no copying needed)
-      for (let i = 0; i < primary.length; i++) {
-        const col = primary[i]
-        if (col < 0 || col >= numPrimary) {
-          throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${numPrimary}`)
+      // Optional validation for debugging
+      if (this.validationEnabled) {
+        for (let i = 0; i < primary.length; i++) {
+          const col = primary[i]
+          if (col < 0 || col >= numPrimary) {
+            throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${numPrimary}`)
+          }
         }
       }
       
@@ -88,8 +110,10 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       const coveredColumns: number[] = [...primary] // Copy primary directly
       for (let i = 0; i < secondary.length; i++) {
         const col = secondary[i]
-        if (col < 0 || col >= this.config.secondaryColumns) {
-          throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.config.secondaryColumns}`)
+        if (this.validationEnabled) {
+          if (col < 0 || col >= this.config.secondaryColumns) {
+            throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.config.secondaryColumns}`)
+          }
         }
         coveredColumns.push(col + numPrimary) // Apply offset for secondary columns
       }
@@ -101,11 +125,13 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       const columns = columnIndices as number[]
       const columnLimit = this.config.columns
       
-      // Validate bounds only - input is already in correct sparse format
-      for (let i = 0; i < columns.length; i++) {
-        const col = columns[i]
-        if (col < 0 || col >= columnLimit) {
-          throw new Error(`Column index ${col} exceeds columns limit of ${columnLimit}`)
+      // Optional validation for debugging
+      if (this.validationEnabled) {
+        for (let i = 0; i < columns.length; i++) {
+          const col = columns[i]
+          if (col < 0 || col >= columnLimit) {
+            throw new Error(`Column index ${col} exceeds columns limit of ${columnLimit}`)
+          }
         }
       }
       
@@ -142,12 +168,14 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       // Complex mode: separate primary and secondary row handling
       const { primaryRow, secondaryRow } = columnValues as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
       
-      // Quick validation: check array lengths first (O(1) operations)
-      if (primaryRow.length !== this.config.primaryColumns) {
-        throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.config.primaryColumns}`)
-      }
-      if (secondaryRow.length !== this.config.secondaryColumns) {
-        throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
+      // Optional validation for debugging
+      if (this.validationEnabled) {
+        if (primaryRow.length !== this.config.primaryColumns) {
+          throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.config.primaryColumns}`)
+        }
+        if (secondaryRow.length !== this.config.secondaryColumns) {
+          throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
+        }
       }
       
       // Single-pass: convert binary to sparse
@@ -173,9 +201,11 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       // Simple mode: single binary row handling
       const row = columnValues as BinaryNumber[]
       
-      // Quick validation: check array length first (O(1) operation)
-      if (row.length !== this.config.columns) {
-        throw new Error(`Row length ${row.length} does not match columns ${this.config.columns}`)
+      // Optional validation for debugging
+      if (this.validationEnabled) {
+        if (row.length !== this.config.columns) {
+          throw new Error(`Row length ${row.length} does not match columns ${this.config.columns}`)
+        }
       }
       
       // Single-pass: convert binary to sparse

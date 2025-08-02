@@ -163,7 +163,7 @@ describe('New Template-Based API', function () {
 
     it('should validate template constraints at creation time', function () {
       const dlx = new DancingLinks<string>()
-      const template = dlx.createSolverTemplate({ columns: 3 })
+      const template = dlx.createSolverTemplate({ columns: 3 }).validateConstraints()
 
       // Should validate constraints when adding to template
       expect(() => template.addSparseConstraint('test', [0, 3])).to.throw('Column index 3 exceeds columns limit of 3')
@@ -296,7 +296,7 @@ describe('New Template-Based API', function () {
 
       it('should validate sparse constraint column indices', function () {
         const dlx = new DancingLinks<string>()
-        const solver = dlx.createSolver({ columns: 3 })
+        const solver = dlx.createSolver({ columns: 3 }).validateConstraints()
         
         expect(() => solver.addSparseConstraint('test', [0, 3])).to.throw('Column index 3 exceeds columns limit of 3')
         expect(() => solver.addSparseConstraint('test', [-1])).to.throw('Column index -1 exceeds columns limit of 3')
@@ -304,7 +304,7 @@ describe('New Template-Based API', function () {
 
       it('should validate binary constraint row length', function () {
         const dlx = new DancingLinks<string>()
-        const solver = dlx.createSolver({ columns: 3 })
+        const solver = dlx.createSolver({ columns: 3 }).validateConstraints()
         
         expect(() => solver.addBinaryConstraint('test', [1, 0])).to.throw('Row length 2 does not match columns 3')
         expect(() => solver.addBinaryConstraint('test', [1, 0, 1, 0])).to.throw('Row length 4 does not match columns 3')
@@ -327,7 +327,7 @@ describe('New Template-Based API', function () {
 
       it('should validate complex sparse constraint column indices', function () {
         const dlx = new DancingLinks<string>()
-        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 })
+        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 }).validateConstraints()
         
         expect(() => solver.addSparseConstraint('test', { primary: [2], secondary: [] }))
           .to.throw('Primary column index 2 exceeds primaryColumns limit of 2')
@@ -338,7 +338,7 @@ describe('New Template-Based API', function () {
 
       it('should validate complex binary constraint row lengths', function () {
         const dlx = new DancingLinks<string>()
-        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 })
+        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 }).validateConstraints()
         
         expect(() => solver.addBinaryConstraint('test', { primaryRow: [1], secondaryRow: [0, 1] }))
           .to.throw('Primary row length 1 does not match primaryColumns 2')
