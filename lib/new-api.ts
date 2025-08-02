@@ -57,10 +57,11 @@ import {
   SearchConfig,
   Row,
   SolverConfig,
+  SimpleSolverConfig,
+  ComplexSolverConfig,
   SparseColumnIndices,
   BinaryColumnValues,
   SolverMode,
-  ConfigToMode,
   isComplexSolverConfig
 } from './interfaces.js'
 import { search } from './index.js'
@@ -69,7 +70,7 @@ import { search } from './index.js'
 /**
  * Shared constraint handling logic for both ProblemSolver and SolverTemplate
  */
-abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
+abstract class ConstraintHandler<T, Mode extends SolverMode> {
   protected constraints: Row<T>[] = []
 
   constructor(
@@ -211,24 +212,38 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
 export class DancingLinks<T> {
 
   /**
-   * Create a new problem solver instance with type-safe mode inference
+   * Create a new problem solver instance (simple mode)
    */
-  createSolver<C extends SolverConfig>(config: C): ProblemSolver<T, ConfigToMode<C>> {
+  createSolver(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
+  
+  /**
+   * Create a new problem solver instance (complex mode)
+   */
+  createSolver(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
+  
+  createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
-      return new ProblemSolver<T, 'complex'>(config) as ProblemSolver<T, ConfigToMode<C>>
+      return new ProblemSolver<T, 'complex'>(config)
     } else {
-      return new ProblemSolver<T, 'simple'>(config) as ProblemSolver<T, ConfigToMode<C>>
+      return new ProblemSolver<T, 'simple'>(config)
     }
   }
 
   /**
-   * Create a new solver template for reusable constraint sets with type-safe mode inference
+   * Create a new solver template for reusable constraint sets (simple mode)
    */
-  createSolverTemplate<C extends SolverConfig>(config: C): SolverTemplate<T, ConfigToMode<C>> {
+  createSolverTemplate(config: SimpleSolverConfig): SolverTemplate<T, 'simple'>
+  
+  /**
+   * Create a new solver template for reusable constraint sets (complex mode)
+   */
+  createSolverTemplate(config: ComplexSolverConfig): SolverTemplate<T, 'complex'>
+  
+  createSolverTemplate(config: SolverConfig): SolverTemplate<T, 'simple'> | SolverTemplate<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
-      return new SolverTemplate<T, 'complex'>(config) as SolverTemplate<T, ConfigToMode<C>>
+      return new SolverTemplate<T, 'complex'>(config)
     } else {
-      return new SolverTemplate<T, 'simple'>(config) as SolverTemplate<T, ConfigToMode<C>>
+      return new SolverTemplate<T, 'simple'>(config)
     }
   }
 }
@@ -236,7 +251,7 @@ export class DancingLinks<T> {
 /**
  * Template for reusable constraint sets
  */
-export class SolverTemplate<T, Mode extends SolverMode = 'simple'> extends ConstraintHandler<T, Mode> {
+export class SolverTemplate<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
   /**
    * Create a solver with template constraints pre-loaded
    * Uses the same configuration as the template
@@ -253,7 +268,7 @@ export class SolverTemplate<T, Mode extends SolverMode = 'simple'> extends Const
 /**
  * Problem solver with type-safe constraint handling and dimension enforcement
  */
-export class ProblemSolver<T, Mode extends SolverMode = 'simple'> extends ConstraintHandler<T, Mode> {
+export class ProblemSolver<T, Mode extends SolverMode> extends ConstraintHandler<T, Mode> {
   /**
    * Add a pre-built row (used internally by templates)
    */
