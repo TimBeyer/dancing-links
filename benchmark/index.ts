@@ -30,8 +30,17 @@ function parseArgs(): BenchmarkOptions {
   const includeExternal = args.includes('--external') || args.includes('--full')
   const jsonFlag = args.find(arg => arg.startsWith('--json'))
   const jsonOutput = !!jsonFlag || args.includes('--json')
-  const jsonFile = jsonFlag?.includes('=') ? jsonFlag.split('=')[1] : undefined
   const quiet = args.includes('--quiet')
+  
+  // Support both --json=filename and positional filename argument
+  let jsonFile: string | undefined
+  if (jsonFlag?.includes('=')) {
+    jsonFile = jsonFlag.split('=')[1]
+  } else if (jsonOutput) {
+    // If --json is specified without =filename, look for positional argument
+    const nonFlagArgs = args.filter(arg => !arg.startsWith('--'))
+    jsonFile = nonFlagArgs[0]
+  }
 
   return { includeExternal, jsonOutput, jsonFile, quiet }
 }
