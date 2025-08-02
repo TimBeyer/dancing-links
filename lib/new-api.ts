@@ -1,54 +1,13 @@
 /**
- * High-Performance Template-Based API for Dancing Links
+ * Template-Based API for Dancing Links
  * 
- * Provides template-based problem solving to enable constraint reuse
- * across multiple problem instances with optimal performance.
+ * Factory-based interface for creating Dancing Links solvers with type safety.
  * 
- * DESIGN PHILOSOPHY:
- * 
- * This implementation prioritizes runtime performance and simplicity by eliminating
- * unnecessary caching infrastructure while maintaining powerful constraint reuse
- * capabilities through templates.
- * 
- * KEY OPTIMIZATIONS:
- * 
- * 1. SINGLE-PASS CONSTRAINT PROCESSING:
- *    - Validates input constraints while simultaneously building final output
- *    - Eliminates separate validation phases that duplicate iteration
- *    - Builds Row objects directly without intermediate transformations
- * 
- * 2. ZERO-COPY SPARSE FORMAT HANDLING:
- *    - Builds final coveredColumns array directly during validation
- *    - Eliminates array cloning since input arrays are never mutated
- *    - Applies column offsets during construction rather than post-processing
- * 
- * 3. OPTIMIZED BINARY-TO-SPARSE CONVERSION:
- *    - Converts binary constraints to sparse format during validation
- *    - Eliminates intermediate constraint object creation
- *    - Direct conversion without separate processing phases
- * 
- * 4. TEMPLATE-BASED CONSTRAINT REUSE:
- *    - SolverTemplate captures constraint patterns for reuse
- *    - Multiple solvers can be created from the same template
- *    - Eliminates redundant constraint encoding for similar problems
- * 
- * NO CACHING COMPLEXITY:
- * This design deliberately avoids constraint-level caching because:
- * - Hash generation requires full constraint iteration (same cost as processing)
- * - Most constraints are unique (different data), making cache hit rates low
- * - Templates provide better reuse patterns for real-world scenarios
- * - Simpler code is easier to maintain and debug
- * 
- * PERFORMANCE CHARACTERISTICS:
- * - Minimal allocations due to direct Row object construction
- * - Single iteration per constraint for validation + processing
- * - Better cache locality from unified memory access patterns
- * - Optimized for constraint-heavy algorithms (N-Queens, Sudoku, Pentomino)
- * 
- * USAGE PATTERNS:
- * - Use ProblemSolver for one-off constraint sets
- * - Use SolverTemplate when solving multiple similar problems
- * - Templates handle the real-world constraint reuse scenarios efficiently
+ * USAGE:
+ * - Use ProblemSolver for single problem instances
+ * - Use SolverTemplate to reuse constraint patterns across multiple problems
+ * - Supports both simple (columns only) and complex (primary + secondary) modes
+ * - Separate methods for sparse (recommended) and binary constraint formats
  */
 
 import { 
@@ -78,12 +37,8 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
   ) {}
 
   /**
-   * Add constraint using efficient sparse format (RECOMMENDED)
-   * 
-   * PERFORMANCE OPTIMIZED: Single-pass validation + processing
-   * - Validates column indices while building final coveredColumns array
-   * - Builds output directly without intermediate copies or caching overhead
-   * - Better cache locality from unified memory access patterns
+   * Add constraint using sparse format (column indices)
+   * Recommended for better performance than binary format.
    */
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
     if (isComplexSolverConfig(this.config)) {
@@ -132,12 +87,8 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
   }
 
   /**
-   * Add constraint using binary format (for compatibility)
-   * 
-   * PERFORMANCE OPTIMIZED: Single-pass validation + binary-to-sparse conversion
-   * - Validates array lengths upfront (quick O(1) checks)
-   * - Converts binary to sparse format while building final coveredColumns
-   * - Direct sparse conversion without intermediate allocations or caching overhead
+   * Add constraint using binary format (0s and 1s)
+   * Consider using addSparseConstraint() for better performance.
    */
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
     if (isComplexSolverConfig(this.config)) {
