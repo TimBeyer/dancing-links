@@ -88,21 +88,18 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
     if (isComplexSolverConfig(this.config)) {
       // Complex mode: separate primary and secondary column handling
       const { primary, secondary } = columnIndices as { primary: number[], secondary: number[] }
-      
-      // Single-pass: validate + build final coveredColumns
-      const coveredColumns: number[] = []
       const numPrimary = this.config.primaryColumns
       
-      // Process primary columns: validate bounds + add to output
+      // Validate primary columns (no copying needed)
       for (let i = 0; i < primary.length; i++) {
         const col = primary[i]
         if (col < 0 || col >= numPrimary) {
           throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${numPrimary}`)
         }
-        coveredColumns.push(col)
       }
       
-      // Process secondary columns: validate bounds + add to output (with offset)
+      // Validate secondary columns and build with offset
+      const coveredColumns: number[] = [...primary] // Copy primary directly
       for (let i = 0; i < secondary.length; i++) {
         const col = secondary[i]
         if (col < 0 || col >= this.config.secondaryColumns) {
@@ -114,23 +111,20 @@ abstract class ConstraintHandler<T, Mode extends SolverMode = 'simple'> {
       this.constraints.push({ data, coveredColumns })
       
     } else {
-      // Simple mode: single column array handling
+      // Simple mode: validate input and pass through directly
       const columns = columnIndices as number[]
-      
-      // Single-pass: validate + build final coveredColumns
-      const coveredColumns: number[] = []
       const columnLimit = this.config.columns
       
-      // Process columns: validate bounds + add to output
+      // Validate bounds only - input is already in correct sparse format
       for (let i = 0; i < columns.length; i++) {
         const col = columns[i]
         if (col < 0 || col >= columnLimit) {
           throw new Error(`Column index ${col} exceeds columns limit of ${columnLimit}`)
         }
-        coveredColumns.push(col)
       }
       
-      this.constraints.push({ data, coveredColumns })
+      // Use input array directly as coveredColumns (no copying needed)
+      this.constraints.push({ data, coveredColumns: columns })
     }
     
     return this
