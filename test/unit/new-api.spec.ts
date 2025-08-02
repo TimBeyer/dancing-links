@@ -11,10 +11,10 @@ describe('New Caching API', function () {
 
     it('should create a ProblemSolver', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 1 })
       
       // Add a simple constraint and verify it works
-      solver.addConstraint({ data: 0, row: [1] })
+      solver.addBinaryConstraint(0, [1])
       expect(() => solver.findAll()).to.not.throw()
     })
 
@@ -23,14 +23,14 @@ describe('New Caching API', function () {
       const template = dlx.createSolverTemplate()
       
       // Just verify we can create solver from template
-      expect(() => template.createSolver()).to.not.throw()
+      expect(() => template.createSolver({ columns: 1 })).to.not.throw()
     })
   })
 
   describe('ProblemSolver', function () {
     it('should solve a simple exact cover problem', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver<number>()
+      const solver = dlx.createSolver<number>({ columns: 3 })
 
       const constraints: SimpleConstraint<number>[] = [
         { data: 0, row: [1, 0, 0] },
@@ -40,7 +40,7 @@ describe('New Caching API', function () {
       ]
 
       for (const c of constraints) {
-        solver.addConstraint(c)
+        solver.addBinaryConstraint(c.data, c.row)
       }
 
       const solutions = solver.findAll()
@@ -63,25 +63,25 @@ describe('New Caching API', function () {
 
     it('should support fluent interface for adding constraints', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver<number>()
+      const solver = dlx.createSolver<number>({ columns: 3 })
 
       const result = solver
-        .addConstraint({ data: 0, row: [1, 0, 0] })
-        .addConstraint({ data: 1, row: [0, 1, 0] })
-        .addConstraint({ data: 2, row: [0, 0, 1] })
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
+        .addBinaryConstraint(2, [0, 0, 1])
 
       expect(result).to.equal(solver)
     })
 
     it('should support findOne, findAll, and find with specific count', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver<number>()
+      const solver = dlx.createSolver<number>({ columns: 3 })
 
       solver
-        .addConstraint({ data: 0, row: [1, 0, 0] })
-        .addConstraint({ data: 1, row: [0, 1, 0] })
-        .addConstraint({ data: 2, row: [0, 0, 1] })
-        .addConstraint({ data: 3, row: [1, 0, 1] })
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
+        .addBinaryConstraint(2, [0, 0, 1])
+        .addBinaryConstraint(3, [1, 0, 1])
 
       const oneSolution = solver.findOne()
       const twoSolutions = solver.find(2)
@@ -99,11 +99,11 @@ describe('New Caching API', function () {
       const template = dlx.createSolverTemplate<number>()
 
       template
-        .addConstraint({ data: 0, row: [1, 0, 0] })
-        .addConstraint({ data: 1, row: [0, 1, 0] })
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
 
-      const solver = template.createSolver()
-      solver.addConstraint({ data: 2, row: [0, 0, 1] })
+      const solver = template.createSolver({ columns: 3 })
+      solver.addBinaryConstraint(2, [0, 0, 1])
 
       const solutions = solver.findAll()
       expect(solutions).to.have.length(1)
@@ -122,11 +122,11 @@ describe('New Caching API', function () {
       const template = dlx.createSolverTemplate<string>()
 
       template
-        .addConstraint({ data: 'base1', row: [1, 0] as (0 | 1)[] })
-        .addConstraint({ data: 'base2', row: [0, 1] as (0 | 1)[] })
+        .addBinaryConstraint('base1', [1, 0])
+        .addBinaryConstraint('base2', [0, 1])
 
-      const solver1 = template.createSolver()
-      const solver2 = template.createSolver()
+      const solver1 = template.createSolver({ columns: 2 })
+      const solver2 = template.createSolver({ columns: 2 })
 
       const solutions1 = solver1.findAll()
       const solutions2 = solver2.findAll()
@@ -155,8 +155,8 @@ describe('New Caching API', function () {
       const template = dlx.createSolverTemplate<number>()
 
       const result = template
-        .addConstraint({ data: 0, row: [1, 0, 0] })
-        .addConstraint({ data: 1, row: [0, 1, 0] })
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
 
       expect(result).to.equal(template)
     })
@@ -165,7 +165,7 @@ describe('New Caching API', function () {
   describe('Dual Interface Support', function () {
     it('should support sparse constraint format', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver<number>()
+      const solver = dlx.createSolver<number>({ columns: 3 })
 
       // Add constraints using sparse format (recommended)
       solver.addSparseConstraint(0, [0])       // covers column 0
@@ -192,7 +192,7 @@ describe('New Caching API', function () {
 
     it('should support binary constraint format for compatibility', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver<number>()
+      const solver = dlx.createSolver<number>({ columns: 3 })
 
       // Add constraints using binary format (for compatibility)
       solver.addBinaryConstraint(0, [1, 0, 0])
@@ -220,12 +220,12 @@ describe('New Caching API', function () {
     it('should produce identical results for sparse and binary formats', function () {
       const dlx = new DancingLinks()
       
-      const sparseSolver = dlx.createSolver<string>()
+      const sparseSolver = dlx.createSolver<string>({ columns: 3 })
       sparseSolver.addSparseConstraint('s0', [0])
       sparseSolver.addSparseConstraint('s1', [1])
       sparseSolver.addSparseConstraint('s2', [2])
 
-      const binarySolver = dlx.createSolver<string>()
+      const binarySolver = dlx.createSolver<string>({ columns: 3 })
       binarySolver.addBinaryConstraint('b0', [1, 0, 0])
       binarySolver.addBinaryConstraint('b1', [0, 1, 0])
       binarySolver.addBinaryConstraint('b2', [0, 0, 1])
@@ -245,7 +245,7 @@ describe('New Caching API', function () {
       template.addSparseConstraint('sparse-base', [0])
       template.addBinaryConstraint('binary-base', [0, 1])
 
-      const solver = template.createSolver()
+      const solver = template.createSolver({ columns: 3 })
       solver.addSparseConstraint('sparse-extra', [2])
 
       const solutions = solver.findAll()
@@ -260,14 +260,84 @@ describe('New Caching API', function () {
       const constraint1 = { data: 'test1', row: [1, 0, 1] as (0 | 1)[] }
       const constraint2 = { data: 'test2', row: [1, 0, 1] as (0 | 1)[] }
       
-      const solver1 = dlx.createSolver<string>()
-      const solver2 = dlx.createSolver<string>()
+      const solver1 = dlx.createSolver<string>({ columns: 3 })
+      const solver2 = dlx.createSolver<string>({ columns: 3 })
       
-      solver1.addConstraint(constraint1)
-      solver2.addConstraint(constraint2)
+      solver1.addBinaryConstraint(constraint1.data, constraint1.row)
+      solver2.addBinaryConstraint(constraint2.data, constraint2.row)
       
       expect(() => solver1.findAll()).to.not.throw()
       expect(() => solver2.findAll()).to.not.throw()
     })
+  })
+
+  describe('Type-Safe Solver Configurations', function () {
+    describe('Simple Solver Configuration', function () {
+      it('should create solver with simple configuration', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ columns: 3 })
+        
+        solver.addSparseConstraint('test1', [0])
+        solver.addSparseConstraint('test2', [1])
+        solver.addBinaryConstraint('test3', [0, 0, 1])
+        
+        const solutions = solver.findAll()
+        expect(solutions).to.have.length.greaterThan(0)
+      })
+
+      it('should validate sparse constraint column indices', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ columns: 3 })
+        
+        expect(() => solver.addSparseConstraint('test', [0, 3])).to.throw('Column index 3 exceeds columns limit of 3')
+        expect(() => solver.addSparseConstraint('test', [-1])).to.throw('Column index -1 exceeds columns limit of 3')
+      })
+
+      it('should validate binary constraint row length', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ columns: 3 })
+        
+        expect(() => solver.addBinaryConstraint('test', [1, 0])).to.throw('Row length 2 does not match columns 3')
+        expect(() => solver.addBinaryConstraint('test', [1, 0, 1, 0])).to.throw('Row length 4 does not match columns 3')
+      })
+    })
+
+    describe('Complex Solver Configuration', function () {
+      it('should create solver with complex configuration', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 })
+        
+        solver.addSparseConstraint('test1', { primary: [0], secondary: [] })
+        solver.addSparseConstraint('test2', { primary: [1], secondary: [] })
+        solver.addBinaryConstraint('test3', { primaryRow: [0, 0], secondaryRow: [1, 0] })
+        solver.addBinaryConstraint('test4', { primaryRow: [0, 0], secondaryRow: [0, 1] })
+        
+        const solutions = solver.findAll()
+        expect(solutions).to.have.length.greaterThan(0)
+      })
+
+      it('should validate complex sparse constraint column indices', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 })
+        
+        expect(() => solver.addSparseConstraint('test', { primary: [2], secondary: [] }))
+          .to.throw('Primary column index 2 exceeds primaryColumns limit of 2')
+        
+        expect(() => solver.addSparseConstraint('test', { primary: [], secondary: [2] }))
+          .to.throw('Secondary column index 2 exceeds secondaryColumns limit of 2')
+      })
+
+      it('should validate complex binary constraint row lengths', function () {
+        const dlx = new DancingLinks()
+        const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 2 })
+        
+        expect(() => solver.addBinaryConstraint('test', { primaryRow: [1], secondaryRow: [0, 1] }))
+          .to.throw('Primary row length 1 does not match primaryColumns 2')
+        
+        expect(() => solver.addBinaryConstraint('test', { primaryRow: [1, 0], secondaryRow: [1] }))
+          .to.throw('Secondary row length 1 does not match secondaryColumns 2')
+      })
+    })
+
   })
 })

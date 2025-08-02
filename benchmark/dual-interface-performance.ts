@@ -24,7 +24,7 @@ function benchmarkFairComparison() {
     })
     .add('New API (binary)', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 72 }) // ALL_CONSTRAINTS has 72 columns
       for (const constraint of ALL_CONSTRAINTS) {
         solver.addBinaryConstraint(constraint.data, constraint.row)
       }
@@ -56,7 +56,7 @@ function benchmarkOptimizationOpportunity() {
   suite
     .add('New API (binary)', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 72 })
       for (const constraint of ALL_CONSTRAINTS) {
         solver.addBinaryConstraint(constraint.data, constraint.row)
       }
@@ -64,7 +64,7 @@ function benchmarkOptimizationOpportunity() {
     })
     .add('New API (sparse)', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 72 })
       for (const constraint of sparseConstraints) {
         solver.addSparseConstraint(constraint.data, constraint.columns)
       }
@@ -99,7 +99,7 @@ function benchmarkCachingBenefits() {
   suite
     .add('New API (sparse, no reuse)', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 72 })
       for (const constraint of sparseConstraints) {
         solver.addSparseConstraint(constraint.data, constraint.columns)
       }
@@ -109,8 +109,8 @@ function benchmarkCachingBenefits() {
       const dlx = new DancingLinks()
       
       // Create multiple solvers with same constraint patterns
-      const solver1 = dlx.createSolver()
-      const solver2 = dlx.createSolver()
+      const solver1 = dlx.createSolver({ columns: 72 })
+      const solver2 = dlx.createSolver({ columns: 72 })
       
       for (const constraint of sparseConstraints) {
         solver1.addSparseConstraint(constraint.data, constraint.columns)
@@ -151,7 +151,7 @@ function benchmarkTemplateReuse() {
       // Solve 3 similar problems individually
       for (let i = 0; i < 3; i++) {
         const dlx = new DancingLinks()
-        const solver = dlx.createSolver()
+        const solver = dlx.createSolver({ columns: 72 })
         for (const constraint of sparseConstraints) {
           solver.addSparseConstraint(`${constraint.data}_${i}`, constraint.columns)
         }
@@ -169,7 +169,7 @@ function benchmarkTemplateReuse() {
       
       // Use template for 3 problems
       for (let i = 0; i < 3; i++) {
-        const solver = template.createSolver()
+        const solver = template.createSolver({ columns: 72 })
         solver.findOne()
       }
     })

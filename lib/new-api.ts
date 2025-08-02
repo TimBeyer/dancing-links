@@ -12,9 +12,16 @@ import {
   BinaryNumber,
   Result, 
   SearchConfig,
+  SolverConfig,
+  SimpleSolverConfig,
+  ComplexSolverConfig,
+  ComplexSparseConstraint,
+  ComplexBinaryConstraint,
   isSimpleConstraint,
   isComplexConstraint,
-  isSparseConstraint
+  isSparseConstraint,
+  isComplexSparseConstraint,
+  isComplexSolverConfig
 } from './interfaces.js'
 import { search } from './index.js'
 
@@ -25,6 +32,9 @@ interface ProcessedConstraint<T = any> {
   readonly data: T
   readonly coveredColumns: number[]
   readonly hash: string
+  readonly isComplex?: boolean
+  readonly primaryColumns?: number[]
+  readonly secondaryColumns?: number[]
 }
 
 /**
@@ -34,10 +44,21 @@ export class DancingLinks {
   private constraintCache = new Map<string, ProcessedConstraint>()
 
   /**
-   * Create a new problem solver instance
+   * Create a new problem solver instance (simple - columns only)
    */
-  createSolver<T = any>(): ProblemSolver<T> {
-    return new ProblemSolver<T>(this.constraintCache)
+  createSolver<T = any>(config: SimpleSolverConfig): ProblemSolver<T, 'simple'>
+
+  /**
+   * Create a new problem solver instance (complex - primary + secondary)
+   */
+  createSolver<T = any>(config: ComplexSolverConfig): ProblemSolver<T, 'complex'>
+
+  createSolver<T = any>(config: SolverConfig): ProblemSolver<T, any> {
+    if (isComplexSolverConfig(config)) {
+      return new ProblemSolver<T, 'complex'>(this.constraintCache, config)
+    } else {
+      return new ProblemSolver<T, 'simple'>(this.constraintCache, config)
+    }
   }
 
   /**
@@ -80,21 +101,15 @@ export class SolverTemplate<T = any> {
     return this
   }
 
-  /**
-   * Add constraint with auto-detection of format
-   * @deprecated Consider using addSparseConstraint() for optimal performance
-   */
-  addConstraint(constraint: Constraint<T>): this {
-    const processed = ConstraintProcessor.process(constraint, this.constraintCache)
-    this.baseConstraints.push(processed)
-    return this
-  }
 
   /**
    * Create a solver with template constraints pre-loaded
+   * Must specify dimension configuration explicitly
    */
-  createSolver(): ProblemSolver<T> {
-    const solver = new ProblemSolver<T>(this.constraintCache)
+  createSolver<Mode extends 'simple' | 'complex'>(
+    config: Mode extends 'complex' ? ComplexSolverConfig : SimpleSolverConfig
+  ): ProblemSolver<T, Mode> {
+    const solver = new ProblemSolver<T, Mode>(this.constraintCache, config as SolverConfig)
     for (const constraint of this.baseConstraints) {
       solver.addProcessedConstraint(constraint)
     }
@@ -103,21 +118,41 @@ export class SolverTemplate<T = any> {
 }
 
 /**
- * Problem solver with lazy compilation and caching
+ * Problem solver with type-safe constraint handling and dimension enforcement
  */
-export class ProblemSolver<T = any> {
+export class ProblemSolver<T = any, Mode extends 'simple' | 'complex' = 'simple'> {
   private constraints: ProcessedConstraint<T>[] = []
 
-  constructor(private constraintCache: Map<string, ProcessedConstraint>) {}
+  constructor(
+    private constraintCache: Map<string, ProcessedConstraint>,
+    private config: SolverConfig
+  ) {}
 
   /**
    * Add constraint using efficient sparse format (RECOMMENDED)
    * 2-4x faster than binary format, better caching performance
-   * @example solver.addSparseConstraint("queen1", [0, 4, 7])
    */
-  addSparseConstraint(data: T, columns: number[]): this {
-    const sparseConstraint: SparseConstraint<T> = { data, columns }
-    const processed = ConstraintProcessor.process(sparseConstraint, this.constraintCache)
+  addSparseConstraint(
+    data: T,
+    columns: Mode extends 'complex' 
+      ? ComplexSparseConstraint<T>['primary'] extends never 
+        ? { primary: number[], secondary: number[] }
+        : { primary: number[], secondary: number[] }
+      : number[]
+  ): this {
+    // Validate dimensions
+    this.validateSparseConstraint(columns)
+
+    let sparseConstraint: SparseConstraint<T> | ComplexSparseConstraint<T>
+    
+    if (isComplexSolverConfig(this.config)) {
+      const complexColumns = columns as { primary: number[], secondary: number[] }
+      sparseConstraint = { data, ...complexColumns }
+    } else {
+      sparseConstraint = { data, columns: columns as number[] }
+    }
+
+    const processed = ConstraintProcessor.process(sparseConstraint as Constraint<T>, this.constraintCache)
     this.constraints.push(processed)
     return this
   }
@@ -125,24 +160,30 @@ export class ProblemSolver<T = any> {
   /**
    * Add constraint using binary format (for compatibility)
    * Consider using addSparseConstraint() for better performance
-   * @example solver.addBinaryConstraint("queen1", [1, 0, 0, 0, 1, 0, 0, 1])
    */
-  addBinaryConstraint(data: T, row: BinaryNumber[]): this {
-    const binaryConstraint: BinaryConstraint<T> = { data, row }
-    const processed = ConstraintProcessor.process(binaryConstraint, this.constraintCache)
+  addBinaryConstraint(
+    data: T,
+    row: Mode extends 'complex'
+      ? { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      : BinaryNumber[]
+  ): this {
+    // Validate dimensions
+    this.validateBinaryConstraint(row)
+
+    let binaryConstraint: BinaryConstraint<T> | ComplexBinaryConstraint<T>
+    
+    if (isComplexSolverConfig(this.config)) {
+      const complexRow = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      binaryConstraint = { data, ...complexRow }
+    } else {
+      binaryConstraint = { data, row: row as BinaryNumber[] }
+    }
+
+    const processed = ConstraintProcessor.process(binaryConstraint as Constraint<T>, this.constraintCache)
     this.constraints.push(processed)
     return this
   }
 
-  /**
-   * Add constraint with auto-detection of format
-   * @deprecated Consider using addSparseConstraint() for optimal performance
-   */
-  addConstraint(constraint: Constraint<T>): this {
-    const processed = ConstraintProcessor.process(constraint, this.constraintCache)
-    this.constraints.push(processed)
-    return this
-  }
 
   /**
    * Add a pre-processed constraint (used internally by templates)
@@ -173,6 +214,50 @@ export class ProblemSolver<T = any> {
     return this.solve(numSolutions)
   }
 
+  private validateSparseConstraint(columns: any): void {
+    if (isComplexSolverConfig(this.config)) {
+      const { primary, secondary } = columns as { primary: number[], secondary: number[] }
+      
+      for (const col of primary) {
+        if (col < 0 || col >= this.config.primaryColumns) {
+          throw new Error(`Primary column index ${col} exceeds primaryColumns limit of ${this.config.primaryColumns}`)
+        }
+      }
+      
+      for (const col of secondary) {
+        if (col < 0 || col >= this.config.secondaryColumns) {
+          throw new Error(`Secondary column index ${col} exceeds secondaryColumns limit of ${this.config.secondaryColumns}`)
+        }
+      }
+    } else {
+      const cols = columns as number[]
+      for (const col of cols) {
+        if (col < 0 || col >= this.config.columns) {
+          throw new Error(`Column index ${col} exceeds columns limit of ${this.config.columns}`)
+        }
+      }
+    }
+  }
+
+  private validateBinaryConstraint(row: any): void {
+    if (isComplexSolverConfig(this.config)) {
+      const { primaryRow, secondaryRow } = row as { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
+      
+      if (primaryRow.length !== this.config.primaryColumns) {
+        throw new Error(`Primary row length ${primaryRow.length} does not match primaryColumns ${this.config.primaryColumns}`)
+      }
+      
+      if (secondaryRow.length !== this.config.secondaryColumns) {
+        throw new Error(`Secondary row length ${secondaryRow.length} does not match secondaryColumns ${this.config.secondaryColumns}`)
+      }
+    } else {
+      const binaryRow = row as BinaryNumber[]
+      if (binaryRow.length !== this.config.columns) {
+        throw new Error(`Row length ${binaryRow.length} does not match columns ${this.config.columns}`)
+      }
+    }
+  }
+
   private solve(numSolutions: number): Result<T>[][] {
     if (this.constraints.length === 0) {
       throw new Error('Cannot solve problem with no constraints')
@@ -183,32 +268,38 @@ export class ProblemSolver<T = any> {
   }
 
   private buildSearchConfig(numSolutions: number): SearchConfig<T> {
-    // Analyze constraints to determine matrix dimensions
-    let numPrimary = 0
-    let maxColumn = -1
+    let numPrimary: number
+    let numSecondary: number
 
-    for (const constraint of this.constraints) {
-      for (const col of constraint.coveredColumns) {
-        if (col > maxColumn) {
-          maxColumn = col
-        }
-      }
+    if (isComplexSolverConfig(this.config)) {
+      numPrimary = this.config.primaryColumns
+      numSecondary = this.config.secondaryColumns
+    } else {
+      numPrimary = this.config.columns
+      numSecondary = 0
     }
-
-    numPrimary = maxColumn + 1
 
     // Convert ProcessedConstraints to the Row format expected by SearchConfig
     const rows = []
     for (const constraint of this.constraints) {
+      let coveredColumns = constraint.coveredColumns
+      
+      // Handle complex constraints that need column offset calculation
+      if (constraint.isComplex && constraint.primaryColumns && constraint.secondaryColumns) {
+        const primaryCols = [...constraint.primaryColumns]
+        const secondaryCols = constraint.secondaryColumns.map(col => col + numPrimary)
+        coveredColumns = primaryCols.concat(secondaryCols)
+      }
+      
       rows.push({
         data: constraint.data,
-        coveredColumns: constraint.coveredColumns
+        coveredColumns
       })
     }
 
     return {
       numPrimary,
-      numSecondary: 0, // For now, only support simple constraints
+      numSecondary,
       numSolutions,
       rows
     }
@@ -219,7 +310,7 @@ export class ProblemSolver<T = any> {
  * Utility class for processing constraints with caching
  */
 class ConstraintProcessor {
-  static process<T>(constraint: Constraint<T>, cache: Map<string, ProcessedConstraint>): ProcessedConstraint<T> {
+  static process<T>(constraint: Constraint<T> | ComplexSparseConstraint<T> | ComplexBinaryConstraint<T>, cache: Map<string, ProcessedConstraint>): ProcessedConstraint<T> {
     const hash = this.hashConstraint(constraint)
     
     if (!cache.has(hash)) {
@@ -230,10 +321,13 @@ class ConstraintProcessor {
     return cache.get(hash)! as ProcessedConstraint<T>
   }
 
-  private static hashConstraint<T>(constraint: Constraint<T>): string {
+  private static hashConstraint<T>(constraint: Constraint<T> | ComplexSparseConstraint<T> | ComplexBinaryConstraint<T>): string {
     if (isSparseConstraint(constraint)) {
       // Fast sparse hashing - already in optimal format
       return `sparse:${constraint.columns.join(',')}`
+    } else if (isComplexSparseConstraint(constraint)) {
+      // ComplexSparseConstraint
+      return `complex-sparse:${constraint.primary.join(',')};${constraint.secondary.join(',')}`
     } else if (isSimpleConstraint(constraint)) {
       return `simple:${constraint.row.join(',')}`
     } else if (isComplexConstraint(constraint)) {
@@ -243,13 +337,23 @@ class ConstraintProcessor {
     }
   }
 
-  private static convertToProcessed<T>(constraint: Constraint<T>): ProcessedConstraint<T> {
+  private static convertToProcessed<T>(constraint: Constraint<T> | ComplexSparseConstraint<T> | ComplexBinaryConstraint<T>): ProcessedConstraint<T> {
     const hash = this.hashConstraint(constraint)
     let coveredColumns: number[]
 
     if (isSparseConstraint(constraint)) {
       // Already sparse - no conversion needed!
       coveredColumns = constraint.columns
+    } else if (isComplexSparseConstraint(constraint)) {
+      // ComplexSparseConstraint - store separately for proper processing later
+      return {
+        data: constraint.data,
+        coveredColumns: [], // Will be calculated during buildSearchConfig
+        hash,
+        isComplex: true,
+        primaryColumns: [...constraint.primary],
+        secondaryColumns: [...constraint.secondary]
+      }
     } else if (isSimpleConstraint(constraint)) {
       // Binary to sparse conversion
       coveredColumns = []
@@ -280,7 +384,7 @@ class ConstraintProcessor {
     }
 
     return {
-      data: constraint.data,
+      data: (constraint as any).data,
       coveredColumns,
       hash
     }

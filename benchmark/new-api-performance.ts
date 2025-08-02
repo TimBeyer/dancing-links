@@ -27,22 +27,22 @@ function benchmarkConstraintCaching() {
     })
     .add('New API: First solve (pays encoding cost)', function () {
       const dlx = new DancingLinks()
-      const solver = dlx.createSolver()
+      const solver = dlx.createSolver({ columns: 72 })
       for (const constraint of ALL_CONSTRAINTS) {
-        solver.addConstraint(constraint)
+        solver.addBinaryConstraint(constraint.data, constraint.row)
       }
       solver.findOne()
     })
     .add('New API: Cached solve (reuses encoded constraints)', function () {
       // Simulate reusing the same constraint patterns with different data
       const dlx = new DancingLinks()
-      const solver1 = dlx.createSolver()
-      const solver2 = dlx.createSolver()
+      const solver1 = dlx.createSolver({ columns: 72 })
+      const solver2 = dlx.createSolver({ columns: 72 })
 
       // Both solvers use same constraint patterns, triggering cache hits
       for (const constraint of ALL_CONSTRAINTS.slice(0, 10)) {
-        solver1.addConstraint(constraint)
-        solver2.addConstraint(constraint)
+        solver1.addBinaryConstraint(constraint.data, constraint.row)
+        solver2.addBinaryConstraint(constraint.data, constraint.row)
       }
       solver1.findOne()
       solver2.findOne()
@@ -80,12 +80,12 @@ function benchmarkTemplateReuse() {
 
       // Build template once
       for (const constraint of baseConstraints) {
-        template.addConstraint(constraint)
+        template.addBinaryConstraint(constraint.data, constraint.row)
       }
 
       // Use template for 5 different puzzles
       for (let i = 0; i < 5; i++) {
-        const solver = template.createSolver()
+        const solver = template.createSolver({ columns: 324 }) // 9x9 sudoku has 324 columns
         solver.findOne()
       }
     })
@@ -112,13 +112,13 @@ function benchmarkMemoryEfficiency() {
   const startTime = Date.now()
 
   for (let i = 0; i < 10; i++) {
-    const solver = dlx.createSolver()
+    const solver = dlx.createSolver({ columns: 72 })
 
     // Each solver uses overlapping constraint patterns
     for (let j = 0; j < constraints.length; j++) {
       if ((i + j) % 3 === 0) {
         // Create overlap pattern
-        solver.addConstraint(constraints[j]!)
+        solver.addBinaryConstraint(constraints[j]!.data, constraints[j]!.row)
       }
     }
 
