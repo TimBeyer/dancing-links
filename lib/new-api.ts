@@ -94,7 +94,7 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
         coveredColumns.push(col + numPrimary) // Apply offset for secondary columns
       }
       
-      this.constraints.push({ data, coveredColumns })
+      this.constraints.push(new Row(coveredColumns, data))
       
     } else {
       // Simple mode: validate input and pass through directly
@@ -110,7 +110,7 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
       }
       
       // Use input array directly as coveredColumns (no copying needed)
-      this.constraints.push({ data, coveredColumns: columns })
+      this.constraints.push(new Row(columns, data))
     }
     
     return this
@@ -167,7 +167,7 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
         }
       }
       
-      this.constraints.push({ data, coveredColumns })
+      this.constraints.push(new Row(coveredColumns, data))
       
     } else {
       // Simple mode: single binary row handling
@@ -188,7 +188,7 @@ abstract class ConstraintHandler<T, Mode extends SolverMode> {
         }
       }
       
-      this.constraints.push({ data, coveredColumns })
+      this.constraints.push(new Row(coveredColumns, data))
     }
     
     return this

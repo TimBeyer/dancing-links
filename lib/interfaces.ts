@@ -1,6 +1,8 @@
-export interface Row<T> {
-  coveredColumns: number[]
-  data: T
+export class Row<T> {
+  constructor(
+    public coveredColumns: number[],
+    public data: T
+  ) {}
 }
 
 export interface Result<T> {
