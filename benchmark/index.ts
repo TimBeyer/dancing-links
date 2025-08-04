@@ -2,9 +2,7 @@ import Benchmark from 'benchmark'
 import { writeFileSync } from 'fs'
 
 // Core library imports
-import { find, findRaw } from '../index.js'
-import { DancingLinks } from '../lib/new-api.js'
-import { getSearchConfig } from '../lib/utils.js'
+import { DancingLinks } from '../index.js'
 
 // Problem imports
 import { ALL_CONSTRAINTS, PlacedPentomino } from './pentomino/field.js'
@@ -111,7 +109,6 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
       '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
     )
     const constraints = generateConstraints(9, sudokuField)
-    const searchConfig = getSearchConfig(Infinity, constraints)
     const sparseConstraints = createSparseConstraints(constraints)
     const plainRows = constraints.map(c => c.row)
 
@@ -134,23 +131,6 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(
-      suite,
-      'dancing-links find',
-      () => {
-        find(constraints, Infinity)
-      },
-      true
-    )
-
-    addBenchmarkTest(
-      suite,
-      'dancing-links findRaw',
-      () => {
-        findRaw(searchConfig)
-      },
-      true
-    )
 
     addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
       const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
@@ -225,7 +205,6 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
       console.log('Benchmark: Finding one pentomino tiling on a 6x10 field\n')
     }
 
-    const searchConfig = getSearchConfig(1, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
@@ -243,23 +222,6 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(
-      suite,
-      'dancing-links find',
-      () => {
-        find(ALL_CONSTRAINTS, 1)
-      },
-      true
-    )
-
-    addBenchmarkTest(
-      suite,
-      'dancing-links findRaw',
-      () => {
-        findRaw(searchConfig)
-      },
-      true
-    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
@@ -335,7 +297,6 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
       console.log('Benchmark: Finding ten pentomino tilings on a 6x10 field\n')
     }
 
-    const searchConfig = getSearchConfig(10, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
@@ -353,23 +314,6 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(
-      suite,
-      'dancing-links find',
-      () => {
-        find(ALL_CONSTRAINTS, 10)
-      },
-      true
-    )
-
-    addBenchmarkTest(
-      suite,
-      'dancing-links findRaw',
-      () => {
-        findRaw(searchConfig)
-      },
-      true
-    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
@@ -445,7 +389,6 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
       console.log('Benchmark: Finding one hundred pentomino tilings on a 6x10 field\n')
     }
 
-    const searchConfig = getSearchConfig(100, ALL_CONSTRAINTS)
     const sparseConstraints = createSparseConstraints(ALL_CONSTRAINTS)
     const plainRows = ALL_CONSTRAINTS.map(c => c.row)
 
@@ -463,23 +406,6 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     const results: BenchmarkResult[] = []
 
     // Our library implementations
-    addBenchmarkTest(
-      suite,
-      'dancing-links find',
-      () => {
-        find(ALL_CONSTRAINTS, 100)
-      },
-      true
-    )
-
-    addBenchmarkTest(
-      suite,
-      'dancing-links findRaw',
-      () => {
-        findRaw(searchConfig)
-      },
-      true
-    )
 
     // Create reusable instances
     const dlx = new DancingLinks<PlacedPentomino>()
