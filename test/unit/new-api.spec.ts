@@ -1,6 +1,5 @@
 import { expect } from 'chai'
-import { DancingLinks } from '../../lib/new-api.js'
-import { SimpleConstraint } from '../../lib/interfaces.js'
+import { DancingLinks, SimpleConstraint } from '../../index.js'
 
 describe('New Template-Based API', function () {
   describe('DancingLinks Factory', function () {

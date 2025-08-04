@@ -1,12 +1,12 @@
 // High-performance Dancing Links API
-export { DancingLinks } from './lib/new-api.js'
-
-// Core interfaces and types
 export {
+  DancingLinks,
+  ProblemSolver,
+  SolverTemplate,
   BinaryConstraint,
   SparseConstraint,
   SimpleConstraint,
   ComplexConstraint,
   Row,
   Result
-} from './lib/interfaces.js'
+} from './lib/index.js'

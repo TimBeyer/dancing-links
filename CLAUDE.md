@@ -25,14 +25,16 @@ This is a high-performance JavaScript/TypeScript implementation of Knuth's Danci
 
 ### Main Entry Points
 
-- `index.ts` - Public API exports (`findOne`, `findAll`, `find`, `findRaw`)
-- `lib/index.ts` - Core Dancing Links algorithm implementation using state machine
-- `lib/interfaces.ts` - TypeScript type definitions and constraint interfaces
-- `lib/utils.ts` - Utility functions for converting constraints to internal format
+- `index.ts` - Public API exports (DancingLinks factory, ProblemSolver, SolverTemplate)
+- `lib/index.ts` - Main library re-exports from organized modules
+- `lib/core/algorithm.ts` - Core Dancing Links algorithm implementation using state machine
+- `lib/types/interfaces.ts` - TypeScript type definitions and constraint interfaces
+- `lib/solvers/factory.ts` - DancingLinks factory class for creating solvers and templates
+- `lib/constraints/handlers/` - Constraint handlers for simple and complex modes
 
 ### Algorithm Structure
 
-The core algorithm (`lib/index.ts`) uses a state machine pattern to avoid recursion and implement Knuth's Dancing Links algorithm. The states are:
+The core algorithm (`lib/core/algorithm.ts`) uses a state machine pattern to avoid recursion and implement Knuth's Dancing Links algorithm. The states are:
 
 - FORWARD: Select next column to cover
 - ADVANCE: Try next option for selected column
@@ -48,9 +50,10 @@ The core algorithm (`lib/index.ts`) uses a state machine pattern to avoid recurs
 
 ### Key Modules
 
-- State machine logic in `search()` function
+- State machine logic in `search()` function in `lib/core/algorithm.ts`
 - Matrix operations: `cover()` and `uncover()` for constraint satisfaction
-- Constraint preprocessing in `getSearchConfig()` converts binary arrays to sparse format
+- Data structures in `lib/core/data-structures.ts` with NodeStore and ColumnStore classes
+- Constraint handlers in `lib/constraints/handlers/` for simple and complex solver modes
 
 ## Performance Requirements
 
@@ -76,7 +79,11 @@ Must follow Conventional Commits specification:
 
 ## Project Structure
 
-- `lib/` - Core algorithm implementation
+- `lib/` - Core library implementation with organized nested modules
+  - `core/` - Core algorithm and data structures
+  - `constraints/handlers/` - Constraint handlers for different solver modes
+  - `solvers/` - Factory, solver, and template classes
+  - `types/` - TypeScript interfaces and type definitions
 - `benchmark/` - Performance testing and example problems (n-queens, pentomino, sudoku)
 - `test/unit/` - Unit test suite
 - `built/` - Compiled JavaScript output
