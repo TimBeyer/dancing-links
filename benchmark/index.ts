@@ -228,13 +228,13 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
     const template = dlx.createSolverTemplate({ columns: 72 })
     template.addSparseConstraints(sparseConstraintsBatch)
 
-    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+    addBenchmarkTest(suite, 'dancing-links (binary)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findOne()
     })
 
-    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+    addBenchmarkTest(suite, 'dancing-links (sparse)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findOne()
@@ -320,13 +320,13 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
     const template = dlx.createSolverTemplate({ columns: 72 })
     template.addSparseConstraints(sparseConstraintsBatch)
 
-    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+    addBenchmarkTest(suite, 'dancing-links (binary)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(10)
     })
 
-    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+    addBenchmarkTest(suite, 'dancing-links (sparse)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(10)
@@ -412,13 +412,13 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     const template = dlx.createSolverTemplate({ columns: 72 })
     template.addSparseConstraints(sparseConstraintsBatch)
 
-    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+    addBenchmarkTest(suite, 'dancing-links (binary)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.find(100)
     })
 
-    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+    addBenchmarkTest(suite, 'dancing-links (sparse)', () => {
       const solver = dlx.createSolver({ columns: 72 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.find(100)
