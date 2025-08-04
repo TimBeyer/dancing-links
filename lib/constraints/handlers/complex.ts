@@ -1,6 +1,6 @@
 /**
  * Complex constraint handler for primary + secondary columns mode
- * 
+ *
  * Zero branching - columnIndices is always { primary: number[], secondary: number[] }
  * columnValues is always { primaryRow: BinaryNumber[], secondaryRow: BinaryNumber[] }
  */

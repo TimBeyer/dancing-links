@@ -8,5 +8,6 @@ export {
   SimpleConstraint,
   ComplexConstraint,
   Row,
-  Result
+  Result,
+  BinaryNumber
 } from './lib/index.js'

@@ -8,7 +8,9 @@ profiler.startProfiling('dancing-links', true)
 
 const dlx = new DancingLinks()
 const solver = dlx.createSolver({ columns: 72 })
-solver.addBinaryConstraints(ALL_CONSTRAINTS)
+for (const constraint of ALL_CONSTRAINTS) {
+  solver.addBinaryConstraint(constraint.data, constraint.row)
+}
 solver.findAll()
 
 const profile = profiler.stopProfiling()

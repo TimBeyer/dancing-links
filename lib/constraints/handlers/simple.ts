@@ -1,6 +1,6 @@
 /**
  * Simple constraint handler for columns-only mode
- * 
+ *
  * Zero branching - columnIndices is always number[], columnValues is always BinaryNumber[]
  */
 

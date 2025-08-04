@@ -1,4 +1,4 @@
-import { ComplexConstraint, BinaryNumber } from '../../lib/interfaces.js'
+import { ComplexConstraint, BinaryNumber } from '../../index.js'
 
 function constant<T>(t: T): () => T {
   return () => t

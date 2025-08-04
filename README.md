@@ -163,7 +163,6 @@ node built/benchmark/index.js --external --json=results.json
 
 Benchmarks consistently show this library outperforms other JavaScript Dancing Links implementations, with sparse constraints and templates providing additional optimizations.
 
-
 ## Profiling
 
 Generate CPU profiles for performance analysis:

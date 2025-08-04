@@ -30,27 +30,6 @@ export interface ComplexConstraint<T = any> {
   data: T
 }
 
-export function isSimpleConstraint(arg: any): arg is SimpleConstraint {
-  return arg.row !== undefined
-}
-
-export function isComplexConstraint(arg: any): arg is ComplexConstraint {
-  return arg.primaryRow !== undefined && arg.secondaryRow !== undefined
-}
-
-export function isSparseConstraint(arg: any): arg is SparseConstraint {
-  return arg.columns !== undefined && Array.isArray(arg.columns)
-}
-
-export function isComplexSparseConstraint(arg: any): arg is ComplexSparseConstraint {
-  return (
-    arg.primary !== undefined &&
-    arg.secondary !== undefined &&
-    Array.isArray(arg.primary) &&
-    Array.isArray(arg.secondary)
-  )
-}
-
 /**
  * Sparse constraint format (RECOMMENDED for performance)
  * 2-4x faster than binary format, better caching performance
@@ -64,8 +43,6 @@ export interface SparseConstraint<T = any> {
  * Binary constraint format (for compatibility)
  */
 export type BinaryConstraint<T = any> = SimpleConstraint<T> | ComplexConstraint<T>
-
-export type Constraint<T = any> = BinaryConstraint<T> | SparseConstraint<T>
 
 /**
  * Solver configuration interfaces

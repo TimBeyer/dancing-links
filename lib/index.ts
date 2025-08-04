@@ -1,6 +1,6 @@
 /**
  * Dancing Links - High-performance exact cover solver
- * 
+ *
  * Main library exports
  */
 
@@ -18,5 +18,6 @@ export {
   SimpleConstraint,
   ComplexConstraint,
   Row,
-  Result
+  Result,
+  BinaryNumber
 } from './types/interfaces.js'
