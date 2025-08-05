@@ -1,5 +1,57 @@
 # Changelog
 
+# [4.0.0](https://github.com/TimBeyer/node-dlx/compare/v3.3.0...v4.0.0) (2025-08-05)
+
+
+### Bug Fixes
+
+* address codebase review issues and improve code quality ([501ce0e](https://github.com/TimBeyer/node-dlx/commit/501ce0e203a510e03f0259646c2cec723d156188))
+* disable commitlint footer line length rule and format code ([15b9888](https://github.com/TimBeyer/node-dlx/commit/15b9888524411f16b4ed1b5b1dae95baa9c092f4))
+* replace any with proper union types in factory methods ([6f30676](https://github.com/TimBeyer/node-dlx/commit/6f306764a0a1fd1688da8a602376f71940150451))
+* resolve benchmark formatting and CI comparison issues ([246fc7a](https://github.com/TimBeyer/node-dlx/commit/246fc7a0480c1f55f0099324e683c2cc4d00dbff))
+* resolve linting errors and improve test coverage ([61d4b4d](https://github.com/TimBeyer/node-dlx/commit/61d4b4db120c397bb1bdc3737a1317f7fe3cf43a))
+* resolve TypeScript compilation error in constraint handlers ([2b37f50](https://github.com/TimBeyer/node-dlx/commit/2b37f50e1d40e2ea0b91104485a89f2c9d1c2c68))
+* support positional filename argument in benchmark JSON mode ([4b9ca83](https://github.com/TimBeyer/node-dlx/commit/4b9ca833cd3fa6ed78cc6b07b1c18960412685dc))
+
+
+### Code Refactoring
+
+* remove deprecated legacy API and clean up codebase ([5810ea3](https://github.com/TimBeyer/node-dlx/commit/5810ea3eda4f3da604fef87be35448e72d99dfe5))
+
+
+### Features
+
+* add backward compatibility with deprecation notices ([0e0d712](https://github.com/TimBeyer/node-dlx/commit/0e0d712861467f8c1faf7b582b7739fcd52c9050))
+* complete high-performance caching API implementation ([43174b6](https://github.com/TimBeyer/node-dlx/commit/43174b69c29a27637f7156f9c6256e4c5164fe1d))
+* consolidate benchmark system with unified CLI interface ([93592fe](https://github.com/TimBeyer/node-dlx/commit/93592fe38633cee6f325bc298ff1d0e81b6496c7))
+* deprecate remaining legacy API functions ([f2dbc89](https://github.com/TimBeyer/node-dlx/commit/f2dbc89090d76bbd0f208776b537f0d479d44b76))
+* implement dual interface with sparse and binary constraint support ([176e1ef](https://github.com/TimBeyer/node-dlx/commit/176e1efbdc484f3b8740081345c085e386ae6358))
+* implement high-performance constraint caching API ([91a109d](https://github.com/TimBeyer/node-dlx/commit/91a109dcaa8b9216b6eacaaea4d49cdb953bb64a))
+* implement strongly typed factory methods with conditional types ([aae13ce](https://github.com/TimBeyer/node-dlx/commit/aae13ce9d2edf1346f7e960ca8034350550baa19))
+* implement type-safe SolverTemplate with upfront configuration validation ([d822b0b](https://github.com/TimBeyer/node-dlx/commit/d822b0b324106d16394adbb2c35f047f2245b758))
+
+
+### Performance Improvements
+
+* add comprehensive benchmarks for new caching API ([00aa7e9](https://github.com/TimBeyer/node-dlx/commit/00aa7e9165d8f485a8e4ad733bc79b521bffeb57))
+* convert Row interface to class for V8 optimization ([7036713](https://github.com/TimBeyer/node-dlx/commit/703671309b09167593106b683c8465bbdf61402f))
+* eliminate unnecessary array copying in sparse constraints ([e498c76](https://github.com/TimBeyer/node-dlx/commit/e498c766d155212b6bb7393a470d9cca5ff1d1aa))
+* implement batch operations with runtime caching optimizations ([7dc2c89](https://github.com/TimBeyer/node-dlx/commit/7dc2c899ee803e9768587ce8cc64c226e3a0186c))
+* implement optional validation for production performance ([fd942ab](https://github.com/TimBeyer/node-dlx/commit/fd942ab6775d1975f29e7347057ba94f16e1bd78))
+* optimize benchmarks to show real-world API usage patterns ([b05d019](https://github.com/TimBeyer/node-dlx/commit/b05d0198010fcf2f2e457361ad08d7b600de755d))
+* optimize constraint handlers and fix misleading parameter naming ([4854099](https://github.com/TimBeyer/node-dlx/commit/48540997fb46fa93140667cc1980b0fcd6911c40))
+* optimize constraint processing with single-pass algorithms ([d1d8ea1](https://github.com/TimBeyer/node-dlx/commit/d1d8ea10ce95b10a8a18d110bbeb71275fd57c2a))
+* replace abstract inheritance with interface delegation pattern ([58c5ad9](https://github.com/TimBeyer/node-dlx/commit/58c5ad940dbdb116d7e2fa349a802e54abb549ac))
+
+
+### BREAKING CHANGES
+
+* Legacy functional API (findOne, findAll, find, findRaw) has been removed. Use the new DancingLinks class API instead.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 # [3.4.0](https://github.com/TimBeyer/node-dlx/compare/v3.3.0...v3.4.0) (2025-08-02)
 
 
