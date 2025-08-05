@@ -1,6 +1,6 @@
 /**
  * Problem Structure Builder
- * 
+ *
  * Converts constraint rows into native Dancing Links data structures.
  * Separated from the search algorithm for better code organization
  * and to enable future optimizations (shared memory, workers, etc.).
@@ -47,7 +47,7 @@ export class ProblemBuilder {
 
     // Build column structure
     this.buildColumns(nodes, columns, numPrimary, numSecondary)
-    
+
     // Build row structure
     this.buildRows(nodes, columns, rows)
 
@@ -113,11 +113,7 @@ export class ProblemBuilder {
   /**
    * Create row nodes and link them into the column structure
    */
-  private static buildRows<T>(
-    nodes: NodeStore<T>,
-    columns: ColumnStore,
-    rows: Row<T>[]
-  ): void {
+  private static buildRows<T>(nodes: NodeStore<T>, columns: ColumnStore, rows: Row<T>[]): void {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
       if (!row) continue

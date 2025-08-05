@@ -87,7 +87,7 @@ export class SolverTemplate<T, Mode extends SolverMode> {
   createSolver(): ProblemSolver<T, Mode> {
     // Get constraints once for batch operation
     const constraints = this.handler.getConstraints()
-    
+
     // Check if template has validation enabled
     const templateValidationEnabled = this.handler.isValidationEnabled()
 
@@ -95,23 +95,23 @@ export class SolverTemplate<T, Mode extends SolverMode> {
     if (this.handler.mode === 'complex') {
       const config = this.handler.getConfig() as ComplexSolverConfig
       const newHandler = new ComplexConstraintHandler<T>(config)
-      
+
       // Propagate validation setting from template
       if (templateValidationEnabled) {
         newHandler.validateConstraints()
       }
-      
+
       newHandler.addRows(constraints)
       return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
     } else {
       const config = this.handler.getConfig() as SimpleSolverConfig
       const newHandler = new SimpleConstraintHandler<T>(config)
-      
+
       // Propagate validation setting from template
       if (templateValidationEnabled) {
         newHandler.validateConstraints()
       }
-      
+
       newHandler.addRows(constraints)
       return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
     }

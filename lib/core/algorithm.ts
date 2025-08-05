@@ -30,7 +30,6 @@ enum SearchState {
   DONE
 }
 
-
 /**
  * Search parameters for the Dancing Links algorithm
  */
@@ -57,7 +56,6 @@ export function search<T>(params: SearchParams<T>) {
 
   // Root column is always at index 0 (created by ProblemBuilder)
   const rootColIndex = 0
-
 
   /**
    * Cover operation - hide a column and all rows that intersect it
