@@ -133,12 +133,13 @@ For large solution spaces or when you need early termination, use the generator 
 // Stream solutions one at a time
 const generator = solver.createGenerator()
 
+let solutionCount = 0
 for (const solution of generator) {
   console.log('Found solution:', solution)
   
-  if (shouldStop()) {
-    // Early termination - saves computation
-    // Note: Use manual iteration to resume later
+  solutionCount++
+  if (solutionCount >= 5) {
+    // Stop after finding 5 solutions
     break
   }
 }
@@ -152,9 +153,7 @@ while (!result.done) {
 }
 ```
 
-**Performance**: The generator maintains search state between solutions, providing 96-100% of baseline performance while enabling memory-efficient streaming and early termination.
-
-**Note**: When using `for...of` with `break`, the generator may be terminated due to JavaScript's iterator cleanup. Use manual `.next()` calls if you need to resume iteration after stopping.
+The generator maintains search state between solutions, enabling memory-efficient streaming and early termination without computing all solutions upfront.
 
 ## Examples
 
