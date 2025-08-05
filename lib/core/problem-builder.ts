@@ -9,15 +9,33 @@
 import { Row } from '../types/interfaces.js'
 import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
 
-// Forward declare SearchContext to avoid circular imports
+/**
+ * Search context for resumable Dancing Links algorithm execution
+ * 
+ * Captures the algorithm state needed to pause and resume search operations.
+ * This enables generator-style iteration without modifying the core algorithm
+ * to use generators directly.
+ */
 export interface SearchContext<T> {
+  /** Current depth in the search tree */
   level: number
+  
+  /** Stack of node indices chosen at each search level */
   choice: number[]
+  
+  /** Column selected for covering at current level */
   bestColIndex: number  
+  
+  /** Current node being tried in the selected column */
   currentNodeIndex: number
+  
+  /** Whether this context has been used for search before */
   hasStarted: boolean
   
+  /** Constraint matrix nodes with their current link state */
   nodes: NodeStore<T>
+  
+  /** Column headers with their current lengths and links */
   columns: ColumnStore
 }
 
@@ -32,44 +50,11 @@ export interface ProblemConfig<T> {
   rows: Row<T>[]
 }
 
-/**
- * Built problem structure ready for search execution
- */
-export interface BuiltProblem<T> {
-  nodes: NodeStore<T>
-  columns: ColumnStore
-  numPrimary: number
-  numSecondary: number
-}
 
 /**
  * Builds Dancing Links data structures from constraint rows
  */
 export class ProblemBuilder {
-  /**
-   * Build native data structures from constraint configuration
-   */
-  static build<T>(config: ProblemConfig<T>): BuiltProblem<T> {
-    const { numPrimary, numSecondary, rows } = config
-
-    // Estimate required capacity and pre-allocate stores
-    const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
-    const nodes = new NodeStore<T>(maxNodes)
-    const columns = new ColumnStore(maxColumns)
-
-    // Build column structure
-    this.buildColumns(nodes, columns, numPrimary, numSecondary)
-
-    // Build row structure
-    this.buildRows(nodes, columns, rows)
-
-    return {
-      nodes,
-      columns,
-      numPrimary,
-      numSecondary
-    }
-  }
 
   /**
    * Build SearchContext for resumable search from constraint configuration
