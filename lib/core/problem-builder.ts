@@ -11,7 +11,7 @@ import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-str
 
 /**
  * Search context for resumable Dancing Links algorithm execution
- * 
+ *
  * Captures the algorithm state needed to pause and resume search operations.
  * This enables generator-style iteration without modifying the core algorithm
  * to use generators directly.
@@ -19,22 +19,22 @@ import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-str
 export interface SearchContext<T> {
   /** Current depth in the search tree */
   level: number
-  
+
   /** Stack of node indices chosen at each search level */
   choice: number[]
-  
+
   /** Column selected for covering at current level */
-  bestColIndex: number  
-  
+  bestColIndex: number
+
   /** Current node being tried in the selected column */
   currentNodeIndex: number
-  
+
   /** Whether this context has been used for search before */
   hasStarted: boolean
-  
+
   /** Constraint matrix nodes with their current link state */
   nodes: NodeStore<T>
-  
+
   /** Column headers with their current lengths and links */
   columns: ColumnStore
 }
@@ -50,12 +50,10 @@ export interface ProblemConfig<T> {
   rows: Row<T>[]
 }
 
-
 /**
  * Builds Dancing Links data structures from constraint rows
  */
 export class ProblemBuilder {
-
   /**
    * Build SearchContext for resumable search from constraint configuration
    */

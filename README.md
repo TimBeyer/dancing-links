@@ -136,7 +136,7 @@ const generator = solver.createGenerator()
 let solutionCount = 0
 for (const solution of generator) {
   console.log('Found solution:', solution)
-  
+
   solutionCount++
   if (solutionCount >= 5) {
     // Stop after finding 5 solutions

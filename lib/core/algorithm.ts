@@ -30,10 +30,9 @@ enum SearchState {
   DONE
 }
 
-
 /**
  * Execute Dancing Links search using SearchContext for resumable state
- * 
+ *
  * The context preserves algorithm state between calls, enabling generator-style
  * iteration without modifying the core algorithm to use generators directly.
  */
@@ -42,9 +41,9 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   const solutions: Result<T>[][] = []
 
   // Determine how to start based on context state
-  let currentSearchState: SearchState  
+  let currentSearchState: SearchState
   let running = true
-  
+
   if (!context.hasStarted) {
     currentSearchState = SearchState.FORWARD
     context.hasStarted = true
@@ -212,7 +211,11 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
       return
     }
 
-    for (let pp = nodes.right[context.currentNodeIndex]; pp !== context.currentNodeIndex; pp = nodes.right[pp]) {
+    for (
+      let pp = nodes.right[context.currentNodeIndex];
+      pp !== context.currentNodeIndex;
+      pp = nodes.right[pp]
+    ) {
       cover(nodes.col[pp])
     }
 
@@ -247,7 +250,11 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   }
 
   function recover() {
-    for (let pp = nodes.left[context.currentNodeIndex]; pp !== context.currentNodeIndex; pp = nodes.left[pp]) {
+    for (
+      let pp = nodes.left[context.currentNodeIndex];
+      pp !== context.currentNodeIndex;
+      pp = nodes.left[pp]
+    ) {
       uncover(nodes.col[pp])
     }
     context.currentNodeIndex = nodes.down[context.currentNodeIndex]

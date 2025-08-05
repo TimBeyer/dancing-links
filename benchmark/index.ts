@@ -254,8 +254,15 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
       solver.findOne()
     })
 
-    // NOTE: Generator is not benchmarked for single solutions 
-    // since it computes all solutions upfront
+    addBenchmarkTest(suite, 'dancing-links generator', () => {
+      const solver = dlx.createSolver({ columns: 72 })
+      solver.addSparseConstraints(sparseConstraintsBatch)
+      const generator = solver.createGenerator()
+      const result = generator.next()
+      if (!result.done) {
+        // Found one solution, stop here
+      }
+    })
 
     // External libraries (if requested and available)
     if (options.includeExternal) {

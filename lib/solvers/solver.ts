@@ -128,7 +128,7 @@ export class ProblemSolver<T, Mode extends SolverMode> {
 
   /**
    * Create a generator that yields solutions one at a time.
-   * 
+   *
    * This provides a streaming interface for iterating over solutions.
    * The generator builds problem structures once and yields solutions
    * from the complete solution set.
