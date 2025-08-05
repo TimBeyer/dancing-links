@@ -12,12 +12,7 @@ export interface Result<T> {
 
 export type BinaryNumber = 0 | 1
 
-export interface SearchConfig<T = any> {
-  numPrimary: number
-  numSecondary: number
-  numSolutions: number
-  rows: Row<T>[]
-}
+// SearchConfig removed - now handled by ProblemBuilder interface
 
 export interface SimpleConstraint<T = any> {
   row: BinaryNumber[]
@@ -28,27 +23,6 @@ export interface ComplexConstraint<T = any> {
   primaryRow: BinaryNumber[]
   secondaryRow: BinaryNumber[]
   data: T
-}
-
-export function isSimpleConstraint(arg: any): arg is SimpleConstraint {
-  return arg.row !== undefined
-}
-
-export function isComplexConstraint(arg: any): arg is ComplexConstraint {
-  return arg.primaryRow !== undefined && arg.secondaryRow !== undefined
-}
-
-export function isSparseConstraint(arg: any): arg is SparseConstraint {
-  return arg.columns !== undefined && Array.isArray(arg.columns)
-}
-
-export function isComplexSparseConstraint(arg: any): arg is ComplexSparseConstraint {
-  return (
-    arg.primary !== undefined &&
-    arg.secondary !== undefined &&
-    Array.isArray(arg.primary) &&
-    Array.isArray(arg.secondary)
-  )
 }
 
 /**
@@ -64,8 +38,6 @@ export interface SparseConstraint<T = any> {
  * Binary constraint format (for compatibility)
  */
 export type BinaryConstraint<T = any> = SimpleConstraint<T> | ComplexConstraint<T>
-
-export type Constraint<T = any> = BinaryConstraint<T> | SparseConstraint<T>
 
 /**
  * Solver configuration interfaces
@@ -156,4 +128,5 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   getNumPrimary(): number
   getNumSecondary(): number
   getConfig(): ConfigForMode<Mode>
+  isValidationEnabled(): boolean
 }

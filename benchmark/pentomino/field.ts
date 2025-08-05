@@ -1,5 +1,5 @@
 import { Pentomino, NUM_PENTOMINOS, ALL_PENTOMINOS } from './pentomino.js'
-import { SimpleConstraint } from '../../lib/interfaces.js'
+import { SimpleConstraint } from '../../index.js'
 
 function times<T>(n: number, fn: () => T): T[] {
   const returnValue: T[] = []

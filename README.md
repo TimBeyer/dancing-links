@@ -163,22 +163,6 @@ node built/benchmark/index.js --external --json=results.json
 
 Benchmarks consistently show this library outperforms other JavaScript Dancing Links implementations, with sparse constraints and templates providing additional optimizations.
 
-## Legacy API Support
-
-For backward compatibility, the original functional API is still available:
-
-```ts
-import { findOne, findAll } from 'dancing-links'
-
-const constraints = [
-  { data: 'first', row: [1, 0] },
-  { data: 'second', row: [0, 1] }
-]
-
-const solution = findOne(constraints)
-const allSolutions = findAll(constraints)
-```
-
 ## Profiling
 
 Generate CPU profiles for performance analysis:
