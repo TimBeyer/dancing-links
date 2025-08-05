@@ -20,7 +20,7 @@
  */
 
 import { Result } from '../types/interfaces.js'
-import { BuiltProblem } from './problem-builder.js'
+import { SearchContext } from './problem-builder.js'
 
 enum SearchState {
   FORWARD,
@@ -30,29 +30,29 @@ enum SearchState {
   DONE
 }
 
-/**
- * Search parameters for the Dancing Links algorithm
- */
-export interface SearchParams<T> {
-  problem: BuiltProblem<T>
-  numSolutions: number
-}
 
 /**
- * Execute Dancing Links search on pre-built problem structures
+ * Execute Dancing Links search using SearchContext for resumable state
  */
-export function search<T>(params: SearchParams<T>) {
-  const { problem, numSolutions } = params
-  const { nodes, columns } = problem
-
+export function search<T>(context: SearchContext<T>, numSolutions: number): Result<T>[][] {
+  const { nodes, columns } = context
   const solutions: Result<T>[][] = []
 
-  let currentSearchState: SearchState = SearchState.FORWARD
+  // Determine initial search state based on context
+  let currentSearchState: SearchState
   let running = true
-  let level = 0
-  const choice: number[] = [] // Node indices instead of Node objects
-  let bestColIndex: number
-  let currentNodeIndex: number
+  
+  if (!context.hasStarted) {
+    // Fresh start
+    currentSearchState = SearchState.FORWARD
+    context.hasStarted = true
+  } else if (context.level > 0) {
+    // Resume from previous state
+    currentSearchState = SearchState.RECOVER
+  } else {
+    // Exhausted (level = 0 and hasStarted = true)
+    return []
+  }
 
   // Root column is always at index 0 (created by ProblemBuilder)
   const rootColIndex = 0
@@ -130,7 +130,7 @@ export function search<T>(params: SearchParams<T>) {
      * covering one constraint frequently eliminates all options for another.
      */
     if (lowestLen === 0) {
-      bestColIndex = lowest
+      context.bestColIndex = lowest
       return
     }
 
@@ -155,7 +155,7 @@ export function search<T>(params: SearchParams<T>) {
       const length = columns.len[curColIndex]
 
       if (length === 1) {
-        bestColIndex = curColIndex
+        context.bestColIndex = curColIndex
         return
       }
 
@@ -177,23 +177,23 @@ export function search<T>(params: SearchParams<T>) {
       }
     }
 
-    bestColIndex = lowest
+    context.bestColIndex = lowest
   }
 
   function forward() {
     pickBestColumn()
-    cover(bestColIndex)
+    cover(context.bestColIndex)
 
-    currentNodeIndex = nodes.down[columns.head[bestColIndex]]
-    choice[level] = currentNodeIndex
+    context.currentNodeIndex = nodes.down[columns.head[context.bestColIndex]]
+    context.choice[context.level] = context.currentNodeIndex
 
     currentSearchState = SearchState.ADVANCE
   }
 
   function recordSolution() {
     const results: Result<T>[] = []
-    for (let l = 0; l <= level; l++) {
-      const nodeIndex = choice[l]!
+    for (let l = 0; l <= context.level; l++) {
+      const nodeIndex = context.choice[l]!
       results.push({
         index: nodes.rowIndex[nodeIndex],
         data: nodes.data[nodeIndex]!
@@ -204,13 +204,13 @@ export function search<T>(params: SearchParams<T>) {
   }
 
   function advance() {
-    const bestColHeadIndex = columns.head[bestColIndex]
-    if (currentNodeIndex === bestColHeadIndex) {
+    const bestColHeadIndex = columns.head[context.bestColIndex]
+    if (context.currentNodeIndex === bestColHeadIndex) {
       currentSearchState = SearchState.BACKUP
       return
     }
 
-    for (let pp = nodes.right[currentNodeIndex]; pp !== currentNodeIndex; pp = nodes.right[pp]) {
+    for (let pp = nodes.right[context.currentNodeIndex]; pp !== context.currentNodeIndex; pp = nodes.right[pp]) {
       cover(nodes.col[pp])
     }
 
@@ -224,32 +224,32 @@ export function search<T>(params: SearchParams<T>) {
       return
     }
 
-    level = level + 1
+    context.level = context.level + 1
     currentSearchState = SearchState.FORWARD
   }
 
   function backup() {
-    uncover(bestColIndex)
+    uncover(context.bestColIndex)
 
-    if (level === 0) {
+    if (context.level === 0) {
       currentSearchState = SearchState.DONE
       return
     }
 
-    level = level - 1
+    context.level = context.level - 1
 
-    currentNodeIndex = choice[level]!
-    bestColIndex = nodes.col[currentNodeIndex]
+    context.currentNodeIndex = context.choice[context.level]!
+    context.bestColIndex = nodes.col[context.currentNodeIndex]
 
     currentSearchState = SearchState.RECOVER
   }
 
   function recover() {
-    for (let pp = nodes.left[currentNodeIndex]; pp !== currentNodeIndex; pp = nodes.left[pp]) {
+    for (let pp = nodes.left[context.currentNodeIndex]; pp !== context.currentNodeIndex; pp = nodes.left[pp]) {
       uncover(nodes.col[pp])
     }
-    currentNodeIndex = nodes.down[currentNodeIndex]
-    choice[level] = currentNodeIndex
+    context.currentNodeIndex = nodes.down[context.currentNodeIndex]
+    context.choice[context.level] = context.currentNodeIndex
     currentSearchState = SearchState.ADVANCE
   }
 

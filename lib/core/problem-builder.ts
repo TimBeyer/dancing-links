@@ -9,6 +9,18 @@
 import { Row } from '../types/interfaces.js'
 import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
 
+// Forward declare SearchContext to avoid circular imports
+export interface SearchContext<T> {
+  level: number
+  choice: number[]
+  bestColIndex: number  
+  currentNodeIndex: number
+  hasStarted: boolean
+  
+  nodes: NodeStore<T>
+  columns: ColumnStore
+}
+
 const ROOT_COLUMN_OFFSET = 1
 
 /**
@@ -56,6 +68,34 @@ export class ProblemBuilder {
       columns,
       numPrimary,
       numSecondary
+    }
+  }
+
+  /**
+   * Build SearchContext for resumable search from constraint configuration
+   */
+  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
+    const { numPrimary, numSecondary, rows } = config
+
+    // Estimate required capacity and pre-allocate stores
+    const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
+    const nodes = new NodeStore<T>(maxNodes)
+    const columns = new ColumnStore(maxColumns)
+
+    // Build column structure
+    this.buildColumns(nodes, columns, numPrimary, numSecondary)
+
+    // Build row structure
+    this.buildRows(nodes, columns, rows)
+
+    return {
+      level: 0,
+      choice: [],
+      bestColIndex: 0,
+      currentNodeIndex: 0,
+      hasStarted: false,
+      nodes,
+      columns
     }
   }
 
