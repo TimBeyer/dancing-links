@@ -19,8 +19,8 @@
  * - Pre-calculated pointers to reduce data dependencies
  */
 
-import { Result, SearchConfig } from '../types/interfaces.js'
-import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
+import { Result } from '../types/interfaces.js'
+import { BuiltProblem } from './problem-builder.js'
 
 enum SearchState {
   FORWARD,
@@ -30,15 +30,21 @@ enum SearchState {
   DONE
 }
 
-const ROOT_COLUMN_OFFSET = 1
 
-export function search<T>(config: SearchConfig<T>) {
-  const { numSolutions, numPrimary, numSecondary, rows } = config
+/**
+ * Search parameters for the Dancing Links algorithm
+ */
+export interface SearchParams<T> {
+  problem: BuiltProblem<T>
+  numSolutions: number
+}
 
-  // Estimate required capacity and pre-allocate stores
-  const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
-  const nodes = new NodeStore<T>(maxNodes)
-  const columns = new ColumnStore(maxColumns)
+/**
+ * Execute Dancing Links search on pre-built problem structures
+ */
+export function search<T>(params: SearchParams<T>) {
+  const { problem, numSolutions } = params
+  const { nodes, columns } = problem
 
   const solutions: Result<T>[][] = []
 
@@ -49,85 +55,9 @@ export function search<T>(config: SearchConfig<T>) {
   let bestColIndex: number
   let currentNodeIndex: number
 
-  // Create root column (index 0)
-  const rootColIndex = columns.allocateColumn()
-  const rootNodeIndex = nodes.allocateNode()
-  nodes.initializeNode(rootNodeIndex)
-  columns.initializeColumn(rootColIndex, rootNodeIndex)
+  // Root column is always at index 0 (created by ProblemBuilder)
+  const rootColIndex = 0
 
-  function readColumnNames() {
-    // Create primary columns
-    for (let i = 0; i < numPrimary; i++) {
-      const headNodeIndex = nodes.allocateNode()
-      nodes.initializeNode(headNodeIndex)
-
-      const colIndex = columns.allocateColumn()
-      columns.initializeColumn(colIndex, headNodeIndex)
-
-      // Link to previous column
-      if (i === 0) {
-        // First primary column links to root
-        columns.linkColumns(rootColIndex, colIndex)
-      } else {
-        // Link to previous column
-        columns.linkColumns(colIndex - 1, colIndex)
-      }
-    }
-
-    // Close the circular link: last primary -> root
-    if (numPrimary > 0) {
-      columns.linkColumns(numPrimary, rootColIndex) // last primary column to root
-    }
-
-    // Create secondary columns (self-linked)
-    for (let i = 0; i < numSecondary; i++) {
-      const headNodeIndex = nodes.allocateNode()
-      nodes.initializeNode(headNodeIndex)
-
-      const colIndex = columns.allocateColumn()
-      columns.initializeColumn(colIndex, headNodeIndex)
-
-      // Secondary columns are self-linked
-      columns.linkColumns(colIndex, colIndex)
-    }
-  }
-
-  function readRows() {
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      if (!row) continue
-
-      let rowStartIndex: number = NULL_INDEX
-
-      for (const columnIndex of row.coveredColumns) {
-        const nodeIndex = nodes.allocateNode()
-        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, row.data) // +1 because root is at index 0
-
-        if (rowStartIndex === NULL_INDEX) {
-          rowStartIndex = nodeIndex
-        } else {
-          // Link horizontally to previous node in row
-          nodes.linkHorizontal(nodeIndex - 1, nodeIndex)
-        }
-
-        // Link vertically into column
-        const colIndex = columnIndex + ROOT_COLUMN_OFFSET // +1 because root is at index 0
-        const colHeadIndex = columns.head[colIndex]
-        const lastInColIndex = nodes.up[colHeadIndex]
-
-        nodes.linkVertical(lastInColIndex, nodeIndex)
-        nodes.linkVertical(nodeIndex, colHeadIndex)
-
-        columns.len[colIndex]++
-      }
-
-      // Close horizontal circular link for the row
-      if (rowStartIndex !== NULL_INDEX && row.coveredColumns.length > 1) {
-        const lastNodeIndex = nodes.size - 1
-        nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
-      }
-    }
-  }
 
   /**
    * Cover operation - hide a column and all rows that intersect it
@@ -337,9 +267,7 @@ export function search<T>(config: SearchConfig<T>) {
     [SearchState.DONE]: done
   }
 
-  readColumnNames()
-  readRows()
-
+  // Execute search state machine
   while (running) {
     const currentStateMethod = stateMethods[currentSearchState]
     currentStateMethod()

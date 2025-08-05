@@ -103,4 +103,8 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
   getConfig(): SimpleSolverConfig {
     return this.config
   }
+
+  isValidationEnabled(): boolean {
+    return this.validationEnabled
+  }
 }

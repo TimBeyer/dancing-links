@@ -132,13 +132,13 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
 
     // Our library implementations
 
-    addBenchmarkTest(suite, 'dancing-links new (binary)', () => {
+    addBenchmarkTest(suite, 'dancing-links (binary)', () => {
       const solver = dlx.createSolver({ columns: 324 }) // 9x9 sudoku = 324 columns
       solver.addBinaryConstraints(binaryConstraintsBatch)
       solver.findAll()
     })
 
-    addBenchmarkTest(suite, 'dancing-links new (sparse)', () => {
+    addBenchmarkTest(suite, 'dancing-links (sparse)', () => {
       const solver = dlx.createSolver({ columns: 324 })
       solver.addSparseConstraints(sparseConstraintsBatch)
       solver.findAll()

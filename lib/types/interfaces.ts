@@ -12,12 +12,7 @@ export interface Result<T> {
 
 export type BinaryNumber = 0 | 1
 
-export interface SearchConfig<T = any> {
-  numPrimary: number
-  numSecondary: number
-  numSolutions: number
-  rows: Row<T>[]
-}
+// SearchConfig removed - now handled by ProblemBuilder interface
 
 export interface SimpleConstraint<T = any> {
   row: BinaryNumber[]
@@ -133,4 +128,5 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   getNumPrimary(): number
   getNumSecondary(): number
   getConfig(): ConfigForMode<Mode>
+  isValidationEnabled(): boolean
 }

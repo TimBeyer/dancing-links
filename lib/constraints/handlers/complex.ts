@@ -138,4 +138,8 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
   getConfig(): ComplexSolverConfig {
     return this.config
   }
+
+  isValidationEnabled(): boolean {
+    return this.validationEnabled
+  }
 }

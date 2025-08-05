@@ -21,7 +21,6 @@
 
 import {
   Result,
-  SearchConfig,
   Row,
   SolverMode,
   ConstraintHandler,
@@ -31,6 +30,7 @@ import {
   BinaryConstraintBatch
 } from '../types/interfaces.js'
 import { search } from '../core/algorithm.js'
+import { ProblemBuilder } from '../core/problem-builder.js'
 
 export class ProblemSolver<T, Mode extends SolverMode> {
   constructor(private handler: ConstraintHandler<T, Mode>) {}
@@ -132,13 +132,14 @@ export class ProblemSolver<T, Mode extends SolverMode> {
       throw new Error('Cannot solve problem with no constraints')
     }
 
-    const searchConfig: SearchConfig<T> = {
+    // Build problem structure from constraints
+    const problem = ProblemBuilder.build({
       numPrimary: this.handler.getNumPrimary(),
       numSecondary: this.handler.getNumSecondary(),
-      numSolutions,
       rows: constraints
-    }
+    })
 
-    return search<T>(searchConfig)
+    // Execute search on pre-built structures
+    return search<T>({ problem, numSolutions })
   }
 }
