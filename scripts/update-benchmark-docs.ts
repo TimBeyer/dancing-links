@@ -204,7 +204,7 @@ All benchmarks run on the same machine with identical test cases. Results show o
           ? '**1.00x (fastest)**'
           : `${result.relativePerformance.toFixed(2)}x`
 
-        markdown += `| ${result.libraryName} | ${result.opsPerSec} | ${relativeFormatted} | ±${result.margin.toFixed(2)}% |\n`
+        markdown += `| ${result.libraryName} | ${result.opsPerSec.toFixed(2)} | ${relativeFormatted} | ±${result.margin.toFixed(2)}% |\n`
       }
 
       markdown += '\n'
