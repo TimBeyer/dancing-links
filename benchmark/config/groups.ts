@@ -4,6 +4,7 @@
  */
 
 import { BenchmarkGroup } from '../types.js';
+import { getDancingLinksSolverNames, getExternalSolverNames } from './solvers.js';
 
 /**
  * All benchmark groups available in the system
@@ -15,10 +16,8 @@ export const groups: BenchmarkGroup[] = [
     description: 'Release benchmarks: sparse vs all external libraries',
     caseIds: ['sudoku-hard', 'pentomino-1', 'pentomino-10', 'pentomino-100'],
     solverNames: [
-      'internal-sparse',  // Only our fastest interface for competitive comparison
-      'external-dlxlib',
-      'external-dance',
-      'external-dancing-links-algorithm'
+      'dancing-links (sparse)',  // Only our fastest interface for competitive comparison
+      ...getExternalSolverNames()
     ]
   },
   
@@ -26,12 +25,7 @@ export const groups: BenchmarkGroup[] = [
     name: 'pr',
     description: 'PR benchmarks: all internal interfaces for regression testing',
     caseIds: ['sudoku-hard', 'pentomino-1', 'pentomino-10', 'pentomino-100'],
-    solverNames: [
-      'internal-binary',
-      'internal-sparse',
-      'internal-template',
-      'internal-generator'
-    ]
+    solverNames: getDancingLinksSolverNames()
   },
   
   {
@@ -39,13 +33,8 @@ export const groups: BenchmarkGroup[] = [
     description: 'Full benchmarks: everything vs everything',
     caseIds: ['sudoku-hard', 'pentomino-1', 'pentomino-10', 'pentomino-100'],
     solverNames: [
-      'internal-binary',
-      'internal-sparse',
-      'internal-template',
-      'internal-generator',
-      'external-dlxlib',
-      'external-dance',
-      'external-dancing-links-algorithm'
+      ...getDancingLinksSolverNames(),
+      ...getExternalSolverNames()
     ]
   },
   
@@ -53,7 +42,7 @@ export const groups: BenchmarkGroup[] = [
     name: 'fast',
     description: 'Fast benchmarks: quick cases with sparse solver only',
     caseIds: ['sudoku-hard', 'pentomino-1'],
-    solverNames: ['internal-sparse']
+    solverNames: ['dancing-links (sparse)']
   }
   
   // Future groups can be added for specific scenarios:

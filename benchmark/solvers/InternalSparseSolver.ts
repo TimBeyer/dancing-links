@@ -19,7 +19,8 @@ interface SparseConstraintsBatch {
  * Internal solver using sparse constraint format
  * This is typically the fastest interface for our library
  */
-export class InternalSparseSolver extends Solver<void, SparseConstraintsBatch[]> {
+export class DancingLinksSparseSolver extends Solver<void, SparseConstraintsBatch[]> {
+  static readonly name = 'dancing-links (sparse)';
   private numColumns = 0;
   
   /**

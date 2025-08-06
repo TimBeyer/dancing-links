@@ -13,7 +13,8 @@ import * as dance from 'dance';
  * External solver using dance library
  * Does not support secondary constraints
  */
-export class ExternalDanceSolver extends Solver<void, number[][]> {
+export class DanceSolver extends Solver<void, number[][]> {
+  static readonly name = 'dance';
   /**
    * Prepare constraints in binary matrix format for dance
    * dance expects plain binary arrays (0-indexed)

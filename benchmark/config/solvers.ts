@@ -5,32 +5,38 @@
 
 import { SolverRegistry } from '../types.js';
 
-// Internal solver imports
-import { InternalSparseSolver } from '../solvers/InternalSparseSolver.js';
-import { InternalBinarySolver } from '../solvers/InternalBinarySolver.js';
-import { InternalTemplateSolver } from '../solvers/InternalTemplateSolver.js';
-import { InternalGeneratorSolver } from '../solvers/InternalGeneratorSolver.js';
+// Dancing Links solver imports
+import { DancingLinksSparseSolver } from '../solvers/InternalSparseSolver.js';
+import { DancingLinksBinarySolver } from '../solvers/InternalBinarySolver.js';
+import { DancingLinksTemplateSolver } from '../solvers/InternalTemplateSolver.js';
+import { DancingLinksGeneratorSolver } from '../solvers/InternalGeneratorSolver.js';
 
-// External solver imports  
-import { ExternalDlxlibSolver } from '../solvers/ExternalDlxlibSolver.js';
-import { ExternalDanceSolver } from '../solvers/ExternalDanceSolver.js';
-import { ExternalDancingLinksAlgorithmSolver } from '../solvers/ExternalDancingLinksAlgorithmSolver.js';
+// External library solver imports  
+import { DlxlibSolver } from '../solvers/ExternalDlxlibSolver.js';
+import { DanceSolver } from '../solvers/ExternalDanceSolver.js';
+import { DancingLinksAlgorithmSolver } from '../solvers/ExternalDancingLinksAlgorithmSolver.js';
+
+// Create solver instances
+const dancingLinksBinary = new DancingLinksBinarySolver();
+const dancingLinksSparse = new DancingLinksSparseSolver();
+const dancingLinksTemplate = new DancingLinksTemplateSolver();
+const dancingLinksGenerator = new DancingLinksGeneratorSolver();
+const dlxlib = new DlxlibSolver();
+const dance = new DanceSolver();
+const dancingLinksAlgorithm = new DancingLinksAlgorithmSolver();
 
 /**
  * Registry of all available solvers
- * Solvers are instantiated once and reused across benchmarks
+ * Uses the static name property from each solver class
  */
 export const solvers: SolverRegistry = {
-  // Internal solvers - our library's different interfaces
-  'internal-binary': new InternalBinarySolver(),
-  'internal-sparse': new InternalSparseSolver(),
-  'internal-template': new InternalTemplateSolver(),
-  'internal-generator': new InternalGeneratorSolver(),
-  
-  // External solvers - competing libraries
-  'external-dlxlib': new ExternalDlxlibSolver(),
-  'external-dance': new ExternalDanceSolver(),
-  'external-dancing-links-algorithm': new ExternalDancingLinksAlgorithmSolver()
+  [DancingLinksBinarySolver.name]: dancingLinksBinary,
+  [DancingLinksSparseSolver.name]: dancingLinksSparse,
+  [DancingLinksTemplateSolver.name]: dancingLinksTemplate,
+  [DancingLinksGeneratorSolver.name]: dancingLinksGenerator,
+  [DlxlibSolver.name]: dlxlib,
+  [DanceSolver.name]: dance,
+  [DancingLinksAlgorithmSolver.name]: dancingLinksAlgorithm
 };
 
 /**
@@ -52,15 +58,24 @@ export function getSolverNames(): string[] {
 }
 
 /**
- * Get internal solver names only
+ * Get Dancing Links solver names (our library)
  */
-export function getInternalSolverNames(): string[] {
-  return Object.keys(solvers).filter(name => name.startsWith('internal-'));
+export function getDancingLinksSolverNames(): string[] {
+  return [
+    DancingLinksBinarySolver.name,
+    DancingLinksSparseSolver.name,
+    DancingLinksTemplateSolver.name,
+    DancingLinksGeneratorSolver.name
+  ];
 }
 
 /**
- * Get external solver names only  
+ * Get external library solver names
  */
 export function getExternalSolverNames(): string[] {
-  return Object.keys(solvers).filter(name => name.startsWith('external-'));
+  return [
+    DlxlibSolver.name,
+    DanceSolver.name,
+    DancingLinksAlgorithmSolver.name
+  ];
 }

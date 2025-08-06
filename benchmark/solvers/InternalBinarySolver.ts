@@ -18,7 +18,8 @@ interface BinaryConstraintsBatch {
 /**
  * Internal solver using binary constraint format
  */
-export class InternalBinarySolver extends Solver<void, BinaryConstraintsBatch[]> {
+export class DancingLinksBinarySolver extends Solver<void, BinaryConstraintsBatch[]> {
+  static readonly name = 'dancing-links (binary)';
   private numColumns = 0;
   /**
    * Prepare constraints in binary format for batch operations

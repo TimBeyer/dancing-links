@@ -13,7 +13,8 @@ import * as dlxlib from 'dlxlib';
  * External solver using dlxlib library
  * Does not support secondary constraints
  */
-export class ExternalDlxlibSolver extends Solver<void, number[][]> {
+export class DlxlibSolver extends Solver<void, number[][]> {
+  static readonly name = 'dlxlib';
   /**
    * Prepare constraints in binary matrix format for dlxlib
    * dlxlib expects plain binary arrays (0-indexed)

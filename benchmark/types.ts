@@ -15,6 +15,7 @@ export interface StandardConstraints {
  * Base class for all solver implementations
  */
 export abstract class Solver<TSetup = void, TPrepared = unknown> {
+  static readonly name: string;
   protected setupResult?: TSetup;
   
   /**

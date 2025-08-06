@@ -90,11 +90,11 @@ export function validateSecondarySupport(
 
 /**
  * Set of solver names that support secondary constraints
- * Only our internal solvers currently support this feature
+ * Only our Dancing Links solvers currently support this feature
  */
 const SECONDARY_CONSTRAINT_SOLVERS = new Set([
-  'internal-binary',
-  'internal-sparse', 
-  'internal-template',
-  'internal-generator'
+  'dancing-links (binary)',
+  'dancing-links (sparse)', 
+  'dancing-links template',
+  'dancing-links generator'
 ]);

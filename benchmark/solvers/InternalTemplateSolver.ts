@@ -21,7 +21,8 @@ type TemplateSolver = ReturnType<SolverTemplate['createSolver']>;
  * Internal solver using template-based constraint pre-compilation
  * Fastest for repeated solving of the same constraint set
  */
-export class InternalTemplateSolver extends Solver<SolverTemplate, TemplateSolver> {
+export class DancingLinksTemplateSolver extends Solver<SolverTemplate, TemplateSolver> {
+  static readonly name = 'dancing-links template';
   /**
    * Setup template once per case with pre-compiled constraints
    * This is the expensive operation done outside of benchmark timing

@@ -14,7 +14,8 @@ import * as dancingLinksAlgorithm from 'dancing-links-algorithm';
  * Does not support secondary constraints
  * Note: This library only supports finding all solutions (no count limiting)
  */
-export class ExternalDancingLinksAlgorithmSolver extends Solver<void, number[][]> {
+export class DancingLinksAlgorithmSolver extends Solver<void, number[][]> {
+  static readonly name = 'dancing-links-algorithm';
   /**
    * Prepare constraints in binary matrix format for dancing-links-algorithm
    * dancing-links-algorithm expects plain binary arrays (0-indexed)

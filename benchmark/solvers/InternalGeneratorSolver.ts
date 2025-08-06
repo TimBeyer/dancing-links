@@ -19,7 +19,8 @@ interface SparseConstraintsBatch {
  * Internal solver using generator interface
  * Provides iterative solution finding with memory efficiency
  */
-export class InternalGeneratorSolver extends Solver<void, SparseConstraintsBatch[]> {
+export class DancingLinksGeneratorSolver extends Solver<void, SparseConstraintsBatch[]> {
+  static readonly name = 'dancing-links generator';
   private numColumns = 0;
   /**
    * Prepare constraints in sparse format for generator operations
