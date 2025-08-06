@@ -183,11 +183,8 @@ This section contains performance comparisons against other JavaScript Dancing L
 
 `
 
-    // Add collapsible section
-    markdown += `<details>
-<summary><strong>📊 Performance Comparison (Click to expand)</strong></summary>
-
-All benchmarks run on the same machine with identical test cases. Results show operations per second (higher is better).
+    // Add benchmark content directly
+    markdown += `All benchmarks run on the same machine with identical test cases. Results show operations per second (higher is better).
 
 `
 
@@ -216,8 +213,6 @@ All benchmarks run on the same machine with identical test cases. Results show o
 - Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
 
 *Last updated: ${timestamp}*
-
-</details>
 
 `
 
