@@ -133,9 +133,7 @@ describe('ProblemSolver', function () {
       const dlx = new DancingLinks<number>()
       const solver = dlx.createSolver({ columns: 2 })
 
-      solver
-        .addBinaryConstraint(0, [1, 0])
-        .addBinaryConstraint(1, [1, 0])
+      solver.addBinaryConstraint(0, [1, 0]).addBinaryConstraint(1, [1, 0])
 
       const solutions = []
       for (const solution of solver.createGenerator()) {
@@ -159,9 +157,7 @@ describe('ProblemSolver', function () {
       const dlx = new DancingLinks<number>()
       const solver = dlx.createSolver({ columns: 2 })
 
-      solver
-        .addBinaryConstraint(1, [1, 0])
-        .addBinaryConstraint(2, [0, 1])
+      solver.addBinaryConstraint(1, [1, 0]).addBinaryConstraint(2, [0, 1])
 
       const solutions1 = []
       for (const solution of solver.createGenerator()) {
