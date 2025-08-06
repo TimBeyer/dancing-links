@@ -157,7 +157,7 @@ The generator maintains search state between solutions, enabling memory-efficien
 
 ## Examples
 
-The [benchmark directory](https://github.com/TimBeyer/node-dlx/tree/master/benchmark) contains complete implementations for:
+The [benchmark directory](https://github.com/TimBeyer/dancing-links/tree/master/benchmark) contains complete implementations for:
 
 - **N-Queens Problem**: Classical constraint satisfaction problem
 - **Pentomino Tiling**: 2D shape placement with rotation constraints
