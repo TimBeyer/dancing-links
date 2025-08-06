@@ -52,6 +52,8 @@
     "benchmark:json": "npm run build:dev && node built/benchmark/index.js --json",
     "benchmark:comparison": "npm run build:dev && node built/benchmark/index.js --external",
     "compare-benchmarks": "npm run build:dev && node built/scripts/compare-benchmarks.js",
+    "update-benchmark-docs": "npm run build:dev && node built/scripts/update-benchmark-docs.js",
+    "update-benchmark-docs:dry-run": "npm run build:dev && node built/scripts/update-benchmark-docs.js --dry-run",
     "profile": "npm run build:dev && node built/benchmark/profile.js",
     "release": "release-it"
   },

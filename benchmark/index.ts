@@ -47,7 +47,7 @@ function parseArgs(): BenchmarkOptions {
 /**
  * Benchmark result interfaces
  */
-interface BenchmarkResult {
+export interface BenchmarkResult {
   name: string
   opsPerSec: number
   margin: number
@@ -55,7 +55,7 @@ interface BenchmarkResult {
   deprecated?: boolean
 }
 
-interface BenchmarkSection {
+export interface BenchmarkSection {
   benchmarkName: string
   results: BenchmarkResult[]
 }

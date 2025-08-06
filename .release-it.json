@@ -19,7 +19,7 @@
     }
   },
   "hooks": {
-    "after:bump": "npm run format",
+    "after:bump": ["npm run update-benchmark-docs --quiet", "npm run format"],
     "before:git:commit": "npm run format"
   }
 }
