@@ -267,9 +267,32 @@ This section contains performance comparisons against other JavaScript Dancing L
       } else {
         await writeFile(readmePath, readmeContent)
         this.log('Successfully updated README.md with new benchmark results')
+
+        // Format the README.md file to ensure consistent formatting
+        await this.formatReadme()
       }
     } catch (error) {
       throw new Error(`Failed to update README.md: ${error}`)
+    }
+  }
+
+  /**
+   * Format the README.md file using Prettier
+   */
+  private async formatReadme(): Promise<void> {
+    try {
+      this.log('Formatting README.md with Prettier...')
+
+      await execAsync('npm run format -- README.md', {
+        cwd: this.projectRoot,
+        timeout: 30000, // 30 seconds for formatting
+        encoding: 'utf8'
+      })
+
+      this.log('Successfully formatted README.md')
+    } catch (error) {
+      // Don't fail the whole process if formatting fails, just warn
+      this.log(`Warning: Failed to format README.md: ${error}`)
     }
   }
 
