@@ -92,20 +92,11 @@ class BenchmarkDocUpdater {
    * Run comprehensive benchmarks with external library comparisons
    */
   protected async runBenchmarks(): Promise<BenchmarkSection[]> {
-    const useFullComparison = !process.env.CI && !this.options.dryRun
-    this.log(
-      useFullComparison
-        ? 'Running comprehensive benchmarks with external library comparisons...'
-        : 'Running fast benchmark mode (library-only)...'
-    )
+    this.log('Running comprehensive benchmarks with external library comparisons...')
 
     try {
-      // Run benchmark:comparison with JSON output
-      // Use faster benchmark mode if in CI or testing environment
-      const useFullComparison = !process.env.CI && !this.options.dryRun
-      const command = useFullComparison
-        ? 'npm run benchmark:comparison -- --json --quiet'
-        : 'npm run benchmark:json -- --quiet'
+      // Always use full comparison with external libraries for complete documentation
+      const command = 'npm run benchmark:comparison -- --json --quiet'
 
       const { stdout, stderr } = await execAsync(command, {
         cwd: this.projectRoot,
