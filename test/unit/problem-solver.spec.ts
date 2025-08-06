@@ -81,4 +81,105 @@ describe('ProblemSolver', function () {
     expect(() => solver1.findAll()).to.not.throw()
     expect(() => solver2.findAll()).to.not.throw()
   })
+
+  describe('Generator Interface', function () {
+    it('should yield solutions that match findAll() results', function () {
+      const dlx = new DancingLinks<number>()
+      const solver = dlx.createSolver({ columns: 3 })
+
+      solver
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
+        .addBinaryConstraint(2, [0, 0, 1])
+        .addBinaryConstraint(3, [1, 0, 1])
+
+      const allSolutions = solver.findAll()
+      const generatorSolutions = []
+
+      for (const solution of solver.createGenerator()) {
+        generatorSolutions.push(solution)
+      }
+
+      expect(generatorSolutions).to.have.length(2)
+
+      const normalizeAndSort = (solutions: typeof allSolutions) =>
+        solutions
+          .map(solution => solution.map(r => r.data).sort())
+          .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+
+      expect(normalizeAndSort(generatorSolutions)).to.deep.equal(normalizeAndSort(allSolutions))
+    })
+
+    it('should support early termination', function () {
+      const dlx = new DancingLinks<number>()
+      const solver = dlx.createSolver({ columns: 3 })
+
+      solver
+        .addBinaryConstraint(0, [1, 0, 0])
+        .addBinaryConstraint(1, [0, 1, 0])
+        .addBinaryConstraint(2, [0, 0, 1])
+        .addBinaryConstraint(3, [1, 0, 1])
+
+      const solutions = []
+      for (const solution of solver.createGenerator()) {
+        solutions.push(solution)
+        if (solutions.length === 1) break
+      }
+
+      expect(solutions).to.have.length(1)
+    })
+
+    it('should handle problems with no solutions', function () {
+      const dlx = new DancingLinks<number>()
+      const solver = dlx.createSolver({ columns: 2 })
+
+      solver
+        .addBinaryConstraint(0, [1, 0])
+        .addBinaryConstraint(1, [1, 0])
+
+      const solutions = []
+      for (const solution of solver.createGenerator()) {
+        solutions.push(solution)
+      }
+
+      expect(solutions).to.have.length(0)
+    })
+
+    it('should handle empty constraint set', function () {
+      const dlx = new DancingLinks<number>()
+      const solver = dlx.createSolver({ columns: 3 })
+
+      expect(() => {
+        const gen = solver.createGenerator()
+        gen.next() // Generator functions are lazy, need to call next() to execute
+      }).to.throw('Cannot solve problem with no constraints')
+    })
+
+    it('should create independent generators', function () {
+      const dlx = new DancingLinks<number>()
+      const solver = dlx.createSolver({ columns: 2 })
+
+      solver
+        .addBinaryConstraint(1, [1, 0])
+        .addBinaryConstraint(2, [0, 1])
+
+      const solutions1 = []
+      for (const solution of solver.createGenerator()) {
+        solutions1.push(solution)
+      }
+
+      const solutions2 = []
+      for (const solution of solver.createGenerator()) {
+        solutions2.push(solution)
+      }
+
+      expect(solutions1).to.have.length(1)
+      expect(solutions2).to.have.length(1)
+
+      const data1 = solutions1[0]!.map(r => r.data).sort()
+      const data2 = solutions2[0]!.map(r => r.data).sort()
+      expect(data1).to.deep.equal([1, 2])
+      expect(data2).to.deep.equal([1, 2])
+    })
+  })
 })
