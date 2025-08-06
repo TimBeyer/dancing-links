@@ -59,11 +59,11 @@ class BenchmarkDocUpdater {
 
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
-    
+
     // When running the compiled script, we need to go up two levels: built/scripts -> built -> project root
-    this.projectRoot = __dirname.endsWith('/built/scripts') 
-      ? join(__dirname, '..', '..')  // from built/scripts to project root
-      : join(__dirname, '..')        // from scripts to project root (when running TypeScript directly)
+    this.projectRoot = __dirname.endsWith('/built/scripts')
+      ? join(__dirname, '..', '..') // from built/scripts to project root
+      : join(__dirname, '..') // from scripts to project root (when running TypeScript directly)
   }
 
   /**
@@ -107,10 +107,10 @@ class BenchmarkDocUpdater {
         encoding: 'utf8'
       })
 
-      // Then run benchmarks directly to get clean JSON output  
+      // Then run benchmarks directly to get clean JSON output
       const benchmarkPath = join(this.projectRoot, 'built', 'benchmark', 'index.js')
       const benchmarkCommand = `node "${benchmarkPath}" --external --json --quiet`
-      
+
       const { stdout, stderr } = await execAsync(benchmarkCommand, {
         cwd: this.projectRoot,
         timeout: this.options.benchmarkTimeout,

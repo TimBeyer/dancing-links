@@ -2,15 +2,15 @@
  * Constraint format conversion utilities
  */
 
-import { StandardConstraints } from '../types.js';
+import { StandardConstraints } from '../types.js'
 
 /**
  * Result of flattening constraints with column assignments
  */
 export interface FlattenedConstraints {
-  numColumns: number;
-  rows: number[][];
-  primaryColumns: number;
+  numColumns: number
+  rows: number[][]
+  primaryColumns: number
 }
 
 /**
@@ -18,34 +18,28 @@ export interface FlattenedConstraints {
  * with proper column number assignments
  */
 export function flattenConstraints(constraints: StandardConstraints): FlattenedConstraints {
-  const primaryRows = constraints.primaryConstraints;
-  const secondaryRows = constraints.secondaryConstraints || [];
-  
+  const primaryRows = constraints.primaryConstraints
+  const secondaryRows = constraints.secondaryConstraints || []
+
   // Calculate number of primary columns
-  const primaryColumns = primaryRows.length > 0 
-    ? Math.max(0, ...primaryRows.flat()) + 1 
-    : 0;
-  
+  const primaryColumns = primaryRows.length > 0 ? Math.max(0, ...primaryRows.flat()) + 1 : 0
+
   // Secondary constraints get column numbers starting after primary columns
-  const secondaryColumnOffset = primaryColumns;
-  const offsetSecondaryRows = secondaryRows.map(row => 
-    row.map(col => col + secondaryColumnOffset)
-  );
-  
+  const secondaryColumnOffset = primaryColumns
+  const offsetSecondaryRows = secondaryRows.map(row => row.map(col => col + secondaryColumnOffset))
+
   // Calculate total number of columns
-  const secondaryColumns = secondaryRows.length > 0 
-    ? Math.max(0, ...secondaryRows.flat()) + 1 
-    : 0;
-  const totalColumns = primaryColumns + secondaryColumns;
-  
+  const secondaryColumns = secondaryRows.length > 0 ? Math.max(0, ...secondaryRows.flat()) + 1 : 0
+  const totalColumns = primaryColumns + secondaryColumns
+
   // Combine all rows
-  const allRows = [...primaryRows, ...offsetSecondaryRows];
-  
+  const allRows = [...primaryRows, ...offsetSecondaryRows]
+
   return {
     numColumns: totalColumns,
     rows: allRows,
     primaryColumns
-  };
+  }
 }
 
 /**
@@ -53,8 +47,8 @@ export function flattenConstraints(constraints: StandardConstraints): FlattenedC
  * Used by external libraries that expect binary constraint matrices
  */
 export function convertToBinary(constraints: StandardConstraints): number[][] {
-  const flattened = flattenConstraints(constraints);
-  return convertSparseToBinary(flattened.rows, flattened.numColumns);
+  const flattened = flattenConstraints(constraints)
+  return convertSparseToBinary(flattened.rows, flattened.numColumns)
 }
 
 /**
@@ -62,14 +56,14 @@ export function convertToBinary(constraints: StandardConstraints): number[][] {
  * Helper function for binary conversion
  */
 function convertSparseToBinary(sparseRows: number[][], numColumns: number): number[][] {
-  const matrix = new Array(sparseRows.length);
+  const matrix = new Array(sparseRows.length)
   for (let i = 0; i < sparseRows.length; i++) {
-    matrix[i] = new Array(numColumns).fill(0);
+    matrix[i] = new Array(numColumns).fill(0)
     for (const col of sparseRows[i]) {
-      matrix[i][col] = 1;
+      matrix[i][col] = 1
     }
   }
-  return matrix;
+  return matrix
 }
 
 /**
@@ -77,14 +71,14 @@ function convertSparseToBinary(sparseRows: number[][], numColumns: number): numb
  * Throws an error if secondary constraints are present but not supported
  */
 export function validateSecondarySupport(
-  constraints: StandardConstraints, 
+  constraints: StandardConstraints,
   solverName: string
 ): void {
-  const hasSecondary = constraints.secondaryConstraints && 
-                      constraints.secondaryConstraints.length > 0;
-  
+  const hasSecondary =
+    constraints.secondaryConstraints && constraints.secondaryConstraints.length > 0
+
   if (hasSecondary && !SECONDARY_CONSTRAINT_SOLVERS.has(solverName)) {
-    throw new Error(`Solver ${solverName} does not support secondary constraints`);
+    throw new Error(`Solver ${solverName} does not support secondary constraints`)
   }
 }
 
@@ -94,7 +88,7 @@ export function validateSecondarySupport(
  */
 const SECONDARY_CONSTRAINT_SOLVERS = new Set([
   'dancing-links (binary)',
-  'dancing-links (sparse)', 
+  'dancing-links (sparse)',
   'dancing-links template',
   'dancing-links generator'
-]);
+])
