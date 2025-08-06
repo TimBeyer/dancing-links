@@ -4,13 +4,13 @@
   "description": "Fastest JS solver for exact cover problems using Dancing Links",
   "author": "Tim Beyer",
   "license": "MIT",
-  "homepage": "https://github.com/TimBeyer/node-dlx",
+  "homepage": "https://github.com/TimBeyer/dancing-links",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TimBeyer/node-dlx.git"
+    "url": "https://github.com/TimBeyer/dancing-links.git"
   },
   "bugs": {
-    "url": "https://github.com/TimBeyer/node-dlx/issues"
+    "url": "https://github.com/TimBeyer/dancing-links/issues"
   },
   "type": "module",
   "main": "built/lib/index.js",
