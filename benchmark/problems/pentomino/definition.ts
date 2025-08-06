@@ -2,19 +2,8 @@
  * Pentomino problem definition for the benchmark system
  */
 
-import { StandardConstraints } from '../types.js';
-import { ALL_CONSTRAINTS, PlacedPentomino } from '../pentomino/field.js';
-
-/**
- * Parameters for pentomino problem generation
- * Currently no parameters needed as we use the standard 6x10 field with all 12 pieces
- */
-export interface PentominoParams {
-  // Future extensions could include:
-  // - fieldWidth?: number;
-  // - fieldHeight?: number;
-  // - pieces?: string[]; // Subset of pieces to use
-}
+import { StandardConstraints, PentominoParams } from '../../types.js';
+import { ALL_CONSTRAINTS, PlacedPentomino } from './field.js';
 
 /**
  * Generate standardized constraints for pentomino tiling

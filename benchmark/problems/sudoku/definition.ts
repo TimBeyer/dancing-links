@@ -2,15 +2,8 @@
  * Sudoku problem definition for the benchmark system
  */
 
-import { StandardConstraints } from '../types.js';
-import { generateConstraints, parseStringFormat, SudokuInput } from '../sudoku/index.js';
-
-/**
- * Parameters for sudoku problem generation
- */
-export interface SudokuParams {
-  puzzle: string; // String representation of the puzzle
-}
+import { StandardConstraints, SudokuParams } from '../../types.js';
+import { generateConstraints, parseStringFormat, SudokuInput } from './index.js';
 
 /**
  * Generate standardized constraints for a sudoku puzzle

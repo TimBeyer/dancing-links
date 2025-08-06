@@ -1,7 +1,7 @@
 import { createWriteStream } from 'fs'
 import profiler from 'v8-profiler-next'
 import { DancingLinks } from '../index.js'
-import { ALL_CONSTRAINTS } from './pentomino/field.js'
+import { ALL_CONSTRAINTS } from './problems/pentomino/field.js'
 
 profiler.setGenerateType(1)
 profiler.startProfiling('dancing-links', true)

@@ -48,13 +48,42 @@ export abstract class Solver<TSetup = void, TPrepared = unknown> {
 }
 
 /**
- * Benchmark case definition
+ * Problem parameter types
  */
-export interface BenchmarkCase<TPrepared = unknown> {
+export interface SudokuParams {
+  puzzle: string;
+}
+
+export interface PentominoParams {
+  // Currently no parameters needed
+}
+
+export interface NQueensParams {
+  n: number;
+}
+
+/**
+ * Problem type discriminated union
+ */
+export type ProblemType = 'sudoku' | 'pentomino' | 'n-queens';
+
+/**
+ * Problem parameters mapped to their types
+ */
+export type ProblemParameters<T extends ProblemType> = 
+  T extends 'sudoku' ? SudokuParams :
+  T extends 'pentomino' ? PentominoParams :
+  T extends 'n-queens' ? NQueensParams :
+  never;
+
+/**
+ * Benchmark case definition with proper type inference
+ */
+export interface BenchmarkCase<T extends ProblemType = ProblemType, TPrepared = unknown> {
   id: string;
   name: string;
-  problemType: 'sudoku' | 'pentomino' | 'n-queens';
-  parameters: unknown;
+  problemType: T;
+  parameters: ProblemParameters<T>;
   executeStrategy<TSolver extends Solver<any, TPrepared>>(
     solver: TSolver, 
     prepared: TPrepared
@@ -104,7 +133,7 @@ export interface BenchmarkSection {
 /**
  * Problem definition function type
  */
-export type ProblemDefinition<TParams = unknown> = (params: TParams) => StandardConstraints;
+export type ProblemDefinition<T extends ProblemType> = (params: ProblemParameters<T>) => StandardConstraints;
 
 /**
  * Solver registry type
@@ -112,6 +141,8 @@ export type ProblemDefinition<TParams = unknown> = (params: TParams) => Standard
 export type SolverRegistry = Record<string, Solver>;
 
 /**
- * Problem registry type
+ * Problem registry type with proper typing
  */
-export type ProblemRegistry = Record<string, ProblemDefinition>;
+export type ProblemRegistry = {
+  [K in ProblemType]: ProblemDefinition<K>;
+};

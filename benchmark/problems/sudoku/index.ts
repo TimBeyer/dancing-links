@@ -1,4 +1,4 @@
-import { SimpleConstraint, Row, Result } from '../../index.js'
+import { SimpleConstraint, Row, Result } from '../../../index.js'
 
 type MultiConstraint<T> = SimpleConstraint<T> & Row<T>
 

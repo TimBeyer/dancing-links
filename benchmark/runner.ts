@@ -66,7 +66,7 @@ async function runBenchmarks(
       continue;
     }
     
-    const constraints = problemFn(benchmarkCase.parameters);
+    const constraints = problemFn(benchmarkCase.parameters as any); // Type assertion needed due to discriminated union
     const suite = new Benchmark.Suite();
     
     // Add each solver to the benchmark suite
