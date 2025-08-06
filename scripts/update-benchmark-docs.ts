@@ -189,25 +189,21 @@ All benchmarks run on the same machine with identical test cases. Results show o
 `
 
       for (const result of section.results) {
-        const libraryName = result.deprecated ? `${result.libraryName}*` : result.libraryName
         const opsFormatted = result.opsPerSec.toLocaleString('en-US', { maximumFractionDigits: 0 })
         const relativeFormatted = result.isFastest
           ? '**1.00x (fastest)**'
           : `${result.relativePerformance.toFixed(2)}x`
         const marginFormatted = `±${result.margin.toFixed(2)}%`
 
-        markdown += `| ${libraryName} | ${opsFormatted} | ${relativeFormatted} | ${marginFormatted} |\n`
+        markdown += `| ${result.libraryName} | ${opsFormatted} | ${relativeFormatted} | ${marginFormatted} |\n`
       }
 
       markdown += '\n'
     }
 
     // Add footnotes and metadata
-    markdown += `*Deprecated: Library may have known issues or is no longer maintained.
-
-**Testing Environment:**
+    markdown += `**Testing Environment:**
 - Node.js ${process.version}
-- Libraries: dlxlib, dance, dancing-links-algorithm
 - Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
 
 *Last updated: ${timestamp}*
