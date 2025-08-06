@@ -24,9 +24,10 @@ interface BenchmarkGroup {
  * Groups are selected via CLI arguments and define explicit solver-case combinations
  */
 export const groups = {
-  pr: {
-    name: 'pr',
-    description: 'PR benchmarks: all internal solvers for all problems',
+  internal: {
+    name: 'internal',
+    description:
+      'Internal solver benchmarks: regression testing across all internal implementations',
     matrix: {
       'sudoku-hard': internalSolvers,
       'pentomino-1': internalSolvers,
@@ -35,10 +36,9 @@ export const groups = {
     }
   },
 
-  release: {
-    name: 'release',
-    description:
-      'Release benchmarks: sparse + externals, skip dancing-links-algorithm for pentomino',
+  competitive: {
+    name: 'competitive',
+    description: 'Competitive benchmarks: our best solver vs external libraries',
     matrix: {
       'sudoku-hard': ['sparse', ...externalSolvers],
       'pentomino-1': ['sparse', ...externalSolversWithoutDancingLinksAlgorithm],
@@ -47,9 +47,10 @@ export const groups = {
     }
   },
 
-  full: {
-    name: 'full',
-    description: 'Full benchmarks: all solvers except dancing-links-algorithm for pentomino',
+  comprehensive: {
+    name: 'comprehensive',
+    description:
+      'Comprehensive benchmarks: detailed analysis across all viable solver-case combinations',
     matrix: {
       'sudoku-hard': [...internalSolvers, ...externalSolvers],
       'pentomino-1': [...internalSolvers, ...externalSolversWithoutDancingLinksAlgorithm],

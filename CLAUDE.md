@@ -17,8 +17,9 @@ This is a high-performance JavaScript/TypeScript implementation of Knuth's Danci
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm run coverage` - Generate test coverage report with nyc
-- `npm run benchmark` - Run library-only performance benchmarks
-- `npm run benchmark:comparison` - Run comprehensive benchmarks comparing against other libraries
+- `npm run benchmark` - Run internal solver benchmarks for regression testing
+- `npm run benchmark:competitive` - Run competitive benchmarks comparing our best solver vs external libraries
+- `npm run benchmark:comprehensive` - Run comprehensive analysis across all solver-case combinations
 - `npm run profile` - Generate CPU profile for performance analysis
 
 ## Core Architecture
@@ -163,6 +164,20 @@ When to **IMPLEMENT DIRECTLY**:
 - Bug fixes with known solutions
 
 **Always use judgment**: If unsure whether to plan or implement, err on the side of planning and discussion first. Implementation can always come after we've explored the problem space together.
+
+### Refactoring Philosophy
+
+**BREAK APIs PROPERLY - No Legacy Compatibility Unless Explicitly Requested**
+
+When refactoring or renaming:
+
+- **DO** make clean breaks and update everything consistently
+- **DO** rename options, functions, and variables everywhere they're used
+- **DO** update all documentation, scripts, and references in one go
+- **DON'T** keep legacy compatibility layers or deprecated options
+- **DON'T** maintain backward compatibility unless explicitly asked
+
+The codebase should be internally consistent. If you rename something, rename it everywhere. If you break an API, break it completely and update all consumers. Half-measures create technical debt and confusion.
 
 ## Commit Guidelines
 

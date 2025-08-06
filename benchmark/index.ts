@@ -21,17 +21,17 @@ function parseArgs(): BenchmarkOptions & { group?: string; help?: boolean } {
 
   // Determine group selection
   let group: string | undefined
-  if (args.includes('--release')) {
-    group = 'release'
-  } else if (args.includes('--external') || args.includes('--full')) {
-    group = 'full'
-  } else if (args.includes('--pr')) {
-    group = 'pr'
+  if (args.includes('--competitive')) {
+    group = 'competitive'
+  } else if (args.includes('--comprehensive')) {
+    group = 'comprehensive'
+  } else if (args.includes('--internal')) {
+    group = 'internal'
   }
 
-  // Default to 'full' if no group specified
+  // Default to 'internal' if no group specified
   if (!group && !help) {
-    group = 'full'
+    group = 'internal'
   }
 
   // Parse other options
@@ -52,7 +52,7 @@ function parseArgs(): BenchmarkOptions & { group?: string; help?: boolean } {
   return {
     group,
     help,
-    includeExternal: group === 'full' || group === 'release',
+    includeExternal: group === 'comprehensive' || group === 'competitive',
     jsonOutput,
     jsonFile,
     quiet
@@ -87,9 +87,9 @@ function showUsage(): void {
 Usage: node benchmark/index.js [options]
 
 Group Options (select one):
-  --pr          PR benchmarks: all internal interfaces (default, fast)
-  --release     Release benchmarks: sparse vs all external libraries  
-  --full        Full benchmarks: everything vs everything
+  --internal    Internal benchmarks: all internal solver implementations (default)
+  --competitive Competitive benchmarks: our best solver vs external libraries
+  --comprehensive   Comprehensive benchmarks: detailed analysis of all combinations
 
 Output Options:
   --json[=file] Output results as JSON (to file if specified)
@@ -107,11 +107,11 @@ Available Groups:`)
 
   console.log(`
 Examples:
-  node benchmark/index.js                         # PR benchmarks (default)
-  node benchmark/index.js --release               # Release benchmarks
-  node benchmark/index.js --full                  # Full comparison
-  node benchmark/index.js --pr --json=pr.json     # PR with JSON output
-  node benchmark/index.js --release --quiet       # Release mode, quiet output
+  node benchmark/index.js                         # Internal benchmarks (default)
+  node benchmark/index.js --competitive           # Competitive benchmarks
+  node benchmark/index.js --comprehensive         # Comprehensive analysis
+  node benchmark/index.js --internal --json=internal.json    # Internal with JSON output
+  node benchmark/index.js --competitive --quiet   # Competitive mode, quiet output
 `)
 }
 

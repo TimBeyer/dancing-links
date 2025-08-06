@@ -109,7 +109,7 @@ class BenchmarkDocUpdater {
 
       // Then run benchmarks directly to get clean JSON output
       const benchmarkPath = join(this.projectRoot, 'built', 'benchmark', 'index.js')
-      const benchmarkCommand = `node "${benchmarkPath}" --external --json --quiet`
+      const benchmarkCommand = `node "${benchmarkPath}" --competitive --json --quiet`
 
       const { stdout, stderr } = await execAsync(benchmarkCommand, {
         cwd: this.projectRoot,
