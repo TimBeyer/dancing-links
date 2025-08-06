@@ -20,39 +20,65 @@
  */
 
 import { Result } from '../types/interfaces.js'
-import { BuiltProblem } from './problem-builder.js'
+import { SearchContext } from './problem-builder.js'
 
+/**
+ * State machine states for Dancing Links search algorithm
+ *
+ * The algorithm uses explicit state transitions to avoid recursion and enable
+ * resumable search for generator-style iteration.
+ */
 enum SearchState {
+  /** Select next column to cover and prepare for choice iteration */
   FORWARD,
+  /** Try current choice by covering intersecting columns */
   ADVANCE,
+  /** Backtrack by uncovering columns when no valid choices remain */
   BACKUP,
+  /** Restore state after backtracking to try next choice */
   RECOVER,
+  /** Search completed - either found enough solutions or exhausted search space */
   DONE
 }
 
 /**
- * Search parameters for the Dancing Links algorithm
+ * Execute Dancing Links search using SearchContext for resumable state
+ *
+ * The context preserves algorithm state between calls, enabling generator-style
+ * iteration without modifying the core algorithm to use generators directly.
  */
-export interface SearchParams<T> {
-  problem: BuiltProblem<T>
-  numSolutions: number
-}
-
-/**
- * Execute Dancing Links search on pre-built problem structures
- */
-export function search<T>(params: SearchParams<T>) {
-  const { problem, numSolutions } = params
-  const { nodes, columns } = problem
-
+export function search<T>(context: SearchContext<T>, numSolutions: number): Result<T>[][] {
+  const { nodes, columns } = context
   const solutions: Result<T>[][] = []
 
-  let currentSearchState: SearchState = SearchState.FORWARD
+  // Determine search resumption state based on context
+  let currentSearchState: SearchState
   let running = true
-  let level = 0
-  const choice: number[] = [] // Node indices instead of Node objects
-  let bestColIndex: number
-  let currentNodeIndex: number
+
+  const isFirstSearch = !context.hasStarted
+  const isResumedAtDepth = context.hasStarted && context.level > 0
+
+  if (isFirstSearch) {
+    // Starting fresh search - begin with column selection
+    currentSearchState = SearchState.FORWARD
+    context.hasStarted = true
+  } else if (isResumedAtDepth) {
+    // Resuming from paused search at some depth - continue from current choice
+    currentSearchState = SearchState.RECOVER
+  } else {
+    // Must be: hasStarted=true && level=0 (backtracked to root)
+    /**
+     * Search exhaustion detection: level 0 with hasStarted=true indicates
+     * that we've backtracked all the way from the deepest search level back
+     * to the root, meaning all possible solution branches have been explored.
+     *
+     * This state occurs when:
+     * 1. We've found solutions and backtracked to find more
+     * 2. We've exhausted all choices at every level
+     * 3. No more solutions exist in the search space
+     */
+    return []
+  }
 
   // Root column is always at index 0 (created by ProblemBuilder)
   const rootColIndex = 0
@@ -130,7 +156,7 @@ export function search<T>(params: SearchParams<T>) {
      * covering one constraint frequently eliminates all options for another.
      */
     if (lowestLen === 0) {
-      bestColIndex = lowest
+      context.bestColIndex = lowest
       return
     }
 
@@ -155,7 +181,7 @@ export function search<T>(params: SearchParams<T>) {
       const length = columns.len[curColIndex]
 
       if (length === 1) {
-        bestColIndex = curColIndex
+        context.bestColIndex = curColIndex
         return
       }
 
@@ -177,23 +203,23 @@ export function search<T>(params: SearchParams<T>) {
       }
     }
 
-    bestColIndex = lowest
+    context.bestColIndex = lowest
   }
 
   function forward() {
     pickBestColumn()
-    cover(bestColIndex)
+    cover(context.bestColIndex)
 
-    currentNodeIndex = nodes.down[columns.head[bestColIndex]]
-    choice[level] = currentNodeIndex
+    context.currentNodeIndex = nodes.down[columns.head[context.bestColIndex]]
+    context.choice[context.level] = context.currentNodeIndex
 
     currentSearchState = SearchState.ADVANCE
   }
 
   function recordSolution() {
     const results: Result<T>[] = []
-    for (let l = 0; l <= level; l++) {
-      const nodeIndex = choice[l]!
+    for (let l = 0; l <= context.level; l++) {
+      const nodeIndex = context.choice[l]!
       results.push({
         index: nodes.rowIndex[nodeIndex],
         data: nodes.data[nodeIndex]!
@@ -204,13 +230,17 @@ export function search<T>(params: SearchParams<T>) {
   }
 
   function advance() {
-    const bestColHeadIndex = columns.head[bestColIndex]
-    if (currentNodeIndex === bestColHeadIndex) {
+    const bestColHeadIndex = columns.head[context.bestColIndex]
+    if (context.currentNodeIndex === bestColHeadIndex) {
       currentSearchState = SearchState.BACKUP
       return
     }
 
-    for (let pp = nodes.right[currentNodeIndex]; pp !== currentNodeIndex; pp = nodes.right[pp]) {
+    for (
+      let pp = nodes.right[context.currentNodeIndex];
+      pp !== context.currentNodeIndex;
+      pp = nodes.right[pp]
+    ) {
       cover(nodes.col[pp])
     }
 
@@ -224,32 +254,51 @@ export function search<T>(params: SearchParams<T>) {
       return
     }
 
-    level = level + 1
+    context.level = context.level + 1
     currentSearchState = SearchState.FORWARD
   }
 
   function backup() {
-    uncover(bestColIndex)
+    // Restore the matrix state by uncovering the column we just tried
+    uncover(context.bestColIndex)
 
-    if (level === 0) {
+    const isAtRootLevel = context.level === 0
+    if (isAtRootLevel) {
+      /**
+       * Reached root level during backtracking - search exhaustion.
+       *
+       * When we backtrack to level 0, it means we've tried all possible
+       * choices at every level and there are no more solution branches
+       * to explore. The search is complete.
+       *
+       * Note: This sets the context state so that subsequent calls to
+       * search() will detect exhaustion via isBacktrackedToRoot condition.
+       */
       currentSearchState = SearchState.DONE
       return
     }
 
-    level = level - 1
+    // Move up one level in the search tree
+    context.level = context.level - 1
 
-    currentNodeIndex = choice[level]!
-    bestColIndex = nodes.col[currentNodeIndex]
+    // Restore the choice and column context from the previous level
+    context.currentNodeIndex = context.choice[context.level]!
+    context.bestColIndex = nodes.col[context.currentNodeIndex]
 
+    // Continue trying the next choice at this level
     currentSearchState = SearchState.RECOVER
   }
 
   function recover() {
-    for (let pp = nodes.left[currentNodeIndex]; pp !== currentNodeIndex; pp = nodes.left[pp]) {
+    for (
+      let pp = nodes.left[context.currentNodeIndex];
+      pp !== context.currentNodeIndex;
+      pp = nodes.left[pp]
+    ) {
       uncover(nodes.col[pp])
     }
-    currentNodeIndex = nodes.down[currentNodeIndex]
-    choice[level] = currentNodeIndex
+    context.currentNodeIndex = nodes.down[context.currentNodeIndex]
+    context.choice[context.level] = context.currentNodeIndex
     currentSearchState = SearchState.ADVANCE
   }
 

@@ -126,20 +126,63 @@ export class ProblemSolver<T, Mode extends SolverMode> {
     return this.solve(numSolutions)
   }
 
+  /**
+   * Create a generator that yields solutions one at a time.
+   *
+   * This provides a streaming interface for iterating over solutions.
+   * The generator builds problem structures once and yields solutions
+   * from the complete solution set.
+   *
+   * **Performance Note**: This implementation computes all solutions upfront,
+   * so it's only beneficial when you plan to iterate through many (but not
+   * necessarily all) solutions. For single solutions, use `findOne()` instead.
+   *
+   * @returns Generator that yields individual solutions
+   *
+   * @example
+   * ```typescript
+   * const generator = solver.createGenerator()
+   * for (const solution of generator) {
+   *   console.log('Found solution:', solution)
+   *   if (shouldStop) break // Early termination
+   * }
+   * ```
+   */
+  *createGenerator(): Generator<Result<T>[], void, unknown> {
+    const constraints = this.handler.getConstraints()
+    if (constraints.length === 0) {
+      throw new Error('Cannot solve problem with no constraints')
+    }
+
+    // Build search context once - key optimization
+    const context = ProblemBuilder.buildContext({
+      numPrimary: this.handler.getNumPrimary(),
+      numSecondary: this.handler.getNumSecondary(),
+      rows: constraints
+    })
+
+    // Keep calling search with numSolutions: 1 until exhausted
+    while (true) {
+      const solutions = search<T>(context, 1)
+      if (solutions.length === 0) break
+      yield solutions[0]
+    }
+  }
+
   private solve(numSolutions: number): Result<T>[][] {
     const constraints = this.handler.getConstraints()
     if (constraints.length === 0) {
       throw new Error('Cannot solve problem with no constraints')
     }
 
-    // Build problem structure from constraints
-    const problem = ProblemBuilder.build({
+    // Build search context from constraints
+    const context = ProblemBuilder.buildContext({
       numPrimary: this.handler.getNumPrimary(),
       numSecondary: this.handler.getNumSecondary(),
       rows: constraints
     })
 
-    // Execute search on pre-built structures
-    return search<T>({ problem, numSolutions })
+    // Execute search on context
+    return search<T>(context, numSolutions)
   }
 }

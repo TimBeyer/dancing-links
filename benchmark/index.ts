@@ -149,6 +149,15 @@ function benchmarkSudoku(options: BenchmarkOptions): Promise<void> {
       solver.findAll()
     })
 
+    addBenchmarkTest(suite, 'dancing-links generator', () => {
+      const solver = dlx.createSolver({ columns: 324 })
+      solver.addSparseConstraints(sparseConstraintsBatch)
+      const solutions = []
+      for (const solution of solver.createGenerator()) {
+        solutions.push(solution)
+      }
+    })
+
     // External libraries (if requested and available)
     if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
@@ -245,6 +254,16 @@ function benchmarkOneTiling(options: BenchmarkOptions): Promise<void> {
       solver.findOne()
     })
 
+    addBenchmarkTest(suite, 'dancing-links generator', () => {
+      const solver = dlx.createSolver({ columns: 72 })
+      solver.addSparseConstraints(sparseConstraintsBatch)
+      const generator = solver.createGenerator()
+      const result = generator.next()
+      if (!result.done) {
+        // Found one solution, stop here
+      }
+    })
+
     // External libraries (if requested and available)
     if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
@@ -337,6 +356,16 @@ function benchmarkTenTilings(options: BenchmarkOptions): Promise<void> {
       solver.find(10)
     })
 
+    addBenchmarkTest(suite, 'dancing-links generator', () => {
+      const solver = dlx.createSolver({ columns: 72 })
+      solver.addSparseConstraints(sparseConstraintsBatch)
+      const solutions = []
+      for (const solution of solver.createGenerator()) {
+        solutions.push(solution)
+        if (solutions.length >= 10) break
+      }
+    })
+
     // External libraries (if requested and available)
     if (options.includeExternal) {
       addBenchmarkTest(suite, 'dlxlib', () => {
@@ -427,6 +456,16 @@ function benchmarkHundredTilings(options: BenchmarkOptions): Promise<void> {
     addBenchmarkTest(suite, 'dancing-links template', () => {
       const solver = template.createSolver()
       solver.find(100)
+    })
+
+    addBenchmarkTest(suite, 'dancing-links generator', () => {
+      const solver = dlx.createSolver({ columns: 72 })
+      solver.addSparseConstraints(sparseConstraintsBatch)
+      const solutions = []
+      for (const solution of solver.createGenerator()) {
+        solutions.push(solution)
+        if (solutions.length >= 100) break
+      }
     })
 
     // External libraries (if requested and available)

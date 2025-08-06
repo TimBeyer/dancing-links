@@ -9,6 +9,36 @@
 import { Row } from '../types/interfaces.js'
 import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
 
+/**
+ * Search context for resumable Dancing Links algorithm execution
+ *
+ * Captures the algorithm state needed to pause and resume search operations.
+ * This enables generator-style iteration without modifying the core algorithm
+ * to use generators directly.
+ */
+export interface SearchContext<T> {
+  /** Current depth in the search tree */
+  level: number
+
+  /** Stack of node indices chosen at each search level */
+  choice: number[]
+
+  /** Column selected for covering at current level */
+  bestColIndex: number
+
+  /** Current node being tried in the selected column */
+  currentNodeIndex: number
+
+  /** Whether this context has been used for search before */
+  hasStarted: boolean
+
+  /** Constraint matrix nodes with their current link state */
+  nodes: NodeStore<T>
+
+  /** Column headers with their current lengths and links */
+  columns: ColumnStore
+}
+
 const ROOT_COLUMN_OFFSET = 1
 
 /**
@@ -21,23 +51,13 @@ export interface ProblemConfig<T> {
 }
 
 /**
- * Built problem structure ready for search execution
- */
-export interface BuiltProblem<T> {
-  nodes: NodeStore<T>
-  columns: ColumnStore
-  numPrimary: number
-  numSecondary: number
-}
-
-/**
  * Builds Dancing Links data structures from constraint rows
  */
 export class ProblemBuilder {
   /**
-   * Build native data structures from constraint configuration
+   * Build SearchContext for resumable search from constraint configuration
    */
-  static build<T>(config: ProblemConfig<T>): BuiltProblem<T> {
+  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
     const { numPrimary, numSecondary, rows } = config
 
     // Estimate required capacity and pre-allocate stores
@@ -52,10 +72,13 @@ export class ProblemBuilder {
     this.buildRows(nodes, columns, rows)
 
     return {
+      level: 0,
+      choice: [],
+      bestColIndex: 0,
+      currentNodeIndex: 0,
+      hasStarted: false,
       nodes,
-      columns,
-      numPrimary,
-      numSecondary
+      columns
     }
   }
 

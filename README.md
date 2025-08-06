@@ -125,6 +125,36 @@ const allSolutions = solver.findAll()
 const limitedSolutions = solver.find(10)
 ```
 
+### Generator Interface (Streaming Solutions)
+
+For large solution spaces or when you need early termination, use the generator interface:
+
+```ts
+// Stream solutions one at a time
+const generator = solver.createGenerator()
+
+let solutionCount = 0
+for (const solution of generator) {
+  console.log('Found solution:', solution)
+
+  solutionCount++
+  if (solutionCount >= 5) {
+    // Stop after finding 5 solutions
+    break
+  }
+}
+
+// Manual iteration for full control
+const generator2 = solver.createGenerator()
+let result = generator2.next()
+while (!result.done) {
+  processSolution(result.value)
+  result = generator2.next()
+}
+```
+
+The generator maintains search state between solutions, enabling memory-efficient streaming and early termination without computing all solutions upfront.
+
 ## Examples
 
 The [benchmark directory](https://github.com/TimBeyer/node-dlx/tree/master/benchmark) contains complete implementations for:
