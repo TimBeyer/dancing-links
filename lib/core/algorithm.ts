@@ -270,9 +270,6 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
        * When we backtrack to level 0, it means we've tried all possible
        * choices at every level and there are no more solution branches
        * to explore. The search is complete.
-       *
-       * Note: This sets the context state so that subsequent calls to
-       * search() will detect exhaustion via isBacktrackedToRoot condition.
        */
       currentSearchState = SearchState.DONE
       return
