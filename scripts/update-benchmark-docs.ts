@@ -59,7 +59,11 @@ class BenchmarkDocUpdater {
 
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
-    this.projectRoot = join(__dirname, '..')
+    
+    // When running the compiled script, we need to go up two levels: built/scripts -> built -> project root
+    this.projectRoot = __dirname.endsWith('/built/scripts') 
+      ? join(__dirname, '..', '..')  // from built/scripts to project root
+      : join(__dirname, '..')        // from scripts to project root (when running TypeScript directly)
   }
 
   /**
@@ -95,10 +99,19 @@ class BenchmarkDocUpdater {
     this.log('Running comprehensive benchmarks with external library comparisons...')
 
     try {
-      // Always use full comparison with external libraries for complete documentation
-      const command = 'npm run benchmark:comparison -- --json --quiet'
+      // First ensure dev build is up to date
+      this.log('Building development version...')
+      await execAsync('npm run build:dev', {
+        cwd: this.projectRoot,
+        timeout: 60000, // 1 minute for build
+        encoding: 'utf8'
+      })
 
-      const { stdout, stderr } = await execAsync(command, {
+      // Then run benchmarks directly to get clean JSON output  
+      const benchmarkPath = join(this.projectRoot, 'built', 'benchmark', 'index.js')
+      const benchmarkCommand = `node "${benchmarkPath}" --external --json --quiet`
+      
+      const { stdout, stderr } = await execAsync(benchmarkCommand, {
         cwd: this.projectRoot,
         timeout: this.options.benchmarkTimeout,
         encoding: 'utf8'
@@ -108,7 +121,7 @@ class BenchmarkDocUpdater {
         this.log(`Benchmark warnings: ${stderr}`)
       }
 
-      // Parse JSON output
+      // Parse clean JSON output
       const benchmarkData: BenchmarkSection[] = JSON.parse(stdout.trim())
 
       this.log(`Successfully completed benchmarks: ${benchmarkData.length} sections`)
