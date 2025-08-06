@@ -200,13 +200,11 @@ All benchmarks run on the same machine with identical test cases. Results show o
 `
 
       for (const result of section.results) {
-        const opsFormatted = result.opsPerSec.toLocaleString('en-US', { maximumFractionDigits: 0 })
         const relativeFormatted = result.isFastest
           ? '**1.00x (fastest)**'
           : `${result.relativePerformance.toFixed(2)}x`
-        const marginFormatted = `±${result.margin.toFixed(2)}%`
 
-        markdown += `| ${result.libraryName} | ${opsFormatted} | ${relativeFormatted} | ${marginFormatted} |\n`
+        markdown += `| ${result.libraryName} | ${result.opsPerSec} | ${relativeFormatted} | ±${result.margin.toFixed(2)}% |\n`
       }
 
       markdown += '\n'
