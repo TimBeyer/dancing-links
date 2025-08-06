@@ -1,19 +1,36 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows: ['Lint', 'Test', 'Build', 'Benchmark']
-    types:
-      - completed
+  push:
     branches: [main, master]
 
 jobs:
-  release:
+  # Gate to prevent running CI on release commits
+  should-run:
     runs-on: ubuntu-latest
     if: |
-      github.event.workflow_run.conclusion == 'success' && 
-      !contains(github.event.workflow_run.head_commit.message, 'chore: release')
+      !contains(github.event.head_commit.message, 'chore: release')
+    steps:
+      - run: echo "Proceeding with CI and release"
 
+  # Call reusable workflows in parallel
+  lint:
+    needs: should-run
+    uses: ./.github/workflows/lint.yml
+
+  test:
+    needs: should-run
+    uses: ./.github/workflows/test.yml
+
+  build:
+    needs: should-run
+    uses: ./.github/workflows/build.yml
+
+  # Release only after all prerequisites complete
+  release:
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
