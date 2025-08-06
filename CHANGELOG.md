@@ -1,5 +1,17 @@
 # Changelog
 
+# [4.1.0](https://github.com/TimBeyer/node-dlx/compare/v4.0.0...v4.1.0) (2025-08-06)
+
+
+### Bug Fixes
+
+* add generator benchmark to single pentomino tiling test ([9f01206](https://github.com/TimBeyer/node-dlx/commit/9f0120606794c9bd389e12c8997b82e128f00aed))
+
+
+### Features
+
+* add resumable generator interface for streaming solutions ([0b229b3](https://github.com/TimBeyer/node-dlx/commit/0b229b33b29d38d925ea8bd080762863bb575f05))
+
 # [4.0.0](https://github.com/TimBeyer/node-dlx/compare/v3.3.0...v4.0.0) (2025-08-05)
 
 
