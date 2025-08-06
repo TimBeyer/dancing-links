@@ -38,12 +38,12 @@ export const groups = {
 
   competitive: {
     name: 'competitive',
-    description: 'Competitive benchmarks: our best solver vs external libraries',
+    description: 'Competitive benchmarks: our main solvers vs external libraries',
     matrix: {
-      'sudoku-hard': ['sparse', ...externalSolvers],
-      'pentomino-1': ['sparse', ...externalSolversWithoutDancingLinksAlgorithm],
-      'pentomino-10': ['sparse', ...externalSolversWithoutDancingLinksAlgorithm],
-      'pentomino-100': ['sparse', ...externalSolversWithoutDancingLinksAlgorithm]
+      'sudoku-hard': ['sparse', 'binary', ...externalSolvers],
+      'pentomino-1': ['sparse', 'binary', ...externalSolversWithoutDancingLinksAlgorithm],
+      'pentomino-10': ['sparse', 'binary', ...externalSolversWithoutDancingLinksAlgorithm],
+      'pentomino-100': ['sparse', 'binary', ...externalSolversWithoutDancingLinksAlgorithm]
     }
   },
 
