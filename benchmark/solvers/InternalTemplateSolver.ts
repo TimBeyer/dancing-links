@@ -8,7 +8,7 @@ import { flattenConstraints } from '../utils/converters.js'
 import { DancingLinks, SolverTemplate, ProblemSolver } from '../../index.js'
 
 /**
- * Template instance from the Dancing Links library (using simple mode with number data)
+ * Template instance from the Dancing Links library
  */
 type DlxSolverTemplate = SolverTemplate<number, 'simple'>
 
