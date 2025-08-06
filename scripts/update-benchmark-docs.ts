@@ -224,19 +224,19 @@ All benchmarks run on the same machine with identical test cases. Results show o
 
       // Define markers for the benchmark section
       const startMarker = '## Benchmarks'
-      const endMarker = '## Implementation Notes'
+      const endMarker = '## Contributing'
 
       // Check if benchmark section already exists
       const startIndex = readmeContent.indexOf(startMarker)
       const endIndex = readmeContent.indexOf(endMarker)
 
       if (startIndex === -1) {
-        // No existing benchmark section - add before Implementation Notes
+        // No existing benchmark section - add before Contributing
         if (endIndex === -1) {
-          // No Implementation Notes section - add at the end
+          // No Contributing section - add at the end
           readmeContent += '\n' + benchmarkMarkdown
         } else {
-          // Insert before Implementation Notes
+          // Insert before Contributing
           readmeContent =
             readmeContent.slice(0, endIndex) +
             benchmarkMarkdown +
