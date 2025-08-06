@@ -9,11 +9,14 @@
  * Integrates into the release process to ensure benchmark documentation stays current.
  */
 
-import { execSync } from 'child_process'
-import { readFileSync, writeFileSync } from 'fs'
+import { exec } from 'child_process'
+import { readFile, writeFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { promisify } from 'util'
 import type { BenchmarkResult, BenchmarkSection } from '../benchmark/index.js'
+
+const execAsync = promisify(exec)
 
 /**
  * Configuration for script execution
@@ -104,21 +107,25 @@ class BenchmarkDocUpdater {
         ? 'npm run benchmark:comparison -- --json --quiet'
         : 'npm run benchmark:json -- --quiet'
 
-      const output = execSync(command, {
+      const { stdout, stderr } = await execAsync(command, {
         cwd: this.projectRoot,
         timeout: this.options.benchmarkTimeout,
         encoding: 'utf8'
       })
 
+      if (stderr) {
+        this.log(`Benchmark warnings: ${stderr}`)
+      }
+
       // Parse JSON output
-      const benchmarkData: BenchmarkSection[] = JSON.parse(output.trim())
+      const benchmarkData: BenchmarkSection[] = JSON.parse(stdout.trim())
 
       this.log(`Successfully completed benchmarks: ${benchmarkData.length} sections`)
       return benchmarkData
     } catch (error) {
       if (error instanceof Error) {
         // Handle specific error cases
-        if ('status' in error && (error as any).status === 'TIMEOUT') {
+        if ('code' in error && (error as any).code === 'ETIMEDOUT') {
           throw new Error(`Benchmarks timed out after ${this.options.benchmarkTimeout / 1000}s`)
         }
 
@@ -222,7 +229,7 @@ All benchmarks run on the same machine with identical test cases. Results show o
     const readmePath = join(this.projectRoot, 'README.md')
 
     try {
-      let readmeContent = readFileSync(readmePath, 'utf8')
+      let readmeContent = await readFile(readmePath, 'utf8')
 
       // Define markers for the benchmark section
       const startMarker = '## Benchmarks'
@@ -261,7 +268,7 @@ All benchmarks run on the same machine with identical test cases. Results show o
         this.log('DRY RUN: Would update README.md with new benchmark section')
         this.log(`New benchmark section length: ${benchmarkMarkdown.length} characters`)
       } else {
-        writeFileSync(readmePath, readmeContent)
+        await writeFile(readmePath, readmeContent)
         this.log('Successfully updated README.md with new benchmark results')
       }
     } catch (error) {
