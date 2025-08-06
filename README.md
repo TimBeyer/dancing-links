@@ -173,44 +173,44 @@ All benchmarks run on the same machine with identical test cases. Results show o
 
 ### All solutions to the sudoku
 
-| Library                 | Ops/Sec  | Relative Performance | Margin of Error |
-| ----------------------- | -------- | -------------------- | --------------- |
-| dancing-links (sparse)  | 14439.67 | **1.00x (fastest)**  | ±4.52%          |
-| dancing-links (binary)  | 3461.99  | 0.24x                | ±6.52%          |
-| dance                   | 1417.14  | 0.10x                | ±5.95%          |
-| dancing-links-algorithm | 1287.46  | 0.09x                | ±2.59%          |
-| dlxlib                  | 1265.06  | 0.09x                | ±7.45%          |
+| Library                 | Ops/Sec | Relative Performance | Margin of Error |
+| ----------------------- | ------- | -------------------- | --------------- |
+| dancing-links (sparse)  | 6273.27 | **1.00x (fastest)**  | ±0.99%          |
+| dancing-links (binary)  | 2284.91 | 0.36x                | ±0.20%          |
+| dance                   | 1164.34 | 0.19x                | ±0.17%          |
+| dlxlib                  | 1087.57 | 0.17x                | ±0.56%          |
+| dancing-links-algorithm | 739.06  | 0.12x                | ±1.09%          |
 
 ### Finding one pentomino tiling on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 564.27  | **1.00x (fastest)**  | ±5.16%          |
-| dancing-links (binary) | 502.65  | 0.89x                | ±4.66%          |
-| dlxlib                 | 121.26  | 0.21x                | ±5.18%          |
-| dance                  | 67.79   | 0.12x                | ±1.54%          |
+| dancing-links (sparse) | 150.50  | **1.00x (fastest)**  | ±0.40%          |
+| dancing-links (binary) | 144.65  | 0.96x                | ±0.37%          |
+| dlxlib                 | 87.60   | 0.58x                | ±0.94%          |
+| dance                  | 46.94   | 0.31x                | ±0.37%          |
 
 ### Finding ten pentomino tilings on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 87.61   | **1.00x (fastest)**  | ±2.35%          |
-| dancing-links (binary) | 87.10   | 0.99x                | ±1.37%          |
-| dlxlib                 | 20.78   | 0.24x                | ±3.18%          |
-| dance                  | 14.50   | 0.17x                | ±2.33%          |
+| dancing-links (sparse) | 22.52   | **1.00x (fastest)**  | ±0.85%          |
+| dancing-links (binary) | 22.24   | 0.99x                | ±1.58%          |
+| dlxlib                 | 14.21   | 0.63x                | ±0.82%          |
+| dance                  | 10.33   | 0.46x                | ±0.41%          |
 
 ### Finding one hundred pentomino tilings on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 12.27   | **1.00x (fastest)**  | ±2.24%          |
-| dancing-links (binary) | 11.87   | 0.97x                | ±3.69%          |
-| dlxlib                 | 2.93    | 0.24x                | ±7.06%          |
-| dance                  | 2.02    | 0.16x                | ±6.52%          |
+| dancing-links (sparse) | 3.18    | **1.00x (fastest)**  | ±0.81%          |
+| dancing-links (binary) | 3.08    | 0.97x                | ±4.44%          |
+| dlxlib                 | 1.89    | 0.59x                | ±1.73%          |
+| dance                  | 1.52    | 0.48x                | ±1.21%          |
 
 **Testing Environment:**
 
-- Node.js v22.15.1
+- Node.js v20.19.4
 - Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
 
 _Last updated: 2025-08-06_

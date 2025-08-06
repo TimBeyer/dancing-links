@@ -1,5 +1,28 @@
 # Changelog
 
+# [4.2.0](https://github.com/TimBeyer/node-dlx/compare/v4.1.0...v4.2.0) (2025-08-06)
+
+
+### Bug Fixes
+
+* correct path resolution and JSON parsing in benchmark docs script ([d168af8](https://github.com/TimBeyer/node-dlx/commit/d168af8d9dc73a3d83f2e99694019b6b3119e907))
+* eliminate mutable instance state from benchmark solvers ([784d71c](https://github.com/TimBeyer/node-dlx/commit/784d71cc57f06f60f231799ef083c1c0eb0198a4))
+* format ops/sec to 2 decimal places in benchmark results ([442006f](https://github.com/TimBeyer/node-dlx/commit/442006faef2a2367aed633079089b8a4f9179a23))
+* preserve full precision in benchmark results ([ba5deed](https://github.com/TimBeyer/node-dlx/commit/ba5deed10c183b3c12a91eab081cb23f594238d4))
+* properly separate main and dev TypeScript configurations ([488bb50](https://github.com/TimBeyer/node-dlx/commit/488bb50f70fd9419dc5cb0e4cdb6e3e24c4d93d3))
+* replace any type with proper types in template solver ([f83adba](https://github.com/TimBeyer/node-dlx/commit/f83adba9f09f2182ad781a79a3294a8c00d1ed73))
+* round margin percentages to 2 decimal places in benchmark comparisons ([2071d38](https://github.com/TimBeyer/node-dlx/commit/2071d384299361003f034ebac7a16f3c4565f55d))
+* working modular benchmark system ([370e45a](https://github.com/TimBeyer/node-dlx/commit/370e45aa3c671a773c70afa31f92740b23c847c5))
+
+
+### Features
+
+* add automated benchmark documentation system ([4534e2a](https://github.com/TimBeyer/node-dlx/commit/4534e2a24976077cfc4c9acb971a2be89b7144e6))
+* implement descriptive solver names with static name property ([ae67510](https://github.com/TimBeyer/node-dlx/commit/ae675104d782f0ab466d7cd0044ca8ccdba64154))
+* include binary solver in competitive benchmarks for fair comparison ([1f7d445](https://github.com/TimBeyer/node-dlx/commit/1f7d44595eee83e38df8760fe245ddb7b8a767af))
+* make benchmark results directly visible in README ([69b6005](https://github.com/TimBeyer/node-dlx/commit/69b60055b061300706f5c0cbe2c1610f901de230))
+* update README benchmarks and add auto-formatting to doc script ([593b713](https://github.com/TimBeyer/node-dlx/commit/593b713f9ffeb1bb5de0585abd44a6ba4e64df9a))
+
 # [4.1.0](https://github.com/TimBeyer/node-dlx/compare/v4.0.0...v4.1.0) (2025-08-06)
 
 
