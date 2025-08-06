@@ -166,6 +166,15 @@ When to **IMPLEMENT DIRECTLY**:
 
 ## Commit Guidelines
 
+- **ALWAYS run `npm run format` before committing** - Code must be properly formatted
 - Commit frequently, ensure tests pass before committing, always ensure that ALL TS types pass
-
 - Always do work in branches and create one if we're not in a branch already. Commit frequently.
+
+### Pre-Commit Checklist
+
+Before every commit, ALWAYS run:
+
+1. `npm run format` - Format code with Prettier
+2. `npm run lint` - Check for linting issues
+3. `npm run test` - Ensure all tests pass
+4. `npm run build` - Verify TypeScript compilation
