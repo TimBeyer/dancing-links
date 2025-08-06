@@ -16,35 +16,47 @@ interface SparseConstraintsBatch {
 }
 
 /**
+ * Prepared constraint data including column count
+ */
+interface PreparedGeneratorConstraints {
+  numColumns: number
+  constraints: SparseConstraintsBatch[]
+}
+
+/**
  * Internal solver using generator interface
  * Provides iterative solution finding with memory efficiency
  */
-export class DancingLinksGeneratorSolver extends Solver<void, SparseConstraintsBatch[]> {
+export class DancingLinksGeneratorSolver extends Solver<void, PreparedGeneratorConstraints> {
   static readonly name = 'dancing-links generator'
-  private numColumns = 0
+
   /**
    * Prepare constraints in sparse format for generator operations
    * All formatting happens here, outside of benchmark timing
    */
-  prepare(constraints: StandardConstraints): SparseConstraintsBatch[] {
+  prepare(constraints: StandardConstraints): PreparedGeneratorConstraints {
     const flattened = flattenConstraints(constraints)
-    this.numColumns = flattened.numColumns
 
     // Convert to sparse constraint batch format expected by the library
-    return flattened.rows.map((row, index) => ({
+    const sparseConstraints = flattened.rows.map((row, index) => ({
       data: index, // Use row index as data for identification
       columnIndices: row
     }))
+
+    return {
+      numColumns: flattened.numColumns,
+      constraints: sparseConstraints
+    }
   }
 
   /**
    * Find all solutions using generator interface
    * Collects all solutions by iterating through the generator
    */
-  solveAll(prepared: SparseConstraintsBatch[]): unknown {
+  solveAll(prepared: PreparedGeneratorConstraints): unknown {
     const dlx = new DancingLinks()
-    const solver = dlx.createSolver({ columns: this.numColumns })
-    solver.addSparseConstraints(prepared)
+    const solver = dlx.createSolver({ columns: prepared.numColumns })
+    solver.addSparseConstraints(prepared.constraints)
 
     const solutions = []
     for (const solution of solver.createGenerator()) {
@@ -57,10 +69,10 @@ export class DancingLinksGeneratorSolver extends Solver<void, SparseConstraintsB
    * Find one solution using generator interface
    * Returns the first solution from the generator
    */
-  solveOne(prepared: SparseConstraintsBatch[]): unknown {
+  solveOne(prepared: PreparedGeneratorConstraints): unknown {
     const dlx = new DancingLinks()
-    const solver = dlx.createSolver({ columns: this.numColumns })
-    solver.addSparseConstraints(prepared)
+    const solver = dlx.createSolver({ columns: prepared.numColumns })
+    solver.addSparseConstraints(prepared.constraints)
 
     const generator = solver.createGenerator()
     const result = generator.next()
@@ -71,10 +83,10 @@ export class DancingLinksGeneratorSolver extends Solver<void, SparseConstraintsB
    * Find a specific number of solutions using generator interface
    * Iterates through generator until count is reached or exhausted
    */
-  solveCount(prepared: SparseConstraintsBatch[], count: number): unknown {
+  solveCount(prepared: PreparedGeneratorConstraints, count: number): unknown {
     const dlx = new DancingLinks()
-    const solver = dlx.createSolver({ columns: this.numColumns })
-    solver.addSparseConstraints(prepared)
+    const solver = dlx.createSolver({ columns: prepared.numColumns })
+    solver.addSparseConstraints(prepared.constraints)
 
     const solutions = []
     for (const solution of solver.createGenerator()) {

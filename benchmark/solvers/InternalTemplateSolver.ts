@@ -29,7 +29,7 @@ export class DancingLinksTemplateSolver extends Solver<DlxSolverTemplate, DlxTem
    */
   setup(constraints: StandardConstraints): void {
     const flattened = flattenConstraints(constraints)
-    const dlx = new DancingLinks()
+    const dlx = new DancingLinks<number>()
     const template = dlx.createSolverTemplate({ columns: flattened.numColumns })
 
     // Convert to sparse constraint batch format for template
