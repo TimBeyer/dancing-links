@@ -22,11 +22,22 @@
 import { Result } from '../types/interfaces.js'
 import { SearchContext } from './problem-builder.js'
 
+/**
+ * State machine states for Dancing Links search algorithm
+ *
+ * The algorithm uses explicit state transitions to avoid recursion and enable
+ * resumable search for generator-style iteration.
+ */
 enum SearchState {
+  /** Select next column to cover and prepare for choice iteration */
   FORWARD,
+  /** Try current choice by covering intersecting columns */
   ADVANCE,
+  /** Backtrack by uncovering columns when no valid choices remain */
   BACKUP,
+  /** Restore state after backtracking to try next choice */
   RECOVER,
+  /** Search completed - either found enough solutions or exhausted search space */
   DONE
 }
 
@@ -40,18 +51,32 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   const { nodes, columns } = context
   const solutions: Result<T>[][] = []
 
-  // Determine how to start based on context state
+  // Determine search resumption state based on context
   let currentSearchState: SearchState
   let running = true
 
-  if (!context.hasStarted) {
+  const isFirstSearch = !context.hasStarted
+  const isResumedAtDepth = context.hasStarted && context.level > 0
+
+  if (isFirstSearch) {
+    // Starting fresh search - begin with column selection
     currentSearchState = SearchState.FORWARD
     context.hasStarted = true
-  } else if (context.level > 0) {
-    // Resume from previous search
+  } else if (isResumedAtDepth) {
+    // Resuming from paused search at some depth - continue from current choice
     currentSearchState = SearchState.RECOVER
   } else {
-    // Exhausted all solutions
+    // Must be: hasStarted=true && level=0 (backtracked to root)
+    /**
+     * Search exhaustion detection: level 0 with hasStarted=true indicates
+     * that we've backtracked all the way from the deepest search level back
+     * to the root, meaning all possible solution branches have been explored.
+     *
+     * This state occurs when:
+     * 1. We've found solutions and backtracked to find more
+     * 2. We've exhausted all choices at every level
+     * 3. No more solutions exist in the search space
+     */
     return []
   }
 
@@ -234,18 +259,33 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   }
 
   function backup() {
+    // Restore the matrix state by uncovering the column we just tried
     uncover(context.bestColIndex)
 
-    if (context.level === 0) {
+    const isAtRootLevel = context.level === 0
+    if (isAtRootLevel) {
+      /**
+       * Reached root level during backtracking - search exhaustion.
+       *
+       * When we backtrack to level 0, it means we've tried all possible
+       * choices at every level and there are no more solution branches
+       * to explore. The search is complete.
+       *
+       * Note: This sets the context state so that subsequent calls to
+       * search() will detect exhaustion via isBacktrackedToRoot condition.
+       */
       currentSearchState = SearchState.DONE
       return
     }
 
+    // Move up one level in the search tree
     context.level = context.level - 1
 
+    // Restore the choice and column context from the previous level
     context.currentNodeIndex = context.choice[context.level]!
     context.bestColIndex = nodes.col[context.currentNodeIndex]
 
+    // Continue trying the next choice at this level
     currentSearchState = SearchState.RECOVER
   }
 
