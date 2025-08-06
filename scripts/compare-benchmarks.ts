@@ -128,8 +128,8 @@ class BenchmarkComparator {
             : comp.pr.libraryName
 
           markdown += `| ${libraryName} `
-          markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin}% `
-          markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin}% `
+          markdown += `| ${comp.baseline.opsPerSec.toLocaleString()} ±${comp.baseline.margin.toFixed(2)}% `
+          markdown += `| ${comp.pr.opsPerSec.toLocaleString()} ±${comp.pr.margin.toFixed(2)}% `
           markdown += `| ${changeSign}${comp.percentChange.toFixed(2)}% `
           markdown += `| ${performanceIcon} |\n`
         }
@@ -243,7 +243,7 @@ class BenchmarkComparator {
         ? `${result.libraryName} (deprecated)`
         : result.libraryName
       markdown += `| ${result.benchmarkName} | ${libraryName} `
-      markdown += `| ${result.opsPerSec.toLocaleString()} | ±${result.margin}% `
+      markdown += `| ${result.opsPerSec.toLocaleString()} | ±${result.margin.toFixed(2)}% `
       markdown += `| ${result.runs || 'N/A'} |\n`
     }
 
