@@ -1,3 +1,5 @@
+/// <reference path="types.d.ts" />
+
 import Benchmark from 'benchmark'
 import { writeFileSync } from 'fs'
 
