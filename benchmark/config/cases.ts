@@ -7,42 +7,42 @@ import { BenchmarkCase } from '../types.js'
 
 /**
  * All benchmark cases available in the system
- * Cases can be selected by groups using their IDs and tags
+ * Cases can be selected by groups using their IDs in the matrix configuration
  */
-// Properly typed individual cases
-const sudokuHardCase: BenchmarkCase<'sudoku'> = {
-  id: 'sudoku-hard',
-  name: 'All solutions to the sudoku',
-  problemType: 'sudoku',
-  parameters: {
-    puzzle: '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
-  },
-  executeStrategy: (solver, prepared) => solver.solveAll(prepared)
-}
+export const cases = {
+  'sudoku-hard': {
+    id: 'sudoku-hard',
+    name: 'All solutions to the sudoku',
+    problemType: 'sudoku',
+    parameters: {
+      puzzle: '..............3.85..1.2.......5.7.....4...1...9.......5......73..2.1........4...9'
+    },
+    executeStrategy: (solver, prepared) => solver.solveAll(prepared)
+  } satisfies BenchmarkCase<'sudoku'>,
 
-const pentomino1Case: BenchmarkCase<'pentomino'> = {
-  id: 'pentomino-1',
-  name: 'Finding one pentomino tiling on a 6x10 field',
-  problemType: 'pentomino',
-  parameters: {},
-  executeStrategy: (solver, prepared) => solver.solveOne(prepared)
-}
+  'pentomino-1': {
+    id: 'pentomino-1',
+    name: 'Finding one pentomino tiling on a 6x10 field',
+    problemType: 'pentomino',
+    parameters: {},
+    executeStrategy: (solver, prepared) => solver.solveOne(prepared)
+  } satisfies BenchmarkCase<'pentomino'>,
 
-const pentomino10Case: BenchmarkCase<'pentomino'> = {
-  id: 'pentomino-10',
-  name: 'Finding ten pentomino tilings on a 6x10 field',
-  problemType: 'pentomino',
-  parameters: {},
-  executeStrategy: (solver, prepared) => solver.solveCount(prepared, 10)
-}
+  'pentomino-10': {
+    id: 'pentomino-10',
+    name: 'Finding ten pentomino tilings on a 6x10 field',
+    problemType: 'pentomino',
+    parameters: {},
+    executeStrategy: (solver, prepared) => solver.solveCount(prepared, 10)
+  } satisfies BenchmarkCase<'pentomino'>,
 
-const pentomino100Case: BenchmarkCase<'pentomino'> = {
-  id: 'pentomino-100',
-  name: 'Finding one hundred pentomino tilings on a 6x10 field',
-  problemType: 'pentomino',
-  parameters: {},
-  executeStrategy: (solver, prepared) => solver.solveCount(prepared, 100)
-}
+  'pentomino-100': {
+    id: 'pentomino-100',
+    name: 'Finding one hundred pentomino tilings on a 6x10 field',
+    problemType: 'pentomino',
+    parameters: {},
+    executeStrategy: (solver, prepared) => solver.solveCount(prepared, 100)
+  } satisfies BenchmarkCase<'pentomino'>
+} as const
 
-// Export array with proper typing
-export const cases = [sudokuHardCase, pentomino1Case, pentomino10Case, pentomino100Case] as const
+export type CaseId = keyof typeof cases

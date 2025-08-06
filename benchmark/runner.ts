@@ -8,7 +8,7 @@ import { BenchmarkOptions, BenchmarkSection, BenchmarkResult } from './types.js'
 
 // Configuration imports
 import { cases } from './config/cases.js'
-import { groups } from './config/groups.js'
+import { groups, getGroup } from './config/groups.js'
 import { problems } from './config/problems.js'
 import { solvers } from './config/solvers.js'
 
@@ -22,7 +22,7 @@ export async function runBenchmarkGroup(
   groupName: string,
   options: BenchmarkOptions
 ): Promise<BenchmarkSection[]> {
-  const group = groups.find(g => g.name === groupName)
+  const group = getGroup(groupName)
   if (!group) {
     throw new Error(`Benchmark group '${groupName}' not found`)
   }
@@ -31,21 +31,20 @@ export async function runBenchmarkGroup(
     console.log(`Running ${group.name} benchmarks: ${group.description}`)
   }
 
-  return runBenchmarks(group.caseIds, group.solverNames, options)
+  return runBenchmarksFromMatrix(group.matrix, options)
 }
 
 /**
- * Run benchmarks for specified cases and solvers
+ * Run benchmarks based on a matrix configuration
  */
-async function runBenchmarks(
-  caseIds: string[],
-  solverNames: string[],
+async function runBenchmarksFromMatrix(
+  matrix: Record<string, readonly string[]>,
   options: BenchmarkOptions
 ): Promise<BenchmarkSection[]> {
   const results: BenchmarkSection[] = []
 
-  for (const caseId of caseIds) {
-    const benchmarkCase = cases.find(c => c.id === caseId)
+  for (const [caseId, solverIds] of Object.entries(matrix)) {
+    const benchmarkCase = cases[caseId as keyof typeof cases]
     if (!benchmarkCase) {
       if (!options.quiet) {
         console.warn(`Case '${caseId}' not found, skipping`)
@@ -70,16 +69,19 @@ async function runBenchmarks(
     const suite = new Benchmark.Suite()
 
     // Add each solver to the benchmark suite
-    for (const solverName of solverNames) {
-      const solver = solvers[solverName]
-      if (!solver) {
+    for (const solverId of solverIds) {
+      const SolverClass = solvers[solverId as keyof typeof solvers]
+      if (!SolverClass) {
         if (!options.quiet) {
-          console.warn(`Solver '${solverName}' not found, skipping`)
+          console.warn(`Solver '${solverId}' not found, skipping`)
         }
         continue
       }
 
       try {
+        // Create fresh solver instance for this benchmark
+        const solver = new SolverClass()
+
         // Setup once per case (outside of timing)
         solver.setup?.(constraints)
 
@@ -87,13 +89,13 @@ async function runBenchmarks(
         const prepared = solver.prepare(constraints)
 
         // Add benchmark test - clean execution, no branching!
-        const testName = `${solverName}`
+        const testName = SolverClass.name
         suite.add(testName, function () {
           benchmarkCase.executeStrategy(solver, prepared)
         })
       } catch (error) {
         if (!options.quiet) {
-          console.warn(`Skipping ${solverName} for ${caseId}: ${(error as Error).message}`)
+          console.warn(`Skipping ${solverId} for ${caseId}: ${(error as Error).message}`)
         }
       }
     }
@@ -154,13 +156,13 @@ function runSuite(
  * Get list of available groups
  */
 export function getAvailableGroups(): string[] {
-  return groups.map(g => g.name)
+  return Object.keys(groups)
 }
 
 /**
  * Get group description by name
  */
 export function getGroupDescription(groupName: string): string | undefined {
-  const group = groups.find(g => g.name === groupName)
+  const group = getGroup(groupName)
   return group?.description
 }
