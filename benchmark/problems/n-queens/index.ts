@@ -1,5 +1,5 @@
 import { createEncoder } from './encoder.js'
-import { ComplexConstraint } from '../../index.js'
+import { ComplexConstraint } from '../../../index.js'
 
 export function createConstraints(fieldSize: number): ComplexConstraint[] {
   const encode = createEncoder(fieldSize)

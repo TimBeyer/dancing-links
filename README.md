@@ -165,102 +165,56 @@ The [benchmark directory](https://github.com/TimBeyer/node-dlx/tree/master/bench
 
 These examples demonstrate encoding techniques for different problem types and show performance optimization strategies.
 
-## Performance & Benchmarks
+## Benchmarks
 
-The benchmarks compare performance across different constraint formats and against other Dancing Links libraries using sudoku and pentomino problems.
+This section contains performance comparisons against other JavaScript Dancing Links libraries, updated automatically during releases.
 
-### Running Benchmarks
+All benchmarks run on the same machine with identical test cases. Results show operations per second (higher is better).
 
-```bash
-# Fast library-only benchmarks
-npm run benchmark
+### All solutions to the sudoku
 
-# Include external library comparisons
-npm run benchmark:comparison
+| Library                 | Ops/Sec  | Relative Performance | Margin of Error |
+| ----------------------- | -------- | -------------------- | --------------- |
+| dancing-links (sparse)  | 14439.67 | **1.00x (fastest)**  | ±4.52%          |
+| dancing-links (binary)  | 3461.99  | 0.24x                | ±6.52%          |
+| dance                   | 1417.14  | 0.10x                | ±5.95%          |
+| dancing-links-algorithm | 1287.46  | 0.09x                | ±2.59%          |
+| dlxlib                  | 1265.06  | 0.09x                | ±7.45%          |
 
-# Generate JSON output
-npm run benchmark:json
+### Finding one pentomino tiling on a 6x10 field
 
-# Custom options
-node built/benchmark/index.js --external --json=results.json
-```
+| Library                | Ops/Sec | Relative Performance | Margin of Error |
+| ---------------------- | ------- | -------------------- | --------------- |
+| dancing-links (sparse) | 564.27  | **1.00x (fastest)**  | ±5.16%          |
+| dancing-links (binary) | 502.65  | 0.89x                | ±4.66%          |
+| dlxlib                 | 121.26  | 0.21x                | ±5.18%          |
+| dance                  | 67.79   | 0.12x                | ±1.54%          |
 
-### Key Performance Insights
+### Finding ten pentomino tilings on a 6x10 field
 
-- **Sparse constraints** reduce parsing overhead compared to binary constraints
-- **Template reuse** eliminates constraint preprocessing overhead, especially beneficial for binary constraints which require conversion to sparse format
-- **Batch operations** reduce function call overhead when adding many constraints
+| Library                | Ops/Sec | Relative Performance | Margin of Error |
+| ---------------------- | ------- | -------------------- | --------------- |
+| dancing-links (sparse) | 87.61   | **1.00x (fastest)**  | ±2.35%          |
+| dancing-links (binary) | 87.10   | 0.99x                | ±1.37%          |
+| dlxlib                 | 20.78   | 0.24x                | ±3.18%          |
+| dance                  | 14.50   | 0.17x                | ±2.33%          |
 
-Benchmarks consistently show this library outperforms other JavaScript Dancing Links implementations, with sparse constraints and templates providing additional optimizations.
+### Finding one hundred pentomino tilings on a 6x10 field
 
-## Profiling
+| Library                | Ops/Sec | Relative Performance | Margin of Error |
+| ---------------------- | ------- | -------------------- | --------------- |
+| dancing-links (sparse) | 12.27   | **1.00x (fastest)**  | ±2.24%          |
+| dancing-links (binary) | 11.87   | 0.97x                | ±3.69%          |
+| dlxlib                 | 2.93    | 0.24x                | ±7.06%          |
+| dance                  | 2.02    | 0.16x                | ±6.52%          |
 
-Generate CPU profiles for performance analysis:
+**Testing Environment:**
 
-```bash
-npm run profile
-```
+- Node.js v22.15.1
+- Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
 
-This creates `profile.cpuprofile` which can be loaded into Chrome DevTools for detailed performance analysis.
+_Last updated: 2025-08-06_
 
-## Development
+## Contributing
 
-### Prerequisites
-
-- Node.js 20 or higher
-- npm 8 or higher
-
-### Setup
-
-```bash
-npm install
-```
-
-### Scripts
-
-- `npm run build` - Build the TypeScript code to JavaScript
-- `npm test` - Run the test suite
-- `npm run lint` - Run ESLint code quality checks
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
-- `npm run benchmark` - Run fast library-only benchmarks (CI mode)
-- `npm run benchmark:comparison` - Run comprehensive benchmarks including external libraries
-- `npm run benchmark:json` - Generate JSON benchmark output for analysis
-- `npm run coverage` - Generate test coverage report
-- `npm run profile` - Generate CPU performance profile
-
-### Conventional Commits
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/) specification for automated releases and changelog generation. Please use the following commit message format:
-
-```
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Types:**
-
-- `feat:` - A new feature (triggers minor version bump)
-- `fix:` - A bug fix (triggers patch version bump)
-- `docs:` - Documentation only changes
-- `style:` - Changes that do not affect the meaning of the code (white-space, formatting, etc)
-- `refactor:` - A code change that neither fixes a bug nor adds a feature
-- `perf:` - A code change that improves performance
-- `test:` - Adding missing tests or correcting existing tests
-- `chore:` - Changes to the build process or auxiliary tools
-
-**Breaking Changes:**
-To trigger a major version release, include `BREAKING CHANGE:` in the commit footer or add `!` after the type:
-
-```
-feat!: remove support for Node.js 16
-
-BREAKING CHANGE: Node.js 18+ is now required
-```
-
-## Implementation Notes
-
-The algorithm uses a state machine pattern to avoid recursion and closely follows [Knuth's reference implementation](https://cs.stanford.edu/~knuth/programs/dance.w). The core algorithm is implemented in `lib/index.ts` using efficient data structures optimized for the Dancing Links technique.
+For development information, performance benchmarking, profiling, and contribution guidelines, see [DEVELOPMENT.md](DEVELOPMENT.md).
