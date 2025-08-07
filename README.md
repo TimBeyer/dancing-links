@@ -91,7 +91,7 @@ const solutions2 = solver2.findAll()
 
 ### Complex Constraints (Primary + Secondary)
 
-For problems requiring both primary constraints (must be covered exactly once) and secondary constraints (can be covered multiple times):
+For problems requiring both primary constraints (must be covered exactly once) and secondary constraints (optional - may be left uncovered, but if covered, allow no collisions):
 
 ```ts
 const solver = dlx.createSolver({
@@ -101,8 +101,8 @@ const solver = dlx.createSolver({
 
 // Method 1: Add constraints separately
 solver.addSparseConstraint('constraint1', {
-  primaryColumns: [0], // Must cover primary column 0
-  secondaryColumns: [1] // May cover secondary column 1
+  primary: [0], // Must cover primary column 0
+  secondary: [1] // May cover secondary column 1 (optional, but no conflicts if used)
 })
 
 // Method 2: Add as binary constraint
@@ -111,6 +111,10 @@ solver.addBinaryConstraint('constraint2', {
   secondaryRow: [1, 0] // Binary values for secondary columns
 })
 ```
+
+**Key difference between primary and secondary constraints:**
+- **Primary**: All primary columns MUST be covered exactly once in any valid solution
+- **Secondary**: Secondary columns are optional - they can be left uncovered, but if a secondary column IS covered, only one constraint can cover it (no collisions allowed)
 
 ### Solution Methods
 
