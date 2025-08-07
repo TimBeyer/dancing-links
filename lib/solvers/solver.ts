@@ -21,7 +21,7 @@
 
 import {
   Result,
-  Row,
+  ConstraintRow,
   SolverMode,
   ConstraintHandler,
   SparseColumnIndices,
@@ -67,12 +67,12 @@ export class ProblemSolver<T, Mode extends SolverMode> {
    * @returns This instance for method chaining
    * @internal
    */
-  addRow(row: Row<T>): this {
+  addRow(row: ConstraintRow<T>): this {
     this.handler.addRow(row)
     return this
   }
 
-  addRows(rows: Row<T>[]): this {
+  addRows(rows: ConstraintRow<T>[]): this {
     this.handler.addRows(rows)
     return this
   }

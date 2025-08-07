@@ -1,6 +1,6 @@
-import { SimpleConstraint, Row, Result } from '../../../index.js'
+import { SimpleConstraint, ConstraintRow, Result } from '../../../index.js'
 
-type MultiConstraint<T> = SimpleConstraint<T> & Row<T>
+type MultiConstraint<T> = SimpleConstraint<T> & ConstraintRow<T>
 
 export interface SudokuInput {
   number: number

@@ -21,7 +21,7 @@
  */
 
 import {
-  Row,
+  ConstraintRow,
   SolverMode,
   ConstraintHandler,
   SparseColumnIndices,
@@ -62,12 +62,12 @@ export class SolverTemplate<T, Mode extends SolverMode> {
     return this
   }
 
-  addRow(row: Row<T>): this {
+  addRow(row: ConstraintRow<T>): this {
     this.handler.addRow(row)
     return this
   }
 
-  addRows(rows: Row<T>[]): this {
+  addRows(rows: ConstraintRow<T>[]): this {
     this.handler.addRows(rows)
     return this
   }

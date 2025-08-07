@@ -17,7 +17,7 @@ export {
   SparseConstraint,
   SimpleConstraint,
   ComplexConstraint,
-  Row,
+  ConstraintRow,
   Result,
   BinaryNumber
 } from './types/interfaces.js'

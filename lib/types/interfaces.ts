@@ -1,8 +1,10 @@
-export class Row<T> {
-  constructor(
-    public coveredColumns: number[],
-    public data: T
-  ) {}
+/**
+ * Unified constraint row interface
+ * Efficient POJO approach for constraint data
+ */
+export interface ConstraintRow<T> {
+  readonly coveredColumns: number[]
+  readonly data: T
 }
 
 export interface Result<T> {
@@ -122,9 +124,9 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this
   addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this
-  addRow(row: Row<T>): this
-  addRows(rows: Row<T>[]): this
-  getConstraints(): Row<T>[]
+  addRow(row: ConstraintRow<T>): this
+  addRows(rows: ConstraintRow<T>[]): this
+  getConstraints(): ConstraintRow<T>[]
   getNumPrimary(): number
   getNumSecondary(): number
   getConfig(): ConfigForMode<Mode>

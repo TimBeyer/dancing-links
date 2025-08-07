@@ -1,13 +1,12 @@
 /**
- * Problem Structure Builder
+ * Problem Builder - Constructs Dancing Links matrix from constraint rows
  *
- * Converts constraint rows into native Dancing Links data structures.
- * Separated from the search algorithm for better code organization
- * and to enable future optimizations (shared memory, workers, etc.).
+ * Converts constraint data into optimized Struct-of-Arrays format for algorithm execution.
+ * Pre-allocates storage based on matrix analysis to avoid dynamic resizing during search.
  */
 
-import { Row } from '../types/interfaces.js'
-import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
+import { ConstraintRow } from '../types/interfaces.js'
+import { NodeStore, ColumnStore, calculateCapacity, NULL_INDEX } from './data-structures.js'
 
 /**
  * Search context for resumable Dancing Links algorithm execution
@@ -39,16 +38,16 @@ export interface SearchContext<T> {
   columns: ColumnStore
 }
 
-const ROOT_COLUMN_OFFSET = 1
-
 /**
  * Configuration for building a problem structure
  */
 export interface ProblemConfig<T> {
   numPrimary: number
   numSecondary: number
-  rows: Row<T>[]
+  rows: ConstraintRow<T>[]
 }
+
+const ROOT_COLUMN_OFFSET = 1
 
 /**
  * Builds Dancing Links data structures from constraint rows
@@ -60,10 +59,10 @@ export class ProblemBuilder {
   static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
     const { numPrimary, numSecondary, rows } = config
 
-    // Estimate required capacity and pre-allocate stores
-    const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
-    const nodes = new NodeStore<T>(maxNodes)
-    const columns = new ColumnStore(maxColumns)
+    // Calculate required capacity and pre-allocate stores
+    const { numNodes, numColumns } = calculateCapacity(numPrimary, numSecondary, rows)
+    const nodes = new NodeStore<T>(numNodes)
+    const columns = new ColumnStore(numColumns)
 
     // Build column structure
     this.buildColumns(nodes, columns, numPrimary, numSecondary)
@@ -136,11 +135,13 @@ export class ProblemBuilder {
   /**
    * Create row nodes and link them into the column structure
    */
-  private static buildRows<T>(nodes: NodeStore<T>, columns: ColumnStore, rows: Row<T>[]): void {
+  private static buildRows<T>(
+    nodes: NodeStore<T>,
+    columns: ColumnStore,
+    rows: ConstraintRow<T>[]
+  ): void {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
-      if (!row) continue
-
       let rowStartIndex: number = NULL_INDEX
 
       for (const columnIndex of row.coveredColumns) {

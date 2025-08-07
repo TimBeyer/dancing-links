@@ -5,7 +5,7 @@
  */
 
 import {
-  Row,
+  ConstraintRow,
   BinaryNumber,
   SimpleSolverConfig,
   ConstraintHandler,
@@ -15,7 +15,7 @@ import {
 
 export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'> {
   readonly mode = 'simple' as const
-  private constraints: Row<T>[] = []
+  private constraints: ConstraintRow<T>[] = []
   private validationEnabled = false
   private numColumns: number
 
@@ -45,7 +45,7 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
         }
       }
 
-      this.constraints.push(new Row(columnIndices, data))
+      this.constraints.push({ coveredColumns: columnIndices, data })
     }
     return this
   }
@@ -73,22 +73,22 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
         }
       }
 
-      this.constraints.push(new Row(coveredColumns, data))
+      this.constraints.push({ coveredColumns, data })
     }
     return this
   }
 
-  addRow(row: Row<T>): this {
+  addRow(row: ConstraintRow<T>): this {
     this.constraints.push(row)
     return this
   }
 
-  addRows(rows: Row<T>[]): this {
+  addRows(rows: ConstraintRow<T>[]): this {
     this.constraints.push(...rows)
     return this
   }
 
-  getConstraints(): Row<T>[] {
+  getConstraints(): ConstraintRow<T>[] {
     return this.constraints
   }
 

@@ -144,22 +144,34 @@ export class ColumnStore {
 }
 
 /**
- * Estimate required capacity for stores based on search configuration
+ * Internal constraint interface for capacity calculation
+ * Unifies ConstraintRow<T> and sparse constraint formats
  */
-export function estimateCapacity(
+interface ConstraintWithColumns {
+  coveredColumns: number[]
+}
+
+/**
+ * Calculate required capacity for stores based on constraints
+ * Uses for...of loops for performance and readability
+ */
+export function calculateCapacity(
   numPrimary: number,
   numSecondary: number,
-  rows: Array<{ coveredColumns: number[] } | undefined>
-): { maxNodes: number; maxColumns: number } {
-  // Count row nodes
-  const rowNodes = rows.reduce((sum, row) => sum + (row?.coveredColumns.length || 0), 0)
+  constraints: Array<ConstraintWithColumns>
+): { numNodes: number; numColumns: number } {
+  // Count row nodes with for...of loop for performance
+  let rowNodes = 0
+  for (const constraint of constraints) {
+    rowNodes += constraint.coveredColumns.length
+  }
 
   // Count column head nodes: 1 root + numPrimary + numSecondary
   const headNodes = 1 + numPrimary + numSecondary
 
-  const maxNodes = rowNodes + headNodes
-  const maxColumns = numPrimary + numSecondary + 1 // +1 for root column
-  return { maxNodes, maxColumns }
+  const numNodes = rowNodes + headNodes
+  const numColumns = numPrimary + numSecondary + 1 // +1 for root column
+  return { numNodes, numColumns }
 }
 
 export { NULL_INDEX }

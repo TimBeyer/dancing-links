@@ -6,7 +6,7 @@
  */
 
 import {
-  Row,
+  ConstraintRow,
   BinaryNumber,
   ComplexSolverConfig,
   ConstraintHandler,
@@ -16,7 +16,7 @@ import {
 
 export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'complex'> {
   readonly mode = 'complex' as const
-  private constraints: Row<T>[] = []
+  private constraints: ConstraintRow<T>[] = []
   private validationEnabled = false
   private numPrimary: number
   private numSecondary: number
@@ -64,7 +64,7 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
         coveredColumns.push(col + this.numPrimary)
       }
 
-      this.constraints.push(new Row(coveredColumns, data))
+      this.constraints.push({ coveredColumns, data })
     }
     return this
   }
@@ -108,22 +108,22 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
         }
       }
 
-      this.constraints.push(new Row(coveredColumns, data))
+      this.constraints.push({ coveredColumns, data })
     }
     return this
   }
 
-  addRow(row: Row<T>): this {
+  addRow(row: ConstraintRow<T>): this {
     this.constraints.push(row)
     return this
   }
 
-  addRows(rows: Row<T>[]): this {
+  addRows(rows: ConstraintRow<T>[]): this {
     this.constraints.push(...rows)
     return this
   }
 
-  getConstraints(): Row<T>[] {
+  getConstraints(): ConstraintRow<T>[] {
     return this.constraints
   }
 

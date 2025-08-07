@@ -7,7 +7,7 @@ export {
   SparseConstraint,
   SimpleConstraint,
   ComplexConstraint,
-  Row,
+  ConstraintRow,
   Result,
   BinaryNumber
 } from './lib/index.js'
