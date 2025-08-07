@@ -3,16 +3,6 @@
  *
  * Converts constraint data into optimized Struct-of-Arrays format for algorithm execution.
  * Pre-allocates storage based on matrix analysis to avoid dynamic resizing during search.
- *
- * ARCHITECTURE:
- * - Single, focused method for building search context from constraint rows
- * - Capacity calculation and pre-allocation of typed arrays
- * - Direct POJO constraint processing for optimal performance
- *
- * PERFORMANCE CONSIDERATIONS:
- * - Pre-calculated capacities eliminate array resizing overhead
- * - Struct-of-Arrays layout optimizes cache performance during search
- * - Direct POJO constraint creation avoids intermediate object allocation
  */
 
 import { ConstraintRow } from '../types/interfaces.js'
@@ -52,14 +42,14 @@ export class ProblemBuilder {
    * Build search context from constraint rows
    */
   static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
-    const { maxNodes, maxColumns } = calculateCapacity(
+    const { numNodes, numColumns } = calculateCapacity(
       config.numPrimary,
       config.numSecondary,
       config.rows
     )
 
-    const nodes = new NodeStore<T>(maxNodes)
-    const columns = new ColumnStore(maxColumns)
+    const nodes = new NodeStore<T>(numNodes)
+    const columns = new ColumnStore(numColumns)
 
     // Create root column (algorithm requirement)
     const rootColIndex = columns.allocateColumn()

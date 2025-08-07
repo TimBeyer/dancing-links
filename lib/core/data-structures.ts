@@ -159,7 +159,7 @@ export function calculateCapacity(
   numPrimary: number,
   numSecondary: number,
   constraints: Array<ConstraintWithColumns>
-): { maxNodes: number; maxColumns: number } {
+): { numNodes: number; numColumns: number } {
   // Count row nodes with for...of loop for performance
   let rowNodes = 0
   for (const constraint of constraints) {
@@ -169,9 +169,9 @@ export function calculateCapacity(
   // Count column head nodes: 1 root + numPrimary + numSecondary
   const headNodes = 1 + numPrimary + numSecondary
 
-  const maxNodes = rowNodes + headNodes
-  const maxColumns = numPrimary + numSecondary + 1 // +1 for root column
-  return { maxNodes, maxColumns }
+  const numNodes = rowNodes + headNodes
+  const numColumns = numPrimary + numSecondary + 1 // +1 for root column
+  return { numNodes, numColumns }
 }
 
 export { NULL_INDEX }
