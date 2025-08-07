@@ -1,141 +1,74 @@
 /**
- * Problem Structure Builder
+ * Problem Builder - Constructs Dancing Links matrix from constraint rows
  *
- * Converts constraint rows into native Dancing Links data structures.
- * Separated from the search algorithm for better code organization
- * and to enable future optimizations (shared memory, workers, etc.).
+ * Converts constraint data into optimized Struct-of-Arrays format for algorithm execution.
+ * Pre-allocates storage based on matrix analysis to avoid dynamic resizing during search.
+ *
+ * ARCHITECTURE:
+ * - Single, focused method for building search context from constraint rows
+ * - Capacity calculation and pre-allocation of typed arrays
+ * - Direct POJO constraint processing for optimal performance
+ *
+ * PERFORMANCE CONSIDERATIONS:
+ * - Pre-calculated capacities eliminate array resizing overhead
+ * - Struct-of-Arrays layout optimizes cache performance during search
+ * - Direct POJO constraint creation avoids intermediate object allocation
  */
 
 import { ConstraintRow } from '../types/interfaces.js'
-import {
-  NodeStore,
-  ColumnStore,
-  calculateCapacity,
-  NULL_INDEX
-} from './data-structures.js'
+import { NodeStore, ColumnStore, calculateCapacity, NULL_INDEX } from './data-structures.js'
 
 /**
- * Search context for resumable Dancing Links algorithm execution
- *
- * Captures the algorithm state needed to pause and resume search operations.
- * This enables generator-style iteration without modifying the core algorithm
- * to use generators directly.
+ * Search context for Dancing Links algorithm state
+ * Contains all data structures and state needed for resumable search
  */
 export interface SearchContext<T> {
-  /** Current depth in the search tree */
-  level: number
-
-  /** Stack of node indices chosen at each search level */
-  choice: number[]
-
-  /** Column selected for covering at current level */
-  bestColIndex: number
-
-  /** Current node being tried in the selected column */
-  currentNodeIndex: number
-
-  /** Whether this context has been used for search before */
-  hasStarted: boolean
-
-  /** Constraint matrix nodes with their current link state */
   nodes: NodeStore<T>
-
-  /** Column headers with their current lengths and links */
   columns: ColumnStore
+  level: number
+  choice: (number | null)[]
+  hasStarted: boolean
+  bestColIndex: number
+  currentNodeIndex: number
 }
 
-const ROOT_COLUMN_OFFSET = 1
-
 /**
- * Configuration for building a problem structure
+ * Problem specification interface for constraint matrix construction
  */
-export interface ProblemConfig<T> {
+interface ProblemConfig<T> {
   numPrimary: number
   numSecondary: number
   rows: ConstraintRow<T>[]
 }
 
-/**
- * Configuration for building a problem structure directly from sparse constraints
- * Bypasses ConstraintRow<T>[] intermediate format for better performance
- */
-export interface SparseProblemConfig<T> {
-  numPrimary: number
-  numSecondary: number
-  sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
-}
+const ROOT_COLUMN_OFFSET = 1
 
 /**
- * Abstract base class for building Dancing Links data structures
- * Uses strategy pattern to handle different constraint formats
+ * Main ProblemBuilder class
+ * Builds Dancing Links matrix from constraint specifications
  */
-abstract class ProblemBuilderBase<TConstraint> {
+export class ProblemBuilder {
   /**
-   * Extract data from a constraint of type TConstraint
+   * Build search context from constraint rows
    */
-  protected abstract extractData(constraint: TConstraint): any
+  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
+    const { maxNodes, maxColumns } = calculateCapacity(
+      config.numPrimary,
+      config.numSecondary,
+      config.rows
+    )
 
-  /**
-   * Extract covered columns from a constraint of type TConstraint
-   */
-  protected abstract extractCoveredColumns(constraint: TConstraint): number[]
-
-  /**
-   * Calculate capacity requirements for constraints
-   */
-  protected abstract calculateCapacity(
-    numPrimary: number,
-    numSecondary: number,
-    constraints: TConstraint[]
-  ): { maxNodes: number; maxColumns: number }
-
-  /**
-   * Build SearchContext using the constraint extraction strategy
-   */
-  protected buildContext<T>(
-    numPrimary: number,
-    numSecondary: number,
-    constraints: TConstraint[]
-  ): SearchContext<T> {
-    // Calculate required capacity and pre-allocate stores
-    const { maxNodes, maxColumns } = this.calculateCapacity(numPrimary, numSecondary, constraints)
     const nodes = new NodeStore<T>(maxNodes)
     const columns = new ColumnStore(maxColumns)
 
-    // Build column structure
-    this.buildColumns(nodes, columns, numPrimary, numSecondary)
-
-    // Build row structure using constraint extraction strategy
-    this.buildRows(nodes, columns, constraints)
-
-    return {
-      level: 0,
-      choice: [],
-      bestColIndex: 0,
-      currentNodeIndex: 0,
-      hasStarted: false,
-      nodes,
-      columns
-    }
-  }
-
-  /**
-   * Create column headers and linking structure (common for all constraint formats)
-   */
-  protected buildColumns(
-    nodes: NodeStore<any>,
-    columns: ColumnStore,
-    numPrimary: number,
-    numSecondary: number
-  ): void {
-    // Create root column (index 0)
+    // Create root column (algorithm requirement)
     const rootColIndex = columns.allocateColumn()
     const rootNodeIndex = nodes.allocateNode()
     nodes.initializeNode(rootNodeIndex)
     columns.initializeColumn(rootColIndex, rootNodeIndex)
 
     // Create primary columns
-    for (let i = 0; i < numPrimary; i++) {
+    for (let i = 0; i < config.numPrimary; i++) {
       const headNodeIndex = nodes.allocateNode()
       nodes.initializeNode(headNodeIndex)
 
@@ -153,12 +86,12 @@ abstract class ProblemBuilderBase<TConstraint> {
     }
 
     // Close the circular link: last primary -> root
-    if (numPrimary > 0) {
-      columns.linkColumns(numPrimary, rootColIndex)
+    if (config.numPrimary > 0) {
+      columns.linkColumns(config.numPrimary, rootColIndex)
     }
 
     // Create secondary columns (self-linked)
-    for (let i = 0; i < numSecondary; i++) {
+    for (let i = 0; i < config.numSecondary; i++) {
       const headNodeIndex = nodes.allocateNode()
       nodes.initializeNode(headNodeIndex)
 
@@ -168,26 +101,15 @@ abstract class ProblemBuilderBase<TConstraint> {
       // Secondary columns are self-linked
       columns.linkColumns(colIndex, colIndex)
     }
-  }
 
-  /**
-   * Create row nodes using constraint extraction strategy (unified algorithm)
-   */
-  protected buildRows<T>(
-    nodes: NodeStore<T>,
-    columns: ColumnStore,
-    constraints: TConstraint[]
-  ): void {
-    for (let i = 0; i < constraints.length; i++) {
-      const constraint = constraints[i]
-      const data = this.extractData(constraint) as T
-      const coveredColumns = this.extractCoveredColumns(constraint)
+    // Process constraint rows into matrix structure
+    for (let rowIdx = 0; rowIdx < config.rows.length; rowIdx++) {
+      const row = config.rows[rowIdx]
+      let rowStartIndex = NULL_INDEX
 
-      let rowStartIndex: number = NULL_INDEX
-
-      for (const columnIndex of coveredColumns) {
+      for (const columnIndex of row.coveredColumns) {
         const nodeIndex = nodes.allocateNode()
-        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, data)
+        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, rowIdx, row.data)
 
         if (rowStartIndex === NULL_INDEX) {
           rowStartIndex = nodeIndex
@@ -208,84 +130,20 @@ abstract class ProblemBuilderBase<TConstraint> {
       }
 
       // Close horizontal circular link for the row
-      if (rowStartIndex !== NULL_INDEX && coveredColumns.length > 1) {
+      if (rowStartIndex !== NULL_INDEX && row.coveredColumns.length > 1) {
         const lastNodeIndex = nodes.size - 1
         nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
       }
     }
-  }
-}
 
-/**
- * Concrete builder for ConstraintRow<T> constraints
- */
-class RowBasedProblemBuilder<T> extends ProblemBuilderBase<ConstraintRow<T>> {
-  protected extractData(row: ConstraintRow<T>): T {
-    return row.data
-  }
-
-  protected extractCoveredColumns(row: ConstraintRow<T>): number[] {
-    return row.coveredColumns
-  }
-
-  protected calculateCapacity(
-    numPrimary: number,
-    numSecondary: number,
-    rows: ConstraintRow<T>[]
-  ): { maxNodes: number; maxColumns: number } {
-    return calculateCapacity(numPrimary, numSecondary, rows)
-  }
-
-  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
-    const builder = new RowBasedProblemBuilder<T>()
-    return builder.buildContext(config.numPrimary, config.numSecondary, config.rows)
-  }
-}
-
-/**
- * Concrete builder for sparse constraints
- */
-class SparseConstraintProblemBuilder<T> extends ProblemBuilderBase<{
-  data: T
-  coveredColumns: number[]
-}> {
-  protected extractData(constraint: { data: T; coveredColumns: number[] }): T {
-    return constraint.data
-  }
-
-  protected extractCoveredColumns(constraint: { data: T; coveredColumns: number[] }): number[] {
-    return constraint.coveredColumns
-  }
-
-  protected calculateCapacity(
-    numPrimary: number,
-    numSecondary: number,
-    sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
-  ): { maxNodes: number; maxColumns: number } {
-    return calculateCapacity(numPrimary, numSecondary, sparseConstraints)
-  }
-
-  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
-    const builder = new SparseConstraintProblemBuilder<T>()
-    return builder.buildContext(config.numPrimary, config.numSecondary, config.sparseConstraints)
-  }
-}
-
-/**
- * Unified ProblemBuilder interface - maintains backward compatibility
- */
-export class ProblemBuilder {
-  /**
-   * Build SearchContext for resumable search from ConstraintRow<T> configuration
-   */
-  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
-    return RowBasedProblemBuilder.buildContext(config)
-  }
-
-  /**
-   * Build SearchContext directly from sparse constraints for better performance
-   */
-  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
-    return SparseConstraintProblemBuilder.buildContextFromSparse(config)
+    return {
+      nodes,
+      columns,
+      level: 0,
+      choice: new Array(config.rows.length).fill(null),
+      hasStarted: false,
+      bestColIndex: 0,
+      currentNodeIndex: 0
+    }
   }
 }
