@@ -135,7 +135,11 @@ export class ProblemBuilder {
   /**
    * Create row nodes and link them into the column structure
    */
-  private static buildRows<T>(nodes: NodeStore<T>, columns: ColumnStore, rows: ConstraintRow<T>[]): void {
+  private static buildRows<T>(
+    nodes: NodeStore<T>,
+    columns: ColumnStore,
+    rows: ConstraintRow<T>[]
+  ): void {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
       let rowStartIndex: number = NULL_INDEX

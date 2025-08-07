@@ -113,6 +113,7 @@ solver.addBinaryConstraint('constraint2', {
 ```
 
 **Key difference between primary and secondary constraints:**
+
 - **Primary**: All primary columns MUST be covered exactly once in any valid solution
 - **Secondary**: Secondary columns are optional - they can be left uncovered, but if a secondary column IS covered, only one constraint can cover it (no collisions allowed)
 

@@ -132,4 +132,3 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   getConfig(): ConfigForMode<Mode>
   isValidationEnabled(): boolean
 }
-

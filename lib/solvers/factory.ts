@@ -101,5 +101,4 @@ export class DancingLinks<T> {
       return new SolverTemplate<T, 'simple'>(handler)
     }
   }
-
 }
