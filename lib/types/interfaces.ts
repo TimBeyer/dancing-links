@@ -130,3 +130,44 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   getConfig(): ConfigForMode<Mode>
   isValidationEnabled(): boolean
 }
+
+/**
+ * Fast solver configuration for batch constraint processing optimization
+ */
+export interface FastSolverConfig<T, Mode extends SolverMode> {
+  sparseConstraints: SparseConstraintBatch<T, Mode>
+}
+
+export interface FastSimpleSolverConfig<T> extends FastSolverConfig<T, 'simple'> {
+  columns: number
+}
+
+export interface FastComplexSolverConfig<T> extends FastSolverConfig<T, 'complex'> {
+  primaryColumns: number
+  secondaryColumns: number
+}
+
+/**
+ * Fast solver interface - optimized for batch constraints with no incremental adding
+ */
+export interface FastSolver<T> {
+  /**
+   * Find one solution to the exact cover problem.
+   */
+  findOne(): Result<T>[][]
+  
+  /**
+   * Find all solutions to the exact cover problem.
+   */
+  findAll(): Result<T>[][]
+  
+  /**
+   * Find up to the specified number of solutions.
+   */
+  find(numSolutions: number): Result<T>[][]
+  
+  /**
+   * Create a generator that yields solutions one at a time.
+   */
+  createGenerator(): Generator<Result<T>[], void, unknown>
+}

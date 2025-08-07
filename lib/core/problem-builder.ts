@@ -7,7 +7,7 @@
  */
 
 import { Row } from '../types/interfaces.js'
-import { NodeStore, ColumnStore, estimateCapacity, NULL_INDEX } from './data-structures.js'
+import { NodeStore, ColumnStore, estimateCapacity, calculateSparseCapacity, NULL_INDEX } from './data-structures.js'
 
 /**
  * Search context for resumable Dancing Links algorithm execution
@@ -51,6 +51,16 @@ export interface ProblemConfig<T> {
 }
 
 /**
+ * Configuration for building a problem structure directly from sparse constraints
+ * Bypasses Row<T>[] intermediate format for better performance
+ */
+export interface SparseProblemConfig<T> {
+  numPrimary: number
+  numSecondary: number
+  sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
+}
+
+/**
  * Builds Dancing Links data structures from constraint rows
  */
 export class ProblemBuilder {
@@ -70,6 +80,35 @@ export class ProblemBuilder {
 
     // Build row structure
     this.buildRows(nodes, columns, rows)
+
+    return {
+      level: 0,
+      choice: [],
+      bestColIndex: 0,
+      currentNodeIndex: 0,
+      hasStarted: false,
+      nodes,
+      columns
+    }
+  }
+
+  /**
+   * Build SearchContext directly from sparse constraints for better performance
+   * Bypasses Row<T>[] intermediate format and uses exact capacity calculation
+   */
+  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
+    const { numPrimary, numSecondary, sparseConstraints } = config
+
+    // Calculate exact capacity and pre-allocate stores
+    const { maxNodes, maxColumns } = calculateSparseCapacity(numPrimary, numSecondary, sparseConstraints)
+    const nodes = new NodeStore<T>(maxNodes)
+    const columns = new ColumnStore(maxColumns)
+
+    // Build column structure
+    this.buildColumns(nodes, columns, numPrimary, numSecondary)
+
+    // Build row structure directly from sparse constraints
+    this.buildRowsFromSparse(nodes, columns, sparseConstraints)
 
     return {
       level: 0,
@@ -167,6 +206,51 @@ export class ProblemBuilder {
 
       // Close horizontal circular link for the row
       if (rowStartIndex !== NULL_INDEX && row.coveredColumns.length > 1) {
+        const lastNodeIndex = nodes.size - 1
+        nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
+      }
+    }
+  }
+
+  /**
+   * Create row nodes directly from sparse constraints without Row<T>[] intermediate format
+   * Optimized for batch constraint processing
+   */
+  private static buildRowsFromSparse<T>(
+    nodes: NodeStore<T>, 
+    columns: ColumnStore, 
+    sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
+  ): void {
+    for (let i = 0; i < sparseConstraints.length; i++) {
+      const constraint = sparseConstraints[i]
+      const { data, coveredColumns } = constraint
+
+      let rowStartIndex: number = NULL_INDEX
+
+      for (const columnIndex of coveredColumns) {
+        const nodeIndex = nodes.allocateNode()
+        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, data)
+
+        if (rowStartIndex === NULL_INDEX) {
+          rowStartIndex = nodeIndex
+        } else {
+          // Link horizontally to previous node in row
+          nodes.linkHorizontal(nodeIndex - 1, nodeIndex)
+        }
+
+        // Link vertically into column
+        const colIndex = columnIndex + ROOT_COLUMN_OFFSET
+        const colHeadIndex = columns.head[colIndex]
+        const lastInColIndex = nodes.up[colHeadIndex]
+
+        nodes.linkVertical(lastInColIndex, nodeIndex)
+        nodes.linkVertical(nodeIndex, colHeadIndex)
+
+        columns.len[colIndex]++
+      }
+
+      // Close horizontal circular link for the row
+      if (rowStartIndex !== NULL_INDEX && coveredColumns.length > 1) {
         const lastNodeIndex = nodes.size - 1
         nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
       }

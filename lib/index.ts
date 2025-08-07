@@ -19,5 +19,9 @@ export {
   ComplexConstraint,
   Row,
   Result,
-  BinaryNumber
+  BinaryNumber,
+  FastSolver,
+  FastSolverConfig,
+  FastSimpleSolverConfig,
+  FastComplexSolverConfig
 } from './types/interfaces.js'

@@ -162,4 +162,24 @@ export function estimateCapacity(
   return { maxNodes, maxColumns }
 }
 
+/**
+ * Calculate exact capacity for stores based on sparse constraints
+ * More efficient than estimateCapacity for batch constraint scenarios
+ */
+export function calculateSparseCapacity(
+  numPrimary: number,
+  numSecondary: number,
+  sparseConstraints: Array<{ coveredColumns: number[] }>
+): { maxNodes: number; maxColumns: number } {
+  // Count row nodes exactly
+  const rowNodes = sparseConstraints.reduce((sum, constraint) => sum + constraint.coveredColumns.length, 0)
+
+  // Count column head nodes: 1 root + numPrimary + numSecondary
+  const headNodes = 1 + numPrimary + numSecondary
+
+  const maxNodes = rowNodes + headNodes
+  const maxColumns = numPrimary + numSecondary + 1 // +1 for root column
+  return { maxNodes, maxColumns }
+}
+
 export { NULL_INDEX }
