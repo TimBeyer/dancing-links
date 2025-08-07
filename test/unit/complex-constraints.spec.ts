@@ -42,20 +42,47 @@ describe('Complex Constraints', () => {
     })
 
     it('should prevent collisions in secondary constraints', () => {
-      // 1 primary, 1 secondary constraint
+      // 2 primary, 1 secondary constraint
       const dlx = new DancingLinks<string>()
-      const solver = dlx.createSolver({ primaryColumns: 1, secondaryColumns: 1 })
+      const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 1 })
       
       // Row 1: covers primary [0], secondary [0]
       solver.addSparseConstraint('row1', { primary: [0], secondary: [0] })
       
-      // Row 2: would also cover secondary [0] - this should create collision
-      solver.addSparseConstraint('row2', { primary: [], secondary: [0] })
+      // Row 2: covers primary [1], secondary [0] - COLLISION on secondary [0]
+      solver.addSparseConstraint('row2', { primary: [1], secondary: [0] })
       
-      // Should find only one solution since row2 can't be used (secondary collision)
+      // Row 3: covers primary [1], secondary [] - alternative for primary [1]
+      solver.addSparseConstraint('row3', { primary: [1], secondary: [] })
+      
       const solutions = solver.findAll()
+      
+      // Should find only 1 solution: [row1, row3]
+      // Cannot use [row1, row2] due to secondary collision on column 0
       expect(solutions).to.have.length(1)
-      expect(solutions[0][0].data).to.equal('row1')
+      expect(solutions[0]).to.have.length(2)
+      
+      const solutionData = solutions[0].map(row => row.data).sort()
+      expect(solutionData).to.deep.equal(['row1', 'row3'])
+    })
+
+    it('should demonstrate actual secondary constraint collision prevention', () => {
+      // Test case: 2 primary constraints, 1 secondary constraint
+      // This will show that two rows cannot both cover the same secondary constraint
+      const dlx = new DancingLinks<string>()
+      const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 1 })
+      
+      // Both rows want to use the same secondary constraint [0]
+      solver.addSparseConstraint('rowA', { primary: [0], secondary: [0] })
+      solver.addSparseConstraint('rowB', { primary: [1], secondary: [0] })
+      
+      const solutions = solver.findAll()
+      
+      // Should find NO solutions because:
+      // - Primary [0] requires rowA or some alternative (only rowA available)
+      // - Primary [1] requires rowB or some alternative (only rowB available)  
+      // - But rowA and rowB both want secondary [0], creating a collision
+      expect(solutions).to.have.length(0)
     })
   })
 
