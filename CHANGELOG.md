@@ -1,5 +1,7 @@
 # Changelog
 
+## [4.2.2](https://github.com/TimBeyer/dancing-links/compare/v4.2.1...v4.2.2) (2025-08-07)
+
 # [4.2.0](https://github.com/TimBeyer/dancing-links/compare/v4.1.0...v4.2.0) (2025-08-06)
 
 
