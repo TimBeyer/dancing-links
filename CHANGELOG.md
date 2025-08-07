@@ -1,5 +1,17 @@
 # Changelog
 
+# [4.3.0](https://github.com/TimBeyer/dancing-links/compare/v4.2.2...v4.3.0) (2025-08-07)
+
+
+### Features
+
+* add fast solver with batch constraint optimization ([317064d](https://github.com/TimBeyer/dancing-links/commit/317064dc7a18f40cb1f1a4b16a15e17dd540c0d9))
+
+
+### Performance Improvements
+
+* unify constraint system with efficient ConstraintRow POJOs ([1fefdcb](https://github.com/TimBeyer/dancing-links/commit/1fefdcb8ec8f5625e3bafa118470be84a9bc6ce5))
+
 ## [4.2.2](https://github.com/TimBeyer/dancing-links/compare/v4.2.1...v4.2.2) (2025-08-07)
 
 # [4.2.0](https://github.com/TimBeyer/dancing-links/compare/v4.1.0...v4.2.0) (2025-08-06)
