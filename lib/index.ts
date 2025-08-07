@@ -17,11 +17,7 @@ export {
   SparseConstraint,
   SimpleConstraint,
   ComplexConstraint,
-  Row,
+  ConstraintRow,
   Result,
-  BinaryNumber,
-  FastSolver,
-  FastSolverConfig,
-  FastSimpleSolverConfig,
-  FastComplexSolverConfig
+  BinaryNumber
 } from './types/interfaces.js'

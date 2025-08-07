@@ -6,8 +6,13 @@
  * and to enable future optimizations (shared memory, workers, etc.).
  */
 
-import { Row } from '../types/interfaces.js'
-import { NodeStore, ColumnStore, estimateCapacity, calculateSparseCapacity, NULL_INDEX } from './data-structures.js'
+import { ConstraintRow } from '../types/interfaces.js'
+import {
+  NodeStore,
+  ColumnStore,
+  calculateCapacity,
+  NULL_INDEX
+} from './data-structures.js'
 
 /**
  * Search context for resumable Dancing Links algorithm execution
@@ -47,12 +52,12 @@ const ROOT_COLUMN_OFFSET = 1
 export interface ProblemConfig<T> {
   numPrimary: number
   numSecondary: number
-  rows: Row<T>[]
+  rows: ConstraintRow<T>[]
 }
 
 /**
  * Configuration for building a problem structure directly from sparse constraints
- * Bypasses Row<T>[] intermediate format for better performance
+ * Bypasses ConstraintRow<T>[] intermediate format for better performance
  */
 export interface SparseProblemConfig<T> {
   numPrimary: number
@@ -61,25 +66,47 @@ export interface SparseProblemConfig<T> {
 }
 
 /**
- * Builds Dancing Links data structures from constraint rows
+ * Abstract base class for building Dancing Links data structures
+ * Uses strategy pattern to handle different constraint formats
  */
-export class ProblemBuilder {
+abstract class ProblemBuilderBase<TConstraint> {
   /**
-   * Build SearchContext for resumable search from constraint configuration
+   * Extract data from a constraint of type TConstraint
    */
-  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
-    const { numPrimary, numSecondary, rows } = config
+  protected abstract extractData(constraint: TConstraint): any
 
-    // Estimate required capacity and pre-allocate stores
-    const { maxNodes, maxColumns } = estimateCapacity(numPrimary, numSecondary, rows)
+  /**
+   * Extract covered columns from a constraint of type TConstraint
+   */
+  protected abstract extractCoveredColumns(constraint: TConstraint): number[]
+
+  /**
+   * Calculate capacity requirements for constraints
+   */
+  protected abstract calculateCapacity(
+    numPrimary: number,
+    numSecondary: number,
+    constraints: TConstraint[]
+  ): { maxNodes: number; maxColumns: number }
+
+  /**
+   * Build SearchContext using the constraint extraction strategy
+   */
+  protected buildContext<T>(
+    numPrimary: number,
+    numSecondary: number,
+    constraints: TConstraint[]
+  ): SearchContext<T> {
+    // Calculate required capacity and pre-allocate stores
+    const { maxNodes, maxColumns } = this.calculateCapacity(numPrimary, numSecondary, constraints)
     const nodes = new NodeStore<T>(maxNodes)
     const columns = new ColumnStore(maxColumns)
 
     // Build column structure
     this.buildColumns(nodes, columns, numPrimary, numSecondary)
 
-    // Build row structure
-    this.buildRows(nodes, columns, rows)
+    // Build row structure using constraint extraction strategy
+    this.buildRows(nodes, columns, constraints)
 
     return {
       level: 0,
@@ -93,38 +120,9 @@ export class ProblemBuilder {
   }
 
   /**
-   * Build SearchContext directly from sparse constraints for better performance
-   * Bypasses Row<T>[] intermediate format and uses exact capacity calculation
+   * Create column headers and linking structure (common for all constraint formats)
    */
-  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
-    const { numPrimary, numSecondary, sparseConstraints } = config
-
-    // Calculate exact capacity and pre-allocate stores
-    const { maxNodes, maxColumns } = calculateSparseCapacity(numPrimary, numSecondary, sparseConstraints)
-    const nodes = new NodeStore<T>(maxNodes)
-    const columns = new ColumnStore(maxColumns)
-
-    // Build column structure
-    this.buildColumns(nodes, columns, numPrimary, numSecondary)
-
-    // Build row structure directly from sparse constraints
-    this.buildRowsFromSparse(nodes, columns, sparseConstraints)
-
-    return {
-      level: 0,
-      choice: [],
-      bestColIndex: 0,
-      currentNodeIndex: 0,
-      hasStarted: false,
-      nodes,
-      columns
-    }
-  }
-
-  /**
-   * Create column headers and linking structure
-   */
-  private static buildColumns(
+  protected buildColumns(
     nodes: NodeStore<any>,
     columns: ColumnStore,
     numPrimary: number,
@@ -173,57 +171,17 @@ export class ProblemBuilder {
   }
 
   /**
-   * Create row nodes and link them into the column structure
+   * Create row nodes using constraint extraction strategy (unified algorithm)
    */
-  private static buildRows<T>(nodes: NodeStore<T>, columns: ColumnStore, rows: Row<T>[]): void {
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      if (!row) continue
-
-      let rowStartIndex: number = NULL_INDEX
-
-      for (const columnIndex of row.coveredColumns) {
-        const nodeIndex = nodes.allocateNode()
-        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, row.data)
-
-        if (rowStartIndex === NULL_INDEX) {
-          rowStartIndex = nodeIndex
-        } else {
-          // Link horizontally to previous node in row
-          nodes.linkHorizontal(nodeIndex - 1, nodeIndex)
-        }
-
-        // Link vertically into column
-        const colIndex = columnIndex + ROOT_COLUMN_OFFSET
-        const colHeadIndex = columns.head[colIndex]
-        const lastInColIndex = nodes.up[colHeadIndex]
-
-        nodes.linkVertical(lastInColIndex, nodeIndex)
-        nodes.linkVertical(nodeIndex, colHeadIndex)
-
-        columns.len[colIndex]++
-      }
-
-      // Close horizontal circular link for the row
-      if (rowStartIndex !== NULL_INDEX && row.coveredColumns.length > 1) {
-        const lastNodeIndex = nodes.size - 1
-        nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
-      }
-    }
-  }
-
-  /**
-   * Create row nodes directly from sparse constraints without Row<T>[] intermediate format
-   * Optimized for batch constraint processing
-   */
-  private static buildRowsFromSparse<T>(
-    nodes: NodeStore<T>, 
-    columns: ColumnStore, 
-    sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
+  protected buildRows<T>(
+    nodes: NodeStore<T>,
+    columns: ColumnStore,
+    constraints: TConstraint[]
   ): void {
-    for (let i = 0; i < sparseConstraints.length; i++) {
-      const constraint = sparseConstraints[i]
-      const { data, coveredColumns } = constraint
+    for (let i = 0; i < constraints.length; i++) {
+      const constraint = constraints[i]
+      const data = this.extractData(constraint) as T
+      const coveredColumns = this.extractCoveredColumns(constraint)
 
       let rowStartIndex: number = NULL_INDEX
 
@@ -255,5 +213,79 @@ export class ProblemBuilder {
         nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
       }
     }
+  }
+}
+
+/**
+ * Concrete builder for ConstraintRow<T> constraints
+ */
+class RowBasedProblemBuilder<T> extends ProblemBuilderBase<ConstraintRow<T>> {
+  protected extractData(row: ConstraintRow<T>): T {
+    return row.data
+  }
+
+  protected extractCoveredColumns(row: ConstraintRow<T>): number[] {
+    return row.coveredColumns
+  }
+
+  protected calculateCapacity(
+    numPrimary: number,
+    numSecondary: number,
+    rows: ConstraintRow<T>[]
+  ): { maxNodes: number; maxColumns: number } {
+    return calculateCapacity(numPrimary, numSecondary, rows)
+  }
+
+  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
+    const builder = new RowBasedProblemBuilder<T>()
+    return builder.buildContext(config.numPrimary, config.numSecondary, config.rows)
+  }
+}
+
+/**
+ * Concrete builder for sparse constraints
+ */
+class SparseConstraintProblemBuilder<T> extends ProblemBuilderBase<{
+  data: T
+  coveredColumns: number[]
+}> {
+  protected extractData(constraint: { data: T; coveredColumns: number[] }): T {
+    return constraint.data
+  }
+
+  protected extractCoveredColumns(constraint: { data: T; coveredColumns: number[] }): number[] {
+    return constraint.coveredColumns
+  }
+
+  protected calculateCapacity(
+    numPrimary: number,
+    numSecondary: number,
+    sparseConstraints: Array<{ data: T; coveredColumns: number[] }>
+  ): { maxNodes: number; maxColumns: number } {
+    return calculateCapacity(numPrimary, numSecondary, sparseConstraints)
+  }
+
+  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
+    const builder = new SparseConstraintProblemBuilder<T>()
+    return builder.buildContext(config.numPrimary, config.numSecondary, config.sparseConstraints)
+  }
+}
+
+/**
+ * Unified ProblemBuilder interface - maintains backward compatibility
+ */
+export class ProblemBuilder {
+  /**
+   * Build SearchContext for resumable search from ConstraintRow<T> configuration
+   */
+  static buildContext<T>(config: ProblemConfig<T>): SearchContext<T> {
+    return RowBasedProblemBuilder.buildContext(config)
+  }
+
+  /**
+   * Build SearchContext directly from sparse constraints for better performance
+   */
+  static buildContextFromSparse<T>(config: SparseProblemConfig<T>): SearchContext<T> {
+    return SparseConstraintProblemBuilder.buildContextFromSparse(config)
   }
 }

@@ -23,15 +23,11 @@ import {
   SolverConfig,
   SimpleSolverConfig,
   ComplexSolverConfig,
-  FastSimpleSolverConfig,
-  FastComplexSolverConfig,
-  FastSolver,
   isComplexSolverConfig
 } from '../types/interfaces.js'
 import { SimpleConstraintHandler, ComplexConstraintHandler } from '../constraints/index.js'
 import { ProblemSolver } from './solver.js'
 import { SolverTemplate } from './template.js'
-import { FastSolverFactory } from './fast-solver.js'
 
 /**
  * Factory class for creating Dancing Links solvers and templates with type safety.
@@ -106,53 +102,4 @@ export class DancingLinks<T> {
     }
   }
 
-  /**
-   * Create a fast solver optimized for batch constraint processing.
-   * 
-   * This method bypasses the normal constraint handler system and builds
-   * the search context directly from sparse constraints, eliminating
-   * intermediate Row<T>[] storage and conversions for better performance.
-   *
-   * @param config - Fast solver configuration with constraints
-   * @returns Optimized solver instance with same interface as ProblemSolver
-   *
-   * @example
-   * ```typescript
-   * // Simple mode
-   * const fastSolver = dlx.createFastSolver({
-   *   columns: 3,
-   *   sparseConstraints: [
-   *     { data: 'row1', columnIndices: [0, 2] },
-   *     { data: 'row2', columnIndices: [1] }
-   *   ]
-   * })
-   * 
-   * // Complex mode  
-   * const fastSolver = dlx.createFastSolver({
-   *   primaryColumns: 2,
-   *   secondaryColumns: 1,
-   *   sparseConstraints: [
-   *     { data: 'row1', columnIndices: { primary: [0], secondary: [0] } }
-   *   ]
-   * })
-   * ```
-   */
-  createFastSolver(config: FastSimpleSolverConfig<T>): FastSolver<T>
-  createFastSolver(config: FastComplexSolverConfig<T>): FastSolver<T>
-  createFastSolver(
-    config: FastSimpleSolverConfig<T> | FastComplexSolverConfig<T>
-  ): FastSolver<T> {
-    if ('primaryColumns' in config && 'secondaryColumns' in config) {
-      return FastSolverFactory.createComplex(
-        config.primaryColumns,
-        config.secondaryColumns,
-        config.sparseConstraints
-      )
-    } else {
-      return FastSolverFactory.createSimple(
-        (config as FastSimpleSolverConfig<T>).columns,
-        config.sparseConstraints
-      )
-    }
-  }
 }
