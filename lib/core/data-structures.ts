@@ -160,10 +160,10 @@ export function calculateCapacity(
   numSecondary: number,
   constraints: Array<ConstraintWithColumns>
 ): { numNodes: number; numColumns: number } {
-  // Count row nodes with for...of loop for performance
+  // Count row nodes with traditional for loop for performance
   let rowNodes = 0
-  for (const constraint of constraints) {
-    rowNodes += constraint.coveredColumns.length
+  for (let i = 0; i < constraints.length; i++) {
+    rowNodes += constraints[i].coveredColumns.length
   }
 
   // Count column head nodes: 1 root + numPrimary + numSecondary
