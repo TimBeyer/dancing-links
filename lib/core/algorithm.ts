@@ -299,22 +299,25 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
     currentSearchState = SearchState.ADVANCE
   }
 
-  function done() {
-    running = false
-  }
-
-  const stateMethods = {
-    [SearchState.FORWARD]: forward,
-    [SearchState.ADVANCE]: advance,
-    [SearchState.BACKUP]: backup,
-    [SearchState.RECOVER]: recover,
-    [SearchState.DONE]: done
-  }
-
   // Execute search state machine
   while (running) {
-    const currentStateMethod = stateMethods[currentSearchState]
-    currentStateMethod()
+    switch (currentSearchState as SearchState) {
+      case SearchState.FORWARD:
+        forward()
+        break
+      case SearchState.ADVANCE:
+        advance()
+        break
+      case SearchState.BACKUP:
+        backup()
+        break
+      case SearchState.RECOVER:
+        recover()
+        break
+      default:
+        running = false
+        break
+    }
   }
 
   return solutions
