@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.2](https://github.com/TimBeyer/dancing-links/compare/v4.3.1...v4.3.2) (2025-08-15)
+
+
+### Performance Improvements
+
+* use switch/case instead of dictionary lookup for state machine ([d695c26](https://github.com/TimBeyer/dancing-links/commit/d695c26a9e11f729e26a55536a2c4e077f78455a))
+
 ## [4.3.1](https://github.com/TimBeyer/dancing-links/compare/v4.3.0...v4.3.1) (2025-08-08)
 
 # [4.3.0](https://github.com/TimBeyer/dancing-links/compare/v4.2.2...v4.3.0) (2025-08-07)
