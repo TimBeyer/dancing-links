@@ -125,7 +125,7 @@ jobs:
           pr-error-${{ matrix.runtime }}.log
           final-comparison-${{ matrix.runtime }}.md
 
-  # Job to collect all Node.js results and post PR comment
+  # Job to collect all runtime results and post PR comment
   comment:
     runs-on: ubuntu-latest
     needs: benchmark
