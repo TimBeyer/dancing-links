@@ -12,11 +12,20 @@ jobs:
 
     strategy:
       matrix:
-        runtime:
-          - node-22
-          - node-24
-          - node-25
-          - bun-latest
+        include:
+          - runtime: node-22
+            node-version: 22
+            use-bun: false
+          - runtime: node-24
+            node-version: 24
+            use-bun: false
+          - runtime: node-25
+            node-version: 25
+            use-bun: false
+          - runtime: bun-latest
+            node-version: 22
+            bun-version: latest
+            use-bun: true
 
     steps:
     - name: Checkout repository
@@ -24,25 +33,17 @@ jobs:
       with:
         fetch-depth: 0  # Need full history to find merge-base
 
-    - name: Setup Node.js (for Node.js runtime)
-      if: startsWith(matrix.runtime, 'node-')
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ replace(matrix.runtime, 'node-', '') }}
-        cache: 'npm'
-
-    - name: Setup Node.js (for Bun runtime - npm scripts)
-      if: startsWith(matrix.runtime, 'bun-')
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
     - name: Setup Bun
-      if: startsWith(matrix.runtime, 'bun-')
+      if: matrix.use-bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: ${{ replace(matrix.runtime, 'bun-', '') }}
+        bun-version: ${{ matrix.bun-version }}
 
     - name: Find merge base
       id: merge-base
@@ -62,7 +63,7 @@ jobs:
         if [ -f package.json ] && grep -q '"benchmark:json"' package.json; then
           echo "Found benchmark:json script, running benchmarks..."
           # Use appropriate runtime for benchmark
-          if [[ "${{ matrix.runtime }}" == bun-* ]]; then
+          if [ "${{ matrix.use-bun }}" = "true" ]; then
             BENCHMARK_CMD="bun run benchmark:json"
           else
             BENCHMARK_CMD="npm run benchmark:json"
@@ -87,7 +88,7 @@ jobs:
         npm ci
 
         # Use appropriate runtime for benchmark
-        if [[ "${{ matrix.runtime }}" == bun-* ]]; then
+        if [ "${{ matrix.use-bun }}" = "true" ]; then
           BENCHMARK_CMD="bun run benchmark:json"
         else
           BENCHMARK_CMD="npm run benchmark:json"

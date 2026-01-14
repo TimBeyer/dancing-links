@@ -13,45 +13,46 @@ jobs:
 
     strategy:
       matrix:
-        runtime:
-          - node-22
-          - node-24
-          - node-25
-          - bun-latest
+        include:
+          - runtime: node-22
+            node-version: 22
+            use-bun: false
+          - runtime: node-24
+            node-version: 24
+            use-bun: false
+          - runtime: node-25
+            node-version: 25
+            use-bun: false
+          - runtime: bun-latest
+            node-version: 22
+            bun-version: latest
+            use-bun: true
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js (for Node.js runtime)
-      if: startsWith(matrix.runtime, 'node-')
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ replace(matrix.runtime, 'node-', '') }}
-        cache: 'npm'
-
-    - name: Setup Node.js (for Bun runtime - npm scripts)
-      if: startsWith(matrix.runtime, 'bun-')
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
     - name: Setup Bun
-      if: startsWith(matrix.runtime, 'bun-')
+      if: matrix.use-bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: ${{ replace(matrix.runtime, 'bun-', '') }}
+        bun-version: ${{ matrix.bun-version }}
 
     - name: Install dependencies
       run: npm ci
 
     - name: Run tests with coverage (Node.js)
-      if: startsWith(matrix.runtime, 'node-')
+      if: ${{ !matrix.use-bun }}
       run: npm run cover
 
     - name: Run tests with coverage (Bun)
-      if: startsWith(matrix.runtime, 'bun-')
+      if: matrix.use-bun
       run: bun run cover
 
     - name: Display coverage summary
