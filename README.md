@@ -215,7 +215,7 @@ All benchmarks run on the same machine with identical test cases. Results show o
 
 **Testing Environment:**
 
-- Node.js v24.6.0
+- Node.js v25.3.0
 - Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
 
 _Last updated: 2025-08-15_
