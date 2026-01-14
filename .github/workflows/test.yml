@@ -23,10 +23,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    - name: Setup Node.js (for Node.js runtime)
+      if: startsWith(matrix.runtime, 'node-')
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ startsWith(matrix.runtime, 'node-') && replace(matrix.runtime, 'node-', '') || '22' }}
+        node-version: ${{ replace(matrix.runtime, 'node-', '') }}
+        cache: 'npm'
+
+    - name: Setup Node.js (for Bun runtime - npm scripts)
+      if: startsWith(matrix.runtime, 'bun-')
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
         cache: 'npm'
 
     - name: Setup Bun
