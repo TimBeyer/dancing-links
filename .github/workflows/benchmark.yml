@@ -20,11 +20,17 @@ jobs:
       with:
         fetch-depth: 0  # Need full history to find merge-base
 
+    - name: Parse runtime version
+      id: version
+      run: echo "value=${RUNTIME#*-}" >> $GITHUB_OUTPUT
+      env:
+        RUNTIME: ${{ matrix.runtime }}
+
     - name: Setup Node.js (node runtime)
       if: startsWith(matrix.runtime, 'node-')
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.runtime }}
+        node-version: ${{ steps.version.outputs.value }}
         cache: 'npm'
 
     - name: Setup Node.js (bun runtime)
@@ -38,7 +44,7 @@ jobs:
       if: startsWith(matrix.runtime, 'bun-')
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: ${{ matrix.runtime }}
+        bun-version: ${{ steps.version.outputs.value }}
 
     - name: Find merge base
       id: merge-base
