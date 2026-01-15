@@ -89,10 +89,20 @@ async function runBenchmarksFromMatrix(
         const prepared = solver.prepare(constraints)
 
         // Add benchmark test - clean execution, no branching!
+        // Configure options per-benchmark for better stability on namespace runners
         const testName = SolverClass.name
-        suite.add(testName, function () {
-          benchmarkCase.executeStrategy(solver, prepared)
-        })
+        suite.add(
+          testName,
+          function () {
+            benchmarkCase.executeStrategy(solver, prepared)
+          },
+          {
+            minSamples: 30, // Minimum samples to collect
+            maxTime: 10, // Maximum time to run
+            initCount: 10, // Warm-up iterations
+            minTime: 2 // Minimum time per benchmark
+          }
+        )
       } catch (error) {
         if (!options.quiet) {
           console.warn(`Skipping ${solverId} for ${caseId}: ${(error as Error).message}`)
@@ -120,13 +130,6 @@ function runSuite(
     const sectionResults: BenchmarkResult[] = []
 
     suite
-      .on('start', function () {
-        // Configure Benchmark.js for more stable results with larger sample sizes
-        // Increased minSamples to reduce variance on unstable hardware
-        // Increased maxTime to allow thorough sampling
-        Benchmark.options.minSamples = 30 // Increased from default of 5
-        Benchmark.options.maxTime = 10 // Increased from default of 5 seconds
-      })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
 
