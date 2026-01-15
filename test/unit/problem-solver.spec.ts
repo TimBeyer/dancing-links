@@ -1,5 +1,6 @@
 import { expect } from 'chai'
-import { DancingLinks, SimpleConstraint } from '../../index.js'
+import { DancingLinks } from '../../index.js'
+import type { SimpleConstraint } from '../../index.js'
 
 describe('ProblemSolver', function () {
   it('should solve a simple exact cover problem', function () {
