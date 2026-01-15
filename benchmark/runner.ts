@@ -89,20 +89,10 @@ async function runBenchmarksFromMatrix(
         const prepared = solver.prepare(constraints)
 
         // Add benchmark test - clean execution, no branching!
-        // Configure options per-benchmark for better stability on namespace runners
         const testName = SolverClass.name
-        suite.add(
-          testName,
-          function () {
-            benchmarkCase.executeStrategy(solver, prepared)
-          },
-          {
-            minSamples: 30, // Minimum samples to collect
-            maxTime: 10, // Maximum time to run
-            initCount: 10, // Warm-up iterations
-            minTime: 2 // Minimum time per benchmark
-          }
-        )
+        suite.add(testName, function () {
+          benchmarkCase.executeStrategy(solver, prepared)
+        })
       } catch (error) {
         if (!options.quiet) {
           console.warn(`Skipping ${solverId} for ${caseId}: ${(error as Error).message}`)
