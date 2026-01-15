@@ -6,7 +6,7 @@ on:
 
 jobs:
   benchmark:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default
     # Only run PR comparison for pull requests
     if: github.event_name == 'pull_request'
 
@@ -70,7 +70,7 @@ jobs:
             BENCHMARK_CMD="npm run benchmark:json"
           fi
 
-          if timeout 300s $BENCHMARK_CMD baseline-results-${{ matrix.runtime }}.json 2>baseline-error-${{ matrix.runtime }}.log; then
+          if timeout 900s $BENCHMARK_CMD baseline-results-${{ matrix.runtime }}.json 2>baseline-error-${{ matrix.runtime }}.log; then
             echo "Baseline benchmark completed successfully"
           else
             echo "Baseline benchmark failed or timed out"
@@ -95,7 +95,7 @@ jobs:
           BENCHMARK_CMD="npm run benchmark:json"
         fi
 
-        if timeout 300s $BENCHMARK_CMD pr-results-${{ matrix.runtime }}.json 2>pr-error-${{ matrix.runtime }}.log; then
+        if timeout 900s $BENCHMARK_CMD pr-results-${{ matrix.runtime }}.json 2>pr-error-${{ matrix.runtime }}.log; then
           echo "PR benchmark completed successfully"
         else
           echo "PR benchmark failed or timed out"

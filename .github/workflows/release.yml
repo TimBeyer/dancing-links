@@ -28,7 +28,7 @@ jobs:
 
   # Release only after all prerequisites complete
   release:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default
     needs: [lint, test, build]
 
     steps:
