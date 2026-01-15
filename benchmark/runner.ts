@@ -3,7 +3,7 @@
  * Orchestrates running benchmark groups with proper timing and result collection
  */
 
-import Benchmark from 'benchmark'
+import { Bench } from 'tinybench'
 import { BenchmarkOptions, BenchmarkSection, BenchmarkResult } from './types.js'
 
 // Configuration imports
@@ -66,7 +66,7 @@ async function runBenchmarksFromMatrix(
     }
 
     const constraints = problemFn(benchmarkCase.parameters as any) // Type assertion needed due to discriminated union
-    const suite = new Benchmark.Suite()
+    const bench = new Bench()
 
     // Add each solver to the benchmark suite
     for (const solverId of solverIds) {
@@ -90,7 +90,7 @@ async function runBenchmarksFromMatrix(
 
         // Add benchmark test - clean execution, no branching!
         const testName = SolverClass.name
-        suite.add(testName, function () {
+        bench.add(testName, () => {
           benchmarkCase.executeStrategy(solver, prepared)
         })
       } catch (error) {
@@ -101,7 +101,7 @@ async function runBenchmarksFromMatrix(
     }
 
     // Run the suite for this case
-    const sectionResult = await runSuite(suite, benchmarkCase.name, options)
+    const sectionResult = await runBench(bench, benchmarkCase.name, options)
     results.push(sectionResult)
   }
 
@@ -109,47 +109,60 @@ async function runBenchmarksFromMatrix(
 }
 
 /**
- * Run a Benchmark.js suite and collect results
+ * Run a tinybench suite and collect results
  */
-function runSuite(
-  suite: Benchmark.Suite,
+async function runBench(
+  bench: Bench,
   sectionName: string,
   options: BenchmarkOptions
 ): Promise<BenchmarkSection> {
-  return new Promise(resolve => {
-    const sectionResults: BenchmarkResult[] = []
+  // Set up event listener for cycle events
+  if (!options.quiet) {
+    bench.addEventListener('cycle', event => {
+      const task = event.task
+      if (task && task.result && task.result.state === 'completed') {
+        // Format output similar to Benchmark.js
+        // In tinybench, throughput.mean is operations per second (Hz)
+        const opsPerSec = task.result.throughput.mean
+        const margin = task.result.throughput.rme
+        const runs = task.result.throughput.samplesCount
+        console.log(
+          `${task.name} x ${opsPerSec.toLocaleString('en-US', { maximumFractionDigits: 2 })} ops/sec \xb1${margin.toFixed(2)}% (${runs} runs sampled)`
+        )
+      }
+    })
+  }
 
-    suite
-      .on('cycle', function (event: Benchmark.Event) {
-        const benchmark = event.target
+  // Run the benchmark
+  await bench.run()
 
-        if (!options.quiet) {
-          console.log(String(event.target))
-        }
-
-        // Collect result data
-        if (benchmark.name && benchmark.hz && benchmark.stats) {
-          sectionResults.push({
-            name: benchmark.name,
-            opsPerSec: benchmark.hz,
-            margin: benchmark.stats.rme,
-            runs: benchmark.stats.sample.length,
-            deprecated: deprecatedTests.has(benchmark.name)
-          })
-        }
+  // Collect results
+  const sectionResults: BenchmarkResult[] = []
+  for (const task of bench.tasks) {
+    if (task.result && task.result.state === 'completed') {
+      // In tinybench, throughput.mean is operations per second (Hz equivalent)
+      sectionResults.push({
+        name: task.name,
+        opsPerSec: task.result.throughput.mean,
+        margin: task.result.throughput.rme,
+        runs: task.result.throughput.samplesCount,
+        deprecated: deprecatedTests.has(task.name)
       })
-      .on('complete', function (this: any) {
-        if (!options.quiet) {
-          console.log('Fastest is ' + this.filter('fastest').map('name') + '\n\n')
-        }
+    }
+  }
 
-        resolve({
-          benchmarkName: sectionName,
-          results: sectionResults
-        })
-      })
-      .run()
-  })
+  // Find and display fastest
+  if (!options.quiet && sectionResults.length > 0) {
+    const fastest = sectionResults.reduce((prev, current) =>
+      prev.opsPerSec > current.opsPerSec ? prev : current
+    )
+    console.log(`Fastest is ${fastest.name}\n\n`)
+  }
+
+  return {
+    benchmarkName: sectionName,
+    results: sectionResults
+  }
 }
 
 /**
