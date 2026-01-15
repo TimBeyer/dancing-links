@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.3.4](https://github.com/TimBeyer/dancing-links/compare/v4.3.3...v4.3.4) (2026-01-15)
+
+
+### Bug Fixes
+
+* add version parsing step for setup actions ([87bacb5](https://github.com/TimBeyer/dancing-links/commit/87bacb59a5374d367cf54f0617f1a773acedf9c6))
+* correct GitHub Actions expression syntax in workflows ([db351de](https://github.com/TimBeyer/dancing-links/commit/db351dec6378048e6ee24420ab570ddafe7682c4))
+* use matrix includes instead of replace() function ([e0dab4e](https://github.com/TimBeyer/dancing-links/commit/e0dab4e8ff3c54f2e9f83927ffb1fcb304478aff))
+
 ## [4.3.3](https://github.com/TimBeyer/dancing-links/compare/v4.3.2...v4.3.3) (2026-01-14)
 
 ## [4.3.2](https://github.com/TimBeyer/dancing-links/compare/v4.3.1...v4.3.2) (2025-08-15)
