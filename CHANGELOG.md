@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.3.5](https://github.com/TimBeyer/dancing-links/compare/v4.3.4...v4.3.5) (2026-01-15)
+
+
+### Bug Fixes
+
+* increase benchmark timeout from 5 to 15 minutes ([97ad58d](https://github.com/TimBeyer/dancing-links/commit/97ad58d14319582217349d0d835b0b2bf729d09b))
+
+
+### Performance Improvements
+
+* configure benchmark options per-test for better control ([de40bd7](https://github.com/TimBeyer/dancing-links/commit/de40bd7f3c13d48f7b5e6c7dc515165f4ddb34fd))
+* increase benchmark sample sizes for more stable results ([d75c3b1](https://github.com/TimBeyer/dancing-links/commit/d75c3b17942125d8db6f37739391e055b81bad3e))
+
+
+### Reverts
+
+* remove custom benchmark options, use Benchmark.js defaults ([756652e](https://github.com/TimBeyer/dancing-links/commit/756652e2bfc8c0ce8aa1ae25202900ee06ce68cb))
+
 ## [4.3.4](https://github.com/TimBeyer/dancing-links/compare/v4.3.3...v4.3.4) (2026-01-15)
 
 
