@@ -13,30 +13,55 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22, 24, 25]
+        runtime: [node-22, node-24, node-25, bun-latest]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js ${{ matrix.node-version }}
+    - name: Parse runtime version
+      id: version
+      run: echo "value=${RUNTIME#*-}" >> $GITHUB_OUTPUT
+      env:
+        RUNTIME: ${{ matrix.runtime }}
+
+    - name: Setup Node.js (node runtime)
+      if: startsWith(matrix.runtime, 'node-')
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: ${{ steps.version.outputs.value }}
         cache: 'npm'
+
+    - name: Setup Node.js (bun runtime)
+      if: startsWith(matrix.runtime, 'bun-')
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: 'npm'
+
+    - name: Setup Bun
+      if: startsWith(matrix.runtime, 'bun-')
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ steps.version.outputs.value }}
 
     - name: Install dependencies
       run: npm ci
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage (Node.js)
+      if: startsWith(matrix.runtime, 'node-')
       run: npm run cover
+
+    - name: Run tests with coverage (Bun)
+      if: startsWith(matrix.runtime, 'bun-')
+      run: bun run cover
 
     - name: Display coverage summary
       run: npx nyc report --reporter=text-summary
 
     - name: Upload coverage to artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.node-version == 22
+      if: matrix.runtime == 'node-22'
       with:
         name: coverage-report
         path: |
