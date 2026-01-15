@@ -120,6 +120,13 @@ function runSuite(
     const sectionResults: BenchmarkResult[] = []
 
     suite
+      .on('start', function () {
+        // Configure Benchmark.js for more stable results with larger sample sizes
+        // Increased minSamples to reduce variance on unstable hardware
+        // Increased maxTime to allow thorough sampling
+        Benchmark.options.minSamples = 30 // Increased from default of 5
+        Benchmark.options.maxTime = 10 // Increased from default of 5 seconds
+      })
       .on('cycle', function (event: Benchmark.Event) {
         const benchmark = event.target
 
