@@ -144,7 +144,8 @@ export class ProblemBuilder {
       const row = rows[i]
       let rowStartIndex: number = NULL_INDEX
 
-      for (const columnIndex of row.coveredColumns) {
+      for (let j = 0; j < row.coveredColumns.length; j++) {
+        const columnIndex = row.coveredColumns[j]
         const nodeIndex = nodes.allocateNode()
         nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, row.data)
 
