@@ -27,6 +27,26 @@ describe('Solver Configurations', function () {
       )
     })
 
+    it('should preserve the valid prefix of a sparse batch when validation fails', function () {
+      const solver = new DancingLinks<string>().createSolver({ columns: 2 }).validateConstraints()
+
+      expect(() =>
+        solver.addSparseConstraints([
+          { data: 'kept', columnIndices: [0] },
+          { data: 'invalid', columnIndices: [2] },
+          { data: 'later', columnIndices: [1] }
+        ])
+      ).to.throw('Column index 2 exceeds columns limit of 2')
+
+      solver.addSparseConstraint('replacement', [1])
+      const solutions = solver.findAll()
+      expect(solutions).to.have.length(1)
+      expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+        { index: 0, data: 'kept' },
+        { index: 1, data: 'replacement' }
+      ])
+    })
+
     it('should validate binary constraint row length', function () {
       const dlx = new DancingLinks<string>()
       const solver = dlx.createSolver({ columns: 3 }).validateConstraints()

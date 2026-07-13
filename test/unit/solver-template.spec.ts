@@ -196,6 +196,35 @@ describe('SolverTemplate', function () {
       expect(untouchedSolver.findAll()).to.have.length(0)
     })
 
+    it('should isolate a validated solver after a partially accepted local batch', function () {
+      const template = new DancingLinks<string>()
+        .createSolverTemplate({ columns: 3 })
+        .validateConstraints()
+      template.addSparseConstraint('base', [0])
+
+      const changedSolver = template.createSolver()
+      expect(() =>
+        changedSolver.addSparseConstraints([
+          { data: 'local', columnIndices: [1] },
+          { data: 'invalid', columnIndices: [3] },
+          { data: 'later', columnIndices: [2] }
+        ])
+      ).to.throw('Column index 3 exceeds columns limit of 3')
+
+      changedSolver.addSparseConstraint('replacement', [2])
+      const changedSolutions = changedSolver.findAll()
+      expect(changedSolutions).to.have.length(1)
+      expect(changedSolutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+        { index: 0, data: 'base' },
+        { index: 1, data: 'local' },
+        { index: 2, data: 'replacement' }
+      ])
+
+      // The throwing batch detached before mutation, so neither its accepted
+      // prefix nor an empty slot can leak back into the compiled template.
+      expect(template.createSolver().findAll()).to.have.length(0)
+    })
+
     it('should invalidate the compiled layout when the template changes', function () {
       const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
 
