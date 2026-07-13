@@ -69,6 +69,27 @@ describe('ProblemSolver', function () {
     expect(allSolutions).to.have.length(2)
   })
 
+  it('should return the one empty cover when there are no columns', function () {
+    const solver = new DancingLinks<string>().createSolver({ columns: 0 })
+    solver.addSparseConstraint('empty-row', [])
+
+    // With no required columns, choosing no rows is the unique exact cover.
+    expect(solver.findOne()).to.deep.equal([[]])
+    expect(solver.find(0)).to.deep.equal([[]])
+    expect(solver.find(5)).to.deep.equal([[]])
+    expect(solver.findAll()).to.deep.equal([[]])
+  })
+
+  it('should preserve the no-constraints error for a zero-column solver', function () {
+    const solver = new DancingLinks<string>().createSolver({ columns: 0 })
+
+    expect(() => solver.findAll()).to.throw('Cannot solve problem with no constraints')
+
+    // Generator bodies are lazy, so the same guard runs on the first advance.
+    const generator = solver.createGenerator()
+    expect(() => generator.next()).to.throw('Cannot solve problem with no constraints')
+  })
+
   it('should process identical constraints across different solvers', function () {
     const dlx = new DancingLinks<string>()
 
@@ -302,6 +323,20 @@ describe('ProblemSolver', function () {
         [{ index: 0, data: 'first' }],
         [{ index: 1, data: 'second' }]
       ])
+    })
+
+    it('should yield a zero-column solution once and then exhaust', function () {
+      const solver = new DancingLinks<string>().createSolver({ columns: 0 })
+      solver.addSparseConstraint('empty-row', [])
+
+      const generator = solver.createGenerator()
+      expect(generator.next()).to.deep.equal({ value: [], done: false })
+      expect(generator.next()).to.deep.equal({ value: undefined, done: true })
+
+      // Each generator owns its one-yield state; exhausting one cannot consume
+      // the solution that an independently created generator must expose.
+      expect([...solver.createGenerator()]).to.deep.equal([[]])
+      expect([...solver.createGenerator()]).to.deep.equal([[]])
     })
 
     it('should support early termination', function () {

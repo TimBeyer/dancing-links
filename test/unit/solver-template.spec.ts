@@ -158,6 +158,51 @@ describe('SolverTemplate', function () {
   })
 
   describe('Template State Isolation', function () {
+    it('should isolate a local row in a zero-column template', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 0 })
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+
+      changedSolver.addSparseConstraint('local-empty-row', [])
+
+      expect(changedSolver.findAll()).to.deep.equal([[]])
+      expect(() => untouchedSolver.findAll()).to.throw('Cannot solve problem with no constraints')
+      expect(() => template.createSolver().findAll()).to.throw(
+        'Cannot solve problem with no constraints'
+      )
+
+      const generator = untouchedSolver.createGenerator()
+      expect(() => generator.next()).to.throw('Cannot solve problem with no constraints')
+    })
+
+    it('should isolate and share complex zero-primary template rows with validation', function () {
+      const template = new DancingLinks<string>()
+        .createSolverTemplate({ primaryColumns: 0, secondaryColumns: 1 })
+        .validateConstraints()
+
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+      changedSolver.addSparseConstraint('local-optional', { primary: [], secondary: [0] })
+
+      // A local row makes only the detached solver solvable; the empty shared
+      // snapshot still triggers the established no-constraints error.
+      expect(changedSolver.findAll()).to.deep.equal([[]])
+      expect(() => untouchedSolver.findAll()).to.throw('Cannot solve problem with no constraints')
+      expect(() => template.createSolver().findAll()).to.throw(
+        'Cannot solve problem with no constraints'
+      )
+
+      expect(() =>
+        changedSolver.addSparseConstraint('invalid', { primary: [], secondary: [1] })
+      ).to.throw('Secondary column index 1 exceeds secondaryColumns limit of 1')
+
+      // Once the template owns a valid optional row, multiple solvers share its
+      // snapshot and independently expose the one empty exact cover.
+      template.addSparseConstraint('template-optional', { primary: [], secondary: [0] })
+      expect(template.createSolver().findAll()).to.deep.equal([[]])
+      expect(template.createSolver().findAll()).to.deep.equal([[]])
+    })
+
     it('should rebuild solver-local changes from the compiled topology snapshot', function () {
       const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
       const callerOwnedColumns = [0]

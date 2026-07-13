@@ -33,7 +33,7 @@ import {
 } from '../types/interfaces.js'
 import { SimpleConstraintHandler, ComplexConstraintHandler } from '../constraints/index.js'
 import { ProblemBuilder, type SearchContext } from '../core/problem-builder.js'
-import { ProblemSolver } from './solver.js'
+import { ProblemSolver, createZeroPrimaryProblemSolver } from './solver.js'
 
 /**
  * Freeze the constraint topology used by a compiled template.
@@ -140,6 +140,16 @@ export class SolverTemplate<T, Mode extends SolverMode> {
         newHandler.validateConstraints()
       }
 
+      // Match fresh solvers' cold specialization without putting a root-empty
+      // check in the shared search loop. Passing the compiled context retains
+      // the same O(1) row sharing and first-mutation copy-on-write behavior.
+      if (config.primaryColumns === 0) {
+        // The handler mode check above proves this generic Mode cast at runtime.
+        return createZeroPrimaryProblemSolver(
+          newHandler,
+          contextTemplate
+        ) as unknown as ProblemSolver<T, Mode>
+      }
       return new ProblemSolver(newHandler, contextTemplate) as ProblemSolver<T, Mode>
     } else {
       const config = this.handler.getConfig() as SimpleSolverConfig
@@ -151,6 +161,13 @@ export class SolverTemplate<T, Mode extends SolverMode> {
         newHandler.validateConstraints()
       }
 
+      if (config.columns === 0) {
+        // The handler mode check above proves this generic Mode cast at runtime.
+        return createZeroPrimaryProblemSolver(
+          newHandler,
+          contextTemplate
+        ) as unknown as ProblemSolver<T, Mode>
+      }
       return new ProblemSolver(newHandler, contextTemplate) as ProblemSolver<T, Mode>
     }
   }

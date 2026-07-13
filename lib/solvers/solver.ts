@@ -226,3 +226,45 @@ export class ProblemSolver<T, Mode extends SolverMode> {
     }
   }
 }
+
+/**
+ * Cold exact-cover specialization for configurations with no primary columns.
+ *
+ * The empty row selection is their one solution; secondary-only rows remain
+ * optional. Handling this at solver construction keeps root-empty checks out of
+ * the ordinary search state machine, where they measurably slow every normal
+ * solve. Inherited mutation methods still provide validation and template COW.
+ * @internal
+ */
+export function createZeroPrimaryProblemSolver<T, Mode extends SolverMode>(
+  handler: ConstraintHandler<T, Mode>,
+  contextTemplate?: SearchContext<T>
+): ProblemSolver<T, Mode> {
+  // Construct the regular class directly and replace methods only on this cold
+  // instance. A derived class gives ProblemSolver multiple constructor targets
+  // in V8 and measurably slows short ordinary solves; own methods keep its hot
+  // construction site monomorphic while preserving instanceof ProblemSolver.
+  const solver = new ProblemSolver(handler, contextTemplate)
+
+  const assertHasConstraints = (): void => {
+    if (handler.getConstraints().length === 0) {
+      throw new Error('Cannot solve problem with no constraints')
+    }
+  }
+  const emptySolution = (): Result<T>[][] => {
+    assertHasConstraints()
+    return [[]]
+  }
+
+  // The public find limit is intentionally ignored: this domain has exactly one
+  // solution under the existing find(0) convention, so no count work is needed.
+  solver.findOne = emptySolution
+  solver.findAll = emptySolution
+  solver.find = emptySolution
+  solver.createGenerator = function* (): Generator<Result<T>[], void, unknown> {
+    assertHasConstraints()
+    yield []
+  }
+
+  return solver
+}
