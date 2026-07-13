@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { DancingLinks } from '../../index.js'
 import type { SimpleConstraint } from '../../index.js'
+import { ProblemBuilder } from '../../lib/core/problem-builder.js'
 
 describe('ProblemSolver', function () {
   it('should solve a simple exact cover problem', function () {
@@ -118,6 +119,55 @@ describe('ProblemSolver', function () {
     const solutions = solver.findOne()
     expect(solutions).to.have.length(1)
     expect(solutions[0]).to.deep.equal([{ index: 65_536, data: 65_536 }])
+  })
+
+  it('should search the highest node on both sides of the storage-width cutoff', function () {
+    this.timeout(10_000)
+
+    const padding = Array.from({ length: 64 }, (_, column) => column).filter(column => column !== 1)
+
+    for (const nodeCount of [65_535, 65_536] as const) {
+      const rows = Array.from({ length: 1_038 }, (_, data) => ({
+        coveredColumns: padding,
+        data
+      }))
+      rows.push({ coveredColumns: padding.slice(0, nodeCount === 65_535 ? 12 : 13), data: 1_038 })
+      rows.push({ coveredColumns: [...padding, 1], data: 1_039 })
+
+      const context = ProblemBuilder.buildContext({
+        numPrimary: 64,
+        numSecondary: 0,
+        rows
+      })
+      const ExpectedIndexArray = nodeCount === 65_535 ? Uint16Array : Int32Array
+      for (const view of [
+        context.nodes.up,
+        context.nodes.down,
+        context.nodes.col,
+        context.nodes.rowIndex,
+        context.nodes.rowStart,
+        context.columns.len,
+        context.columns.prev,
+        context.columns.next
+      ]) {
+        expect(view instanceof ExpectedIndexArray).to.equal(true)
+      }
+
+      // Primary column 1 has header index 2 and only the terminal row. Keeping
+      // its node last proves search traverses index 65,534/65,535, rather than
+      // merely allocating the width-specific store without exercising it.
+      expect(context.nodes.size).to.equal(nodeCount)
+      expect(context.nodes.down[2]).to.equal(nodeCount - 1)
+      // Search through the public batch-ingestion path as well as inspecting the
+      // direct builder context, so the fallback test covers the same behavior
+      // users and the end-to-end width benchmarks execute.
+      const solver = new DancingLinks<number>().createSolver({ columns: 64 })
+      solver.addSparseConstraints(
+        rows.map(({ coveredColumns, data }) => ({ columnIndices: coveredColumns, data }))
+      )
+      const solutions = solver.findAll()
+      expect(solutions).to.deep.equal([[{ index: 1_039, data: 1_039 }]])
+    }
   })
 
   describe('Generator Interface', function () {

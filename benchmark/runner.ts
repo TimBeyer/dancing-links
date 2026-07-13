@@ -10,7 +10,7 @@ import { BenchmarkOptions, BenchmarkSection, BenchmarkResult } from './types.js'
 import { cases } from './config/cases.js'
 import { groups, getGroup } from './config/groups.js'
 import { problems } from './config/problems.js'
-import { solvers } from './config/solvers.js'
+import { externalSolvers, solvers } from './config/solvers.js'
 
 // Track deprecated tests (for compatibility with existing benchmark system)
 const deprecatedTests = new Set<string>()
@@ -66,7 +66,10 @@ async function runBenchmarksFromMatrix(
     }
 
     const constraints = problemFn(benchmarkCase.parameters as any) // Type assertion needed due to discriminated union
-    const bench = new Bench()
+    // A benchmark that throws must fail the command. Tinybench otherwise records
+    // an errored task and continues, which can make a broken implementation look
+    // fast by silently removing it from the results table.
+    const bench = new Bench({ throws: true })
 
     // Add each solver to the benchmark suite
     for (const solverId of solverIds) {
@@ -94,6 +97,13 @@ async function runBenchmarksFromMatrix(
           benchmarkCase.executeStrategy(solver, prepared)
         })
       } catch (error) {
+        // External packages are optional comparison points and may reject a
+        // problem shape they do not support. Every in-repository solver is a
+        // required benchmark target, so setup failures must stop validation.
+        if (!(externalSolvers as readonly string[]).includes(solverId)) {
+          const message = error instanceof Error ? error.message : String(error)
+          throw new Error(`Failed to prepare ${solverId} for ${caseId}: ${message}`)
+        }
         if (!options.quiet) {
           console.warn(`Skipping ${solverId} for ${caseId}: ${(error as Error).message}`)
         }
@@ -149,6 +159,17 @@ async function runBench(
         deprecated: deprecatedTests.has(task.name)
       })
     }
+  }
+
+  // Keep this guard even with `throws: true`: an aborted or otherwise incomplete
+  // task has no trustworthy throughput and must not become an empty, successful
+  // benchmark section.
+  const incompleteTasks = bench.tasks.filter(task => task.result?.state !== 'completed')
+  if (incompleteTasks.length > 0) {
+    const details = incompleteTasks
+      .map(task => `${task.name} (${task.result?.state ?? 'missing result'})`)
+      .join(', ')
+    throw new Error(`Benchmark tasks did not complete: ${details}`)
   }
 
   // Find and display fastest

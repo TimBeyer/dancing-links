@@ -11,7 +11,9 @@ import {
   externalSolversWithoutDancingLinksAlgorithm
 } from './solvers.js'
 
-type BenchmarkMatrix = Record<CaseId, readonly SolverId[]>
+// Groups intentionally select only relevant cases. Width-boundary regression
+// tasks, for example, have no meaningful external-library comparison.
+type BenchmarkMatrix = Partial<Record<CaseId, readonly SolverId[]>>
 
 interface BenchmarkGroup {
   readonly name: string
@@ -32,7 +34,10 @@ export const groups = {
       'sudoku-hard': internalSolvers,
       'pentomino-1': internalSolvers,
       'pentomino-10': internalSolvers,
-      'pentomino-100': internalSolvers
+      'pentomino-100': internalSolvers,
+      'index-width-16': ['width-fresh'],
+      'index-width-32': ['width-fresh'],
+      'index-width-mixed': ['width-mixed']
     }
   },
 

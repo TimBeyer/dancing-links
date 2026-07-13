@@ -8,6 +8,7 @@ import { ProblemRegistry } from '../types.js'
 // Problem definition imports
 import { generateSudokuConstraints } from '../problems/sudoku/definition.js'
 import { generatePentominoConstraints } from '../problems/pentomino/definition.js'
+import { generateIndexWidthConstraints } from '../problems/index-width/definition.js'
 
 /**
  * Registry of all available problem definitions
@@ -16,6 +17,7 @@ import { generatePentominoConstraints } from '../problems/pentomino/definition.j
 export const problems: ProblemRegistry = {
   sudoku: generateSudokuConstraints,
   pentomino: generatePentominoConstraints,
+  'index-width': generateIndexWidthConstraints,
   'n-queens': (() => {
     throw new Error('N-Queens not implemented yet')
   }) as any // TODO: implement
