@@ -180,38 +180,38 @@ All benchmarks run on the same machine with identical test cases. Results show o
 
 | Library                 | Ops/Sec  | Relative Performance | Margin of Error |
 | ----------------------- | -------- | -------------------- | --------------- |
-| dancing-links (sparse)  | 11162.84 | **1.00x (fastest)**  | ±0.31%          |
-| dancing-links (binary)  | 5097.53  | 0.46x                | ±0.32%          |
-| dance                   | 1985.22  | 0.18x                | ±0.41%          |
-| dlxlib                  | 1266.16  | 0.11x                | ±0.82%          |
-| dancing-links-algorithm | 1141.28  | 0.10x                | ±0.84%          |
+| dancing-links (sparse)  | 35659.62 | **1.00x (fastest)**  | ±0.10%          |
+| dancing-links (binary)  | 8297.89  | 0.23x                | ±0.13%          |
+| dance                   | 2714.39  | 0.08x                | ±0.23%          |
+| dancing-links-algorithm | 1661.14  | 0.05x                | ±0.37%          |
+| dlxlib                  | 1521.37  | 0.04x                | ±0.35%          |
 
 ### Finding one pentomino tiling on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 400.81  | **1.00x (fastest)**  | ±0.79%          |
-| dancing-links (binary) | 388.86  | 0.97x                | ±0.57%          |
-| dlxlib                 | 282.25  | 0.70x                | ±1.17%          |
-| dance                  | 67.41   | 0.17x                | ±2.40%          |
+| dancing-links (sparse) | 831.54  | **1.00x (fastest)**  | ±0.29%          |
+| dancing-links (binary) | 762.37  | 0.92x                | ±0.34%          |
+| dlxlib                 | 446.27  | 0.54x                | ±0.60%          |
+| dance                  | 100.90  | 0.12x                | ±0.87%          |
 
 ### Finding ten pentomino tilings on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (binary) | 62.41   | **1.00x (fastest)**  | ±1.63%          |
-| dancing-links (sparse) | 61.76   | 0.99x                | ±1.27%          |
-| dlxlib                 | 61.24   | 0.98x                | ±1.21%          |
-| dance                  | 16.07   | 0.26x                | ±0.92%          |
+| dancing-links (sparse) | 117.94  | **1.00x (fastest)**  | ±0.57%          |
+| dancing-links (binary) | 114.12  | 0.97x                | ±1.02%          |
+| dlxlib                 | 85.77   | 0.73x                | ±1.51%          |
+| dance                  | 20.07   | 0.17x                | ±1.05%          |
 
 ### Finding one hundred pentomino tilings on a 6x10 field
 
 | Library                | Ops/Sec | Relative Performance | Margin of Error |
 | ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 8.80    | **1.00x (fastest)**  | ±1.21%          |
-| dancing-links (binary) | 8.69    | 0.99x                | ±0.99%          |
-| dlxlib                 | 7.93    | 0.90x                | ±1.24%          |
-| dance                  | 2.24    | 0.25x                | ±0.79%          |
+| dancing-links (binary) | 16.00   | **1.00x (fastest)**  | ±0.80%          |
+| dancing-links (sparse) | 15.98   | 1.00x                | ±0.63%          |
+| dlxlib                 | 11.78   | 0.74x                | ±1.47%          |
+| dance                  | 2.90    | 0.18x                | ±1.21%          |
 
 **Testing Environment:**
 

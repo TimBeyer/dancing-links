@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.3.9](https://github.com/TimBeyer/dancing-links/compare/v4.3.8...v4.3.9) (2026-07-13)
+
+
+### Bug Fixes
+
+* preserve reentrant sparse batch semantics ([63eb726](https://github.com/TimBeyer/dancing-links/commit/63eb72685c23e44b01aef96f1d41f1116481d033))
+* resume generators after root-level solutions ([8a07b10](https://github.com/TimBeyer/dancing-links/commit/8a07b10dd08c395834afa12ebcc0d4f97c22d5c0))
+* specialize zero-primary exact covers ([e3a6068](https://github.com/TimBeyer/dancing-links/commit/e3a606839ac14b95a3296ffa4d2fff4aecdef643))
+* widen storage when row indices exceed uint16 ([1315b92](https://github.com/TimBeyer/dancing-links/commit/1315b92ecbe369d57dfc7c2209cc4a4636a96c34))
+
+
+### Performance Improvements
+
+* append sparse batches through packed indexed stores ([3ede35d](https://github.com/TimBeyer/dancing-links/commit/3ede35ddda70ad5929e17f17b3a2e1a92272c65d))
+* compact and stabilize dancing links search ([584648f](https://github.com/TimBeyer/dancing-links/commit/584648ffd2299a04dff3e77eb2ef31648bbe40ad))
+* defer template row copies until mutation ([64ecc76](https://github.com/TimBeyer/dancing-links/commit/64ecc76431c5784dc0ac5b07ff049eb619125d2a))
+* keep row construction optimized through return ([093d0b9](https://github.com/TimBeyer/dancing-links/commit/093d0b920687cb32130ba0278126ebe2a80ea4b9))
+* size node metadata by its index domain ([1624168](https://github.com/TimBeyer/dancing-links/commit/1624168d627f6b5a877b4ccdc0f7dcd0a4dfa55e))
+
 ## [4.3.8](https://github.com/TimBeyer/dancing-links/compare/v4.3.7...v4.3.8) (2026-07-13)
 
 
