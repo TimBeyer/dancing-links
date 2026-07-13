@@ -40,7 +40,7 @@ function cover(nodes: NodeStore, columns: ColumnStore, colIndex: number): void {
   next[leftColIndex] = rightColIndex
   prev[rightColIndex] = leftColIndex
   const colHeadIndex = colIndex
-  for (let rr = down[colHeadIndex]; rr !== colHeadIndex;) {
+  for (let rr = down[colHeadIndex]; rr !== colHeadIndex; ) {
     const nextRR = down[rr]
     const row = rowIndex[rr]
     const firstInRow = rowStart[row]
@@ -70,7 +70,7 @@ function uncover(nodes: NodeStore, columns: ColumnStore, colIndex: number): void
   const { down, up, col, rowIndex, rowStart } = nodes
   const { len, prev, next } = columns
   const colHeadIndex = colIndex
-  for (let rr = up[colHeadIndex]; rr !== colHeadIndex;) {
+  for (let rr = up[colHeadIndex]; rr !== colHeadIndex; ) {
     const nextRR = up[rr]
     const row = rowIndex[rr]
     const firstInRow = rowStart[row]
@@ -120,7 +120,7 @@ function coverRow(nodes: NodeStore, columns: ColumnStore, currentNodeIndex: numb
       const rightColIndex = next[colIndex]
       next[leftColIndex] = rightColIndex
       prev[rightColIndex] = leftColIndex
-      for (let rr = down[colIndex]; rr !== colIndex;) {
+      for (let rr = down[colIndex]; rr !== colIndex; ) {
         const nextRR = down[rr]
         const row = rowIndex[rr]
         const firstInRow = rowStart[row]
@@ -161,7 +161,7 @@ function uncoverRow(nodes: NodeStore, columns: ColumnStore, currentNodeIndex: nu
   while (true) {
     for (; pp > beforeRange; pp--) {
       const colIndex = col[pp]
-      for (let rr = up[colIndex]; rr !== colIndex;) {
+      for (let rr = up[colIndex]; rr !== colIndex; ) {
         const nextRR = up[rr]
         const row = rowIndex[rr]
         const firstInRow = rowStart[row]
