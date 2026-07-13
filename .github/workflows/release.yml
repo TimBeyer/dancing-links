@@ -28,22 +28,31 @@ jobs:
 
   # Release only after all prerequisites complete
   release:
-    runs-on: namespace-profile-default
+    # npm trusted publishing currently accepts only GitHub-hosted runners.
+    runs-on: ubuntu-latest
     needs: [lint, test, build]
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 25
-          cache: 'npm'
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Install npm with trusted publishing support
+        # Trusted publishing requires npm >=11.5.1; pin the major so a future
+        # npm release cannot silently change the privileged release toolchain.
+        run: npm install --global npm@11
 
       - name: Install dependencies
         run: npm ci
@@ -57,8 +66,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Release
-        run: npm run release -- --ci
+        # release-it skips its token-only npm preflight; npm publish exchanges
+        # this job's short-lived OIDC identity for registry authorization.
+        run: npm run release -- --ci --npm.skipChecks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
