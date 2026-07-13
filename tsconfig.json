@@ -1,29 +1,22 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "useDefineForClassFields": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "outDir": "./built/lib",
-    "declarationDir": "./built/typings",
-    "lib": ["ES2022", "DOM"],
-    "sourceMap": true,
-    "declaration": true,
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-
-    // Strict Type Checking - reduced from full strict mode
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "types": ["node", "mocha"]
   },
-  "include": ["./index.ts", "./lib/**/*", "./test/**/*"],
-  "exclude": ["node_modules", "built", "benchmark", "scripts"],
-  "ts-node": {
-    "esm": true
-  }
+  "include": ["src", "test/game", "vite.config.ts"]
 }

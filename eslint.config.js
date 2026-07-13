@@ -5,26 +5,7 @@ import tsparser from '@typescript-eslint/parser'
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.ts'],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        ecmaVersion: 2022,
-        sourceType: 'module',
-        project: './tsconfig.json'
-      }
-    },
-    plugins: {
-      '@typescript-eslint': tseslint
-    },
-    rules: {
-      ...tseslint.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
-    }
-  },
-  {
-    files: ['test/**/*.ts'],
+    files: ['src/**/*.ts', 'test/game/**/*.ts', 'vite.config.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -33,12 +14,15 @@ export default [
         project: './tsconfig.json'
       },
       globals: {
+        document: 'readonly',
+        window: 'readonly',
+        performance: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        localStorage: 'readonly',
+        console: 'readonly',
         describe: 'readonly',
-        it: 'readonly',
-        before: 'readonly',
-        after: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly'
+        it: 'readonly'
       }
     },
     plugins: {
@@ -46,41 +30,10 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
+      '@typescript-eslint/no-unused-vars': 'error'
     }
   },
   {
-    files: ['**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module'
-    }
-  },
-  {
-    files: ['scripts/**/*.ts'],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        ecmaVersion: 2022,
-        sourceType: 'module',
-        project: './tsconfig.dev.json'
-      },
-      globals: {
-        process: 'readonly',
-        console: 'readonly'
-      }
-    },
-    plugins: {
-      '@typescript-eslint': tseslint
-    },
-    rules: {
-      ...tseslint.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'off' // Allow any for generic library
-    }
-  },
-  {
-    ignores: ['built/**', 'node_modules/**', 'benchmark/**', '*.mjs']
+    ignores: ['built/**', 'dist/**', 'node_modules/**', 'benchmark/**', 'lib/**', 'test/unit/**']
   }
 ]
