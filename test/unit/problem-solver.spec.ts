@@ -198,6 +198,21 @@ describe('ProblemSolver', function () {
       expect(normalizeAndSort(generatorSolutions)).to.deep.equal(normalizeAndSort(allSolutions))
     })
 
+    it('should resume after a solution found at the root search level', function () {
+      const solver = new DancingLinks<string>().createSolver({ columns: 1 })
+      solver.addSparseConstraints([
+        { data: 'first', columnIndices: [0] },
+        { data: 'second', columnIndices: [0] }
+      ])
+
+      // Both solutions are direct choices in the root column. The resumable
+      // search must recover the first row before advancing to the second.
+      expect([...solver.createGenerator()]).to.deep.equal([
+        [{ index: 0, data: 'first' }],
+        [{ index: 1, data: 'second' }]
+      ])
+    })
+
     it('should support early termination', function () {
       const dlx = new DancingLinks<number>()
       const solver = dlx.createSolver({ columns: 3 })

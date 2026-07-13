@@ -290,12 +290,17 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   const { next } = columns
   const solutions: Result<T>[][] = []
 
+  // Root column is always at index 0 (created by ProblemBuilder)
+  const rootColIndex = 0
   let currentSearchState: SearchState
 
   if (!context.hasStarted) {
     currentSearchState = SearchState.FORWARD
     context.hasStarted = true
-  } else if (context.level > 0) {
+  } else if (context.level > 0 || next[rootColIndex] === rootColIndex) {
+    // A limited search can pause immediately after a solution at level 0. In
+    // that state every primary column is still covered, so the empty root list
+    // distinguishes a resumable choice from an exhausted root-level search.
     currentSearchState = SearchState.RECOVER
   } else {
     // Must be: hasStarted=true && level=0 (backtracked to root)
@@ -311,9 +316,6 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
      */
     return []
   }
-
-  // Root column is always at index 0 (created by ProblemBuilder)
-  const rootColIndex = 0
 
   // Keep the state transitions in one stable function. Besides avoiding call
   // overhead, this prevents V8 from deoptimizing on fresh nested-function
