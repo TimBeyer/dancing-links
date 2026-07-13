@@ -175,6 +175,34 @@ describe('Complex Constraints', () => {
       expect(solutions[0][0].data).to.equal('covers_primary')
     })
 
+    it('should return one empty solution when there are no primary columns', () => {
+      const solver = new DancingLinks<string>().createSolver({
+        primaryColumns: 0,
+        secondaryColumns: 2
+      })
+      solver.addSparseConstraints([
+        { data: 'optional-a', columnIndices: { primary: [], secondary: [0] } },
+        { data: 'optional-b', columnIndices: { primary: [], secondary: [1] } }
+      ])
+
+      // Secondary columns are optional, so choosing no rows is the one exact
+      // cover. Optional-only rows must not create additional solutions.
+      expect(solver.findOne()).to.deep.equal([[]])
+      expect(solver.find(5)).to.deep.equal([[]])
+      expect(solver.findAll()).to.deep.equal([[]])
+      expect([...solver.createGenerator()]).to.deep.equal([[]])
+    })
+
+    it('should retain validation in the zero-primary specialization', () => {
+      const solver = new DancingLinks<string>()
+        .createSolver({ primaryColumns: 0, secondaryColumns: 1 })
+        .validateConstraints()
+
+      expect(() => solver.addSparseConstraint('invalid', { primary: [], secondary: [1] })).to.throw(
+        'Secondary column index 1 exceeds secondaryColumns limit of 1'
+      )
+    })
+
     it('should handle scenarios with no valid solutions', () => {
       const dlx = new DancingLinks<string>()
       const solver = dlx.createSolver({ primaryColumns: 2, secondaryColumns: 1 })

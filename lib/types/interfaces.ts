@@ -126,6 +126,8 @@ export interface ConstraintHandler<T, Mode extends SolverMode> {
   addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this
   addRow(row: ConstraintRow<T>): this
   addRows(rows: ConstraintRow<T>[]): this
+  /** @internal Copy a compiled template's shared row-reference table before mutation. */
+  detachConstraints(): void
   getConstraints(): ConstraintRow<T>[]
   getNumPrimary(): number
   getNumSecondary(): number

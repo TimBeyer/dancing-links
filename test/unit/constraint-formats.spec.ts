@@ -29,6 +29,75 @@ describe('Constraint Formats', function () {
     expect(solutionData).to.deep.include([1, 3])
   })
 
+  it('should append unchecked sparse batches without overwriting or leaving gaps', function () {
+    const emptySolver = new DancingLinks<string>().createSolver({ columns: 1 })
+    emptySolver.addSparseConstraints([])
+    expect(() => emptySolver.findAll()).to.throw('Cannot solve problem with no constraints')
+
+    const solver = new DancingLinks<string>().createSolver({ columns: 3 })
+    solver.addSparseConstraint('zero', [0])
+    solver.addSparseConstraints([])
+    solver.addSparseConstraints([
+      { data: 'one', columnIndices: [1] },
+      { data: 'two', columnIndices: [2] }
+    ])
+
+    const solutions = solver.findAll()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+      { index: 0, data: 'zero' },
+      { index: 1, data: 'one' },
+      { index: 2, data: 'two' }
+    ])
+  })
+
+  it('should commit only completed unchecked rows when reading a later row throws', function () {
+    const solver = new DancingLinks<string>().createSolver({ columns: 2 })
+    const throwingConstraint = {
+      data: 'invalid',
+      get columnIndices(): number[] {
+        throw new Error('input access failed')
+      }
+    }
+
+    expect(() =>
+      solver.addSparseConstraints([
+        { data: 'kept', columnIndices: [0] },
+        throwingConstraint,
+        { data: 'later', columnIndices: [1] }
+      ])
+    ).to.throw('input access failed')
+
+    solver.addSparseConstraint('replacement', [1])
+    const solutions = solver.findAll()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+      { index: 0, data: 'kept' },
+      { index: 1, data: 'replacement' }
+    ])
+  })
+
+  it('should append after rows added reentrantly by an input getter', function () {
+    const solver = new DancingLinks<string>().createSolver({ columns: 3 })
+    const reentrantConstraint = {
+      data: 'outer',
+      get columnIndices(): number[] {
+        solver.addSparseConstraint('nested', [1])
+        return [0]
+      }
+    }
+
+    solver.addSparseConstraints([reentrantConstraint, { data: 'later', columnIndices: [2] }])
+
+    const solutions = solver.findAll()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+      { index: 0, data: 'nested' },
+      { index: 1, data: 'outer' },
+      { index: 2, data: 'later' }
+    ])
+  })
+
   it('should support binary constraint format for compatibility', function () {
     const dlx = new DancingLinks<number>()
     const solver = dlx.createSolver({ columns: 3 })

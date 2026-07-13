@@ -123,6 +123,24 @@ export class ComplexConstraintHandler<T> implements ConstraintHandler<T, 'comple
     return this
   }
 
+  /**
+   * Share the compiled immutable row snapshot with a new template handler in
+   * O(1), while ordinary constructors retain their original monomorphic shape.
+   * @internal
+   */
+  shareConstraints(constraints: ConstraintRow<T>[]): void {
+    this.constraints = constraints
+  }
+
+  /**
+   * Copy the compiled template's shared row-reference table on first mutation.
+   * Read-only template solvers avoid that O(number of rows) work entirely, and
+   * both fresh and template solvers retain this one handler class and hot shape.
+   */
+  detachConstraints(): void {
+    this.constraints = this.constraints.slice()
+  }
+
   getConstraints(): ConstraintRow<T>[] {
     return this.constraints
   }

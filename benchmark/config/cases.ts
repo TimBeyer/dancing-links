@@ -42,7 +42,31 @@ export const cases = {
     problemType: 'pentomino',
     parameters: {},
     executeStrategy: (solver, prepared) => solver.solveCount(prepared, 100)
-  } satisfies BenchmarkCase<'pentomino'>
+  } satisfies BenchmarkCase<'pentomino'>,
+
+  'index-width-16': {
+    id: 'index-width-16',
+    name: 'Fresh exhaustive search at 65,535 nodes (Uint16)',
+    problemType: 'index-width',
+    parameters: { nodeCount: 65_535 },
+    executeStrategy: (solver, prepared) => solver.solveAll(prepared)
+  } satisfies BenchmarkCase<'index-width'>,
+
+  'index-width-32': {
+    id: 'index-width-32',
+    name: 'Fresh exhaustive search at 65,536 nodes (Int32)',
+    problemType: 'index-width',
+    parameters: { nodeCount: 65_536 },
+    executeStrategy: (solver, prepared) => solver.solveAll(prepared)
+  } satisfies BenchmarkCase<'index-width'>,
+
+  'index-width-mixed': {
+    id: 'index-width-mixed',
+    name: 'Fresh sequential Uint16 and Int32 exhaustive searches',
+    problemType: 'index-width',
+    parameters: { nodeCount: 65_536 },
+    executeStrategy: (solver, prepared) => solver.solveAll(prepared)
+  } satisfies BenchmarkCase<'index-width'>
 } as const
 
 export type CaseId = keyof typeof cases

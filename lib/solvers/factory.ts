@@ -26,7 +26,7 @@ import {
   isComplexSolverConfig
 } from '../types/interfaces.js'
 import { SimpleConstraintHandler, ComplexConstraintHandler } from '../constraints/index.js'
-import { ProblemSolver } from './solver.js'
+import { ProblemSolver, createZeroPrimaryProblemSolver } from './solver.js'
 import { SolverTemplate } from './template.js'
 
 /**
@@ -65,9 +65,17 @@ export class DancingLinks<T> {
   createSolver(config: SolverConfig): ProblemSolver<T, 'simple'> | ProblemSolver<T, 'complex'> {
     if (isComplexSolverConfig(config)) {
       const handler = new ComplexConstraintHandler<T>(config)
+      // Zero-primary exact covers take a cold O(1) solution path. Selecting it
+      // once here keeps an extra root-empty branch out of every normal search.
+      if (config.primaryColumns === 0) {
+        return createZeroPrimaryProblemSolver<T, 'complex'>(handler)
+      }
       return new ProblemSolver<T, 'complex'>(handler)
     } else {
       const handler = new SimpleConstraintHandler<T>(config)
+      if (config.columns === 0) {
+        return createZeroPrimaryProblemSolver<T, 'simple'>(handler)
+      }
       return new ProblemSolver<T, 'simple'>(handler)
     }
   }

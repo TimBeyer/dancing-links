@@ -158,6 +158,142 @@ describe('SolverTemplate', function () {
   })
 
   describe('Template State Isolation', function () {
+    it('should isolate a local row in a zero-column template', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 0 })
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+
+      changedSolver.addSparseConstraint('local-empty-row', [])
+
+      expect(changedSolver.findAll()).to.deep.equal([[]])
+      expect(() => untouchedSolver.findAll()).to.throw('Cannot solve problem with no constraints')
+      expect(() => template.createSolver().findAll()).to.throw(
+        'Cannot solve problem with no constraints'
+      )
+
+      const generator = untouchedSolver.createGenerator()
+      expect(() => generator.next()).to.throw('Cannot solve problem with no constraints')
+    })
+
+    it('should isolate and share complex zero-primary template rows with validation', function () {
+      const template = new DancingLinks<string>()
+        .createSolverTemplate({ primaryColumns: 0, secondaryColumns: 1 })
+        .validateConstraints()
+
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+      changedSolver.addSparseConstraint('local-optional', { primary: [], secondary: [0] })
+
+      // A local row makes only the detached solver solvable; the empty shared
+      // snapshot still triggers the established no-constraints error.
+      expect(changedSolver.findAll()).to.deep.equal([[]])
+      expect(() => untouchedSolver.findAll()).to.throw('Cannot solve problem with no constraints')
+      expect(() => template.createSolver().findAll()).to.throw(
+        'Cannot solve problem with no constraints'
+      )
+
+      expect(() =>
+        changedSolver.addSparseConstraint('invalid', { primary: [], secondary: [1] })
+      ).to.throw('Secondary column index 1 exceeds secondaryColumns limit of 1')
+
+      // Once the template owns a valid optional row, multiple solvers share its
+      // snapshot and independently expose the one empty exact cover.
+      template.addSparseConstraint('template-optional', { primary: [], secondary: [0] })
+      expect(template.createSolver().findAll()).to.deep.equal([[]])
+      expect(template.createSolver().findAll()).to.deep.equal([[]])
+    })
+
+    it('should rebuild solver-local changes from the compiled topology snapshot', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
+      const callerOwnedColumns = [0]
+
+      template.addSparseConstraint('left', callerOwnedColumns)
+      const solver = template.createSolver()
+
+      // Compiled links already describe [0]. Mutating the caller's source array
+      // must not change the rows used when this solver detaches and rebuilds.
+      callerOwnedColumns.push(1)
+      solver.addSparseConstraint('right', [1])
+
+      const solutions = solver.findAll()
+      expect(solutions).to.have.length(1)
+      expect(solutions[0]!.map(result => result.data).sort()).to.deep.equal(['left', 'right'])
+    })
+
+    it('should detach complex template rows before a solver-local mutation', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({
+        primaryColumns: 2,
+        secondaryColumns: 1
+      })
+
+      template.addSparseConstraint('left', { primary: [0], secondary: [0] })
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+
+      changedSolver.addSparseConstraint('right', { primary: [1], secondary: [] })
+
+      const changedSolutions = changedSolver.findAll()
+      expect(changedSolutions).to.have.length(1)
+      expect(changedSolutions[0]!.map(result => result.data).sort()).to.deep.equal([
+        'left',
+        'right'
+      ])
+      expect(untouchedSolver.findAll()).to.have.length(0)
+    })
+
+    it('should isolate a validated solver after a partially accepted local batch', function () {
+      const template = new DancingLinks<string>()
+        .createSolverTemplate({ columns: 3 })
+        .validateConstraints()
+      template.addSparseConstraint('base', [0])
+
+      const changedSolver = template.createSolver()
+      expect(() =>
+        changedSolver.addSparseConstraints([
+          { data: 'local', columnIndices: [1] },
+          { data: 'invalid', columnIndices: [3] },
+          { data: 'later', columnIndices: [2] }
+        ])
+      ).to.throw('Column index 3 exceeds columns limit of 3')
+
+      changedSolver.addSparseConstraint('replacement', [2])
+      const changedSolutions = changedSolver.findAll()
+      expect(changedSolutions).to.have.length(1)
+      expect(changedSolutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+        { index: 0, data: 'base' },
+        { index: 1, data: 'local' },
+        { index: 2, data: 'replacement' }
+      ])
+
+      // The throwing batch detached before mutation, so neither its accepted
+      // prefix nor an empty slot can leak back into the compiled template.
+      expect(template.createSolver().findAll()).to.have.length(0)
+    })
+
+    it('should invalidate the compiled layout when the template changes', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
+
+      template.addSparseConstraint('left', [0]).addSparseConstraint('right', [1])
+
+      // Creating this solver compiles the original template layout.
+      const originalSolver = template.createSolver()
+
+      // This row creates a second solution and must invalidate that layout.
+      template.addSparseConstraint('combined', [0, 1])
+      const updatedSolver = template.createSolver()
+
+      const originalSolutions = originalSolver.findAll()
+      const updatedSolutions = updatedSolver.findAll()
+
+      expect(
+        originalSolutions.map(solution => solution.map(result => result.data).sort())
+      ).to.deep.equal([['left', 'right']])
+      expect(updatedSolutions.map(solution => solution.map(result => result.data))).to.deep.include(
+        ['combined']
+      )
+      expect(updatedSolutions).to.have.length(2)
+    })
+
     it('should isolate template modifications from existing solvers', function () {
       const dlx = new DancingLinks<string>()
       const template = dlx.createSolverTemplate({ columns: 3 })

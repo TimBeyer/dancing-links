@@ -8,6 +8,10 @@ import { DancingLinksSparseSolver } from '../solvers/InternalSparseSolver.js'
 import { DancingLinksBinarySolver } from '../solvers/InternalBinarySolver.js'
 import { DancingLinksTemplateSolver } from '../solvers/InternalTemplateSolver.js'
 import { DancingLinksGeneratorSolver } from '../solvers/InternalGeneratorSolver.js'
+import {
+  IndexWidthFreshSolver,
+  IndexWidthMixedSolver
+} from '../solvers/InternalIndexWidthSolver.js'
 
 // External library solver imports
 import { DlxlibSolver } from '../solvers/ExternalDlxlibSolver.js'
@@ -23,6 +27,8 @@ export const solvers = {
   binary: DancingLinksBinarySolver,
   template: DancingLinksTemplateSolver,
   generator: DancingLinksGeneratorSolver,
+  'width-fresh': IndexWidthFreshSolver,
+  'width-mixed': IndexWidthMixedSolver,
   dlxlib: DlxlibSolver,
   dance: DanceSolver,
   'dancing-links-algorithm': DancingLinksAlgorithmSolver

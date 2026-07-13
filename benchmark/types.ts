@@ -63,10 +63,14 @@ export interface NQueensParams {
   n: number
 }
 
+export interface IndexWidthParams {
+  nodeCount: 65_535 | 65_536
+}
+
 /**
  * Problem type discriminated union
  */
-export type ProblemType = 'sudoku' | 'pentomino' | 'n-queens'
+export type ProblemType = 'sudoku' | 'pentomino' | 'n-queens' | 'index-width'
 
 /**
  * Problem parameters mapped to their types
@@ -77,7 +81,9 @@ export type ProblemParameters<T extends ProblemType> = T extends 'sudoku'
     ? PentominoParams
     : T extends 'n-queens'
       ? NQueensParams
-      : never
+      : T extends 'index-width'
+        ? IndexWidthParams
+        : never
 
 /**
  * Benchmark case definition with proper type inference

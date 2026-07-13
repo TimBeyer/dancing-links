@@ -33,6 +33,8 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
   }
 
   addSparseConstraints(constraints: SparseConstraintBatch<T, 'simple'>): this {
+    const target = this.constraints
+
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnIndices } = constraints[i]
 
@@ -43,9 +45,20 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
             throw new Error(`Column index ${col} exceeds columns limit of ${this.numColumns}`)
           }
         }
+
+        // Validation is the behavioral fallback: commit only after this row is
+        // valid, using the original live-tail append so a later failure keeps
+        // the already accepted prefix exactly as before.
+        target.push({ coveredColumns: columnIndices, data })
+        continue
       }
 
-      this.constraints.push({ coveredColumns: columnIndices, data })
+      // A direct store at the live tail avoids Array#push's generic method call
+      // while preserving reentrant getter behavior: nested appends advance
+      // target.length before this row is committed. Growing one slot at a time
+      // also retains V8's PACKED elements kind; pre-growing length would make
+      // the shared builder consume a permanently slower HOLEY array.
+      target[target.length] = { coveredColumns: columnIndices, data }
     }
     return this
   }
@@ -86,6 +99,28 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
   addRows(rows: ConstraintRow<T>[]): this {
     this.constraints.push(...rows)
     return this
+  }
+
+  /**
+   * Point a new template handler at the compiled immutable row snapshot in O(1).
+   * Keeping this out of the constructor leaves ordinary solver construction on
+   * its original monomorphic call shape and avoids copying every row reference.
+   * @internal
+   */
+  shareConstraints(constraints: ConstraintRow<T>[]): void {
+    this.constraints = constraints
+  }
+
+  /**
+   * Detach a template solver from its shared immutable row-reference table.
+   *
+   * Regular handlers already own their rows and never call this method. A
+   * template handler starts with the compiled context's array so creation is
+   * O(1), then its first solver-local mutation pays the same shallow copy that
+   * used to be paid eagerly by every solver, including read-only instances.
+   */
+  detachConstraints(): void {
+    this.constraints = this.constraints.slice()
   }
 
   getConstraints(): ConstraintRow<T>[] {
