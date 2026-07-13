@@ -22,6 +22,8 @@
     "dancing-links": "^4.3.9"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.18.0",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
