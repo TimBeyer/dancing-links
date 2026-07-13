@@ -158,6 +158,44 @@ describe('SolverTemplate', function () {
   })
 
   describe('Template State Isolation', function () {
+    it('should rebuild solver-local changes from the compiled topology snapshot', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
+      const callerOwnedColumns = [0]
+
+      template.addSparseConstraint('left', callerOwnedColumns)
+      const solver = template.createSolver()
+
+      // Compiled links already describe [0]. Mutating the caller's source array
+      // must not change the rows used when this solver detaches and rebuilds.
+      callerOwnedColumns.push(1)
+      solver.addSparseConstraint('right', [1])
+
+      const solutions = solver.findAll()
+      expect(solutions).to.have.length(1)
+      expect(solutions[0]!.map(result => result.data).sort()).to.deep.equal(['left', 'right'])
+    })
+
+    it('should detach complex template rows before a solver-local mutation', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({
+        primaryColumns: 2,
+        secondaryColumns: 1
+      })
+
+      template.addSparseConstraint('left', { primary: [0], secondary: [0] })
+      const changedSolver = template.createSolver()
+      const untouchedSolver = template.createSolver()
+
+      changedSolver.addSparseConstraint('right', { primary: [1], secondary: [] })
+
+      const changedSolutions = changedSolver.findAll()
+      expect(changedSolutions).to.have.length(1)
+      expect(changedSolutions[0]!.map(result => result.data).sort()).to.deep.equal([
+        'left',
+        'right'
+      ])
+      expect(untouchedSolver.findAll()).to.have.length(0)
+    })
+
     it('should invalidate the compiled layout when the template changes', function () {
       const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
 

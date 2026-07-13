@@ -88,6 +88,28 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
     return this
   }
 
+  /**
+   * Point a new template handler at the compiled immutable row snapshot in O(1).
+   * Keeping this out of the constructor leaves ordinary solver construction on
+   * its original monomorphic call shape and avoids copying every row reference.
+   * @internal
+   */
+  shareConstraints(constraints: ConstraintRow<T>[]): void {
+    this.constraints = constraints
+  }
+
+  /**
+   * Detach a template solver from its shared immutable row-reference table.
+   *
+   * Regular handlers already own their rows and never call this method. A
+   * template handler starts with the compiled context's array so creation is
+   * O(1), then its first solver-local mutation pays the same shallow copy that
+   * used to be paid eagerly by every solver, including read-only instances.
+   */
+  detachConstraints(): void {
+    this.constraints = this.constraints.slice()
+  }
+
   getConstraints(): ConstraintRow<T>[] {
     return this.constraints
   }

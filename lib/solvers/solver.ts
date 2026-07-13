@@ -45,25 +45,35 @@ export class ProblemSolver<T, Mode extends SolverMode> {
   }
 
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
-    this.contextTemplate = undefined
+    this.detachContextTemplate()
     this.handler.addSparseConstraint(data, columnIndices)
     return this
   }
 
   addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this {
-    this.contextTemplate = undefined
+    // Keep this rare detach inline: batches are the hot ingestion API, so fresh
+    // solvers pay only one predictable branch before the branch-free handler.
+    if (this.contextTemplate) {
+      this.handler.detachConstraints()
+      this.contextTemplate = undefined
+    }
     this.handler.addSparseConstraints(constraints)
     return this
   }
 
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
-    this.contextTemplate = undefined
+    this.detachContextTemplate()
     this.handler.addBinaryConstraint(data, columnValues)
     return this
   }
 
   addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this {
-    this.contextTemplate = undefined
+    // Match the sparse batch fast path; binary conversion is still performed by
+    // the ordinary monomorphic handler after one predictable detach check.
+    if (this.contextTemplate) {
+      this.handler.detachConstraints()
+      this.contextTemplate = undefined
+    }
     this.handler.addBinaryConstraints(constraints)
     return this
   }
@@ -76,13 +86,13 @@ export class ProblemSolver<T, Mode extends SolverMode> {
    * @internal
    */
   addRow(row: ConstraintRow<T>): this {
-    this.contextTemplate = undefined
+    this.detachContextTemplate()
     this.handler.addRow(row)
     return this
   }
 
   addRows(rows: ConstraintRow<T>[]): this {
-    this.contextTemplate = undefined
+    this.detachContextTemplate()
     this.handler.addRows(rows)
     return this
   }
@@ -198,5 +208,21 @@ export class ProblemSolver<T, Mode extends SolverMode> {
       numSecondary: this.handler.getNumSecondary(),
       rows: constraints
     })
+  }
+
+  /**
+   * Detach template rows only when a solver actually adds local rows.
+   *
+   * Template creation used to copy the entire row-reference table for every
+   * solver even though read-only solvers search the compiled context directly.
+   * Deferring that O(number of template rows) copy makes the common read-only
+   * path O(1). The handler class and hot solve path remain identical for fresh
+   * and template solvers, avoiding mixed-workload JIT polymorphism.
+   */
+  private detachContextTemplate(): void {
+    if (this.contextTemplate) {
+      this.handler.detachConstraints()
+      this.contextTemplate = undefined
+    }
   }
 }
