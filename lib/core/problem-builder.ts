@@ -56,6 +56,18 @@ export interface ProblemConfig<T> {
 const ROOT_COLUMN_OFFSET = 1
 
 /**
+ * Write the once-per-matrix row boundary outside buildRows' hot optimization unit.
+ *
+ * V8 can enter buildRows through on-stack replacement before this final keyed
+ * store has type feedback, then deoptimize the entire construction loop when it
+ * reaches the store. This stable helper gathers feedback independently and lets
+ * the row-building loop stay optimized through its return.
+ */
+function writeFinalRowBoundary(nodes: NodeStore, rowCount: number, nextNodeIndex: number): void {
+  nodes.rowStart[rowCount] = nextNodeIndex
+}
+
+/**
  * Builds Dancing Links data structures from constraint rows
  */
 export class ProblemBuilder {
@@ -74,7 +86,8 @@ export class ProblemBuilder {
     this.buildColumns(nodes, columns, numPrimary, numSecondary)
 
     // Build row structure
-    this.buildRows(nodes, columns, rows)
+    const nextNodeIndex = this.buildRows(nodes, columns, rows)
+    writeFinalRowBoundary(nodes, rows.length, nextNodeIndex)
 
     return {
       level: 0,
@@ -161,7 +174,7 @@ export class ProblemBuilder {
     nodes: NodeStore,
     columns: ColumnStore,
     rows: ConstraintRow<T>[]
-  ): void {
+  ): number {
     const { up, down, col, rowIndex, rowStart } = nodes
     const { len } = columns
     let nextNodeIndex = columns.size
@@ -191,8 +204,6 @@ export class ProblemBuilder {
       }
     }
 
-    // The sentinel boundary makes every row's half-open range available as
-    // [rowStart[row], rowStart[row + 1]) without a separate length array.
-    rowStart[rows.length] = nextNodeIndex
+    return nextNodeIndex
   }
 }
