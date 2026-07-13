@@ -77,6 +77,27 @@ describe('Constraint Formats', function () {
     ])
   })
 
+  it('should append after rows added reentrantly by an input getter', function () {
+    const solver = new DancingLinks<string>().createSolver({ columns: 3 })
+    const reentrantConstraint = {
+      data: 'outer',
+      get columnIndices(): number[] {
+        solver.addSparseConstraint('nested', [1])
+        return [0]
+      }
+    }
+
+    solver.addSparseConstraints([reentrantConstraint, { data: 'later', columnIndices: [2] }])
+
+    const solutions = solver.findAll()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+      { index: 0, data: 'nested' },
+      { index: 1, data: 'outer' },
+      { index: 2, data: 'later' }
+    ])
+  })
+
   it('should support binary constraint format for compatibility', function () {
     const dlx = new DancingLinks<number>()
     const solver = dlx.createSolver({ columns: 3 })

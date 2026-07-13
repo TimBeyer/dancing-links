@@ -47,6 +47,33 @@ describe('Solver Configurations', function () {
       ])
     })
 
+    it('should honor validation enabled reentrantly while reading a batch', function () {
+      const solver = new DancingLinks<string>().createSolver({ columns: 2 })
+      const enablingConstraint = {
+        data: 'kept',
+        get columnIndices(): number[] {
+          solver.validateConstraints()
+          return [0]
+        }
+      }
+
+      expect(() =>
+        solver.addSparseConstraints([
+          enablingConstraint,
+          { data: 'invalid', columnIndices: [2] },
+          { data: 'later', columnIndices: [1] }
+        ])
+      ).to.throw('Column index 2 exceeds columns limit of 2')
+
+      solver.addSparseConstraint('replacement', [1])
+      const solutions = solver.findAll()
+      expect(solutions).to.have.length(1)
+      expect(solutions[0]!.slice().sort((a, b) => a.index - b.index)).to.deep.equal([
+        { index: 0, data: 'kept' },
+        { index: 1, data: 'replacement' }
+      ])
+    })
+
     it('should validate binary constraint row length', function () {
       const dlx = new DancingLinks<string>()
       const solver = dlx.createSolver({ columns: 3 }).validateConstraints()

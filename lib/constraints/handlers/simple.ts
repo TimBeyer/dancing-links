@@ -34,35 +34,31 @@ export class SimpleConstraintHandler<T> implements ConstraintHandler<T, 'simple'
 
   addSparseConstraints(constraints: SparseConstraintBatch<T, 'simple'>): this {
     const target = this.constraints
-    let writeIndex = target.length
 
-    if (!this.validationEnabled) {
-      // Unchecked batches are the normal sparse-ingestion path. Consecutive
-      // indexed stores cache the packed array's tail, avoiding Array#push's
-      // generic call and length load/update for every row. Do not extend length
-      // up front: V8 would permanently mark the array holey, slowing the shared
-      // builder loops and exposing empty slots if input access throws.
-      for (let i = 0; i < constraints.length; i++) {
-        const { data, columnIndices } = constraints[i]
-        target[writeIndex++] = { coveredColumns: columnIndices, data }
-      }
-      return this
-    }
-
-    // Validation stays outside the hot default loop. Rows are still committed
-    // one at a time after validation, preserving the existing partial-append
-    // behavior when a later row is invalid.
     for (let i = 0; i < constraints.length; i++) {
       const { data, columnIndices } = constraints[i]
 
-      for (let j = 0; j < columnIndices.length; j++) {
-        const col = columnIndices[j]
-        if (col < 0 || col >= this.numColumns) {
-          throw new Error(`Column index ${col} exceeds columns limit of ${this.numColumns}`)
+      if (this.validationEnabled) {
+        for (let j = 0; j < columnIndices.length; j++) {
+          const col = columnIndices[j]
+          if (col < 0 || col >= this.numColumns) {
+            throw new Error(`Column index ${col} exceeds columns limit of ${this.numColumns}`)
+          }
         }
+
+        // Validation is the behavioral fallback: commit only after this row is
+        // valid, using the original live-tail append so a later failure keeps
+        // the already accepted prefix exactly as before.
+        target.push({ coveredColumns: columnIndices, data })
+        continue
       }
 
-      target[writeIndex++] = { coveredColumns: columnIndices, data }
+      // A direct store at the live tail avoids Array#push's generic method call
+      // while preserving reentrant getter behavior: nested appends advance
+      // target.length before this row is committed. Growing one slot at a time
+      // also retains V8's PACKED elements kind; pre-growing length would make
+      // the shared builder consume a permanently slower HOLEY array.
+      target[target.length] = { coveredColumns: columnIndices, data }
     }
     return this
   }
