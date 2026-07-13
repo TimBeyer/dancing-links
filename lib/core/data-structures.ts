@@ -21,8 +21,14 @@ const UINT16_SENTINEL = 0xffff
 
 type IndexArray = Int32Array | Uint16Array
 
+function alignOffset(offset: number, bytesPerElement: number): number {
+  return Math.ceil(offset / bytesPerElement) * bytesPerElement
+}
+
 export class NodeStore {
   readonly size: number
+  private readonly maxRows: number
+  private readonly maxColumns: number
   private readonly buffer: ArrayBuffer
 
   readonly up: IndexArray
@@ -34,22 +40,39 @@ export class NodeStore {
   constructor(
     maxNodes: number,
     maxRows: number,
+    maxColumns: number,
     sourceBuffer?: ArrayBuffer,
     immutableSource?: NodeStore
   ) {
     this.size = maxNodes
-    // Most exact-cover matrices fit below the reserved Uint16 sentinel. Using
-    // 16-bit indices halves navigation bandwidth and working-set size. Both node
-    // and row indices must fit: many empty rows can make maxRows exceed maxNodes.
-    // Either overflow domain transparently selects the behaviorally identical
-    // 32-bit fallback.
-    const IndexArrayConstructor =
-      maxNodes <= UINT16_SENTINEL && maxRows <= UINT16_SENTINEL ? Uint16Array : Int32Array
-    const bytesPerElement = IndexArrayConstructor.BYTES_PER_ELEMENT
-    const nodeFieldBytes = maxNodes * bytesPerElement
-    const bufferBytes = immutableSource
-      ? nodeFieldBytes * 2
-      : nodeFieldBytes * 4 + (maxRows + 1) * bytesPerElement
+    this.maxRows = maxRows
+    this.maxColumns = maxColumns
+    // Each field follows the domain of the values it stores. A large node table
+    // needs 32-bit navigation and row boundaries, but its column IDs and row IDs
+    // often still fit in 16 bits. Keeping those metadata streams narrow halves
+    // their search bandwidth and keeps the shared kernels' col/rowIndex load
+    // sites monomorphic when only navigation crosses the node-width boundary.
+    const NodeIndexArray = maxNodes <= UINT16_SENTINEL ? Uint16Array : Int32Array
+    const ColumnIndexArray = maxColumns <= UINT16_SENTINEL ? Uint16Array : Int32Array
+    const RowIndexArray = maxRows <= UINT16_SENTINEL ? Uint16Array : Int32Array
+    const nodeFieldBytes = maxNodes * NodeIndexArray.BYTES_PER_ELEMENT
+    const mutableBytes = nodeFieldBytes * 2
+
+    let colOffset = mutableBytes
+    let rowIndexOffset = mutableBytes
+    let rowStartOffset = mutableBytes
+    let bufferBytes = mutableBytes
+    if (!immutableSource) {
+      // Mixed-width views still share one allocation. Aligning only where a
+      // wider constructor requires it avoids separate buffers and their extra
+      // allocator/GC bookkeeping while adding at most a few padding bytes.
+      colOffset = alignOffset(bufferBytes, ColumnIndexArray.BYTES_PER_ELEMENT)
+      bufferBytes = colOffset + maxNodes * ColumnIndexArray.BYTES_PER_ELEMENT
+      rowIndexOffset = alignOffset(bufferBytes, RowIndexArray.BYTES_PER_ELEMENT)
+      bufferBytes = rowIndexOffset + maxNodes * RowIndexArray.BYTES_PER_ELEMENT
+      rowStartOffset = alignOffset(bufferBytes, NodeIndexArray.BYTES_PER_ELEMENT)
+      bufferBytes = rowStartOffset + (maxRows + 1) * NodeIndexArray.BYTES_PER_ELEMENT
+    }
     this.buffer = sourceBuffer ?? new ArrayBuffer(bufferBytes)
 
     // ProblemBuilder writes every used slot directly. Typed arrays already
@@ -57,19 +80,20 @@ export class NodeStore {
     // before the useful construction writes begin. One backing allocation also
     // reduces allocator/GC bookkeeping and keeps the navigation tables within a
     // compact virtual-memory range while retaining the SoA access pattern.
-    this.up = new IndexArrayConstructor(this.buffer, 0, maxNodes)
-    this.down = new IndexArrayConstructor(this.buffer, nodeFieldBytes, maxNodes)
+    this.up = new NodeIndexArray(this.buffer, 0, maxNodes)
+    this.down = new NodeIndexArray(this.buffer, nodeFieldBytes, maxNodes)
     if (immutableSource) {
-      // Search writes only up/down. Template clones share these read-only views,
-      // cutting copied node bytes by 60% while keeping ordinary builds in one
-      // allocation. The private template owns their lifetime and is never searched.
+      // Search writes only up/down. Template clones share every read-only view,
+      // so native copying remains limited to navigation bytes even when metadata
+      // uses an independently narrower width. The private template owns the
+      // shared views' lifetime and is never searched.
       this.col = immutableSource.col
       this.rowIndex = immutableSource.rowIndex
       this.rowStart = immutableSource.rowStart
     } else {
-      this.col = new IndexArrayConstructor(this.buffer, nodeFieldBytes * 2, maxNodes)
-      this.rowIndex = new IndexArrayConstructor(this.buffer, nodeFieldBytes * 3, maxNodes)
-      this.rowStart = new IndexArrayConstructor(this.buffer, nodeFieldBytes * 4, maxRows + 1)
+      this.col = new ColumnIndexArray(this.buffer, colOffset, maxNodes)
+      this.rowIndex = new RowIndexArray(this.buffer, rowIndexOffset, maxNodes)
+      this.rowStart = new NodeIndexArray(this.buffer, rowStartOffset, maxRows + 1)
     }
   }
 
@@ -79,7 +103,8 @@ export class NodeStore {
     const mutableBytes = this.up.byteLength + this.down.byteLength
     return new NodeStore(
       this.size,
-      this.rowStart.length - 1,
+      this.maxRows,
+      this.maxColumns,
       this.buffer.slice(0, mutableBytes),
       this
     )

@@ -79,7 +79,7 @@ export class ProblemBuilder {
 
     // Calculate required capacity and pre-allocate stores
     const { numNodes, numColumns } = calculateCapacity(numPrimary, numSecondary, rows)
-    const nodes = new NodeStore(numNodes, rows.length)
+    const nodes = new NodeStore(numNodes, rows.length, numColumns)
     const columns = new ColumnStore(numColumns, numNodes)
 
     // Build column structure

@@ -60,19 +60,24 @@ function verifyWidthAndSearch(prepared: PreparedIndexWidth): void {
     numSecondary: 0,
     rows: prepared.rows
   })
-  const ExpectedIndexArray = prepared.nodeCount === 0xffff ? Uint16Array : Int32Array
-  const views = [
-    context.nodes.up,
-    context.nodes.down,
-    context.nodes.col,
-    context.nodes.rowIndex,
-    context.nodes.rowStart,
-    context.columns.len,
-    context.columns.prev,
-    context.columns.next
+  const ExpectedNodeIndexArray = prepared.nodeCount === 0xffff ? Uint16Array : Int32Array
+  const views: Array<
+    [
+      Int32Array<ArrayBufferLike> | Uint16Array<ArrayBufferLike>,
+      typeof Int32Array | typeof Uint16Array
+    ]
+  > = [
+    [context.nodes.up, ExpectedNodeIndexArray],
+    [context.nodes.down, ExpectedNodeIndexArray],
+    [context.nodes.col, Uint16Array],
+    [context.nodes.rowIndex, Uint16Array],
+    [context.nodes.rowStart, ExpectedNodeIndexArray],
+    [context.columns.len, ExpectedNodeIndexArray],
+    [context.columns.prev, ExpectedNodeIndexArray],
+    [context.columns.next, ExpectedNodeIndexArray]
   ]
-  for (const view of views) {
-    if (!(view instanceof ExpectedIndexArray)) {
+  for (const [view, ExpectedArray] of views) {
+    if (!(view instanceof ExpectedArray)) {
       throw new Error(`Matrix ${prepared.nodeCount} selected the wrong integer storage width`)
     }
   }

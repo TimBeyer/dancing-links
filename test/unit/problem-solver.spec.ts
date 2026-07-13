@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { DancingLinks } from '../../index.js'
 import type { SimpleConstraint } from '../../index.js'
+import { search } from '../../lib/core/algorithm.js'
 import { ProblemBuilder } from '../../lib/core/problem-builder.js'
 
 describe('ProblemSolver', function () {
@@ -112,6 +113,26 @@ describe('ProblemSolver', function () {
     }))
     constraints.push({ data: 65_536, columnIndices: [0] })
 
+    const context = ProblemBuilder.buildContext({
+      numPrimary: 1,
+      numSecondary: 0,
+      rows: constraints.map(({ data, columnIndices }) => ({ coveredColumns: columnIndices, data }))
+    })
+    // A high row index no longer widens unrelated node and column domains. Only
+    // rowIndex needs Int32, while navigation and metadata remain compact.
+    expect(context.nodes.rowIndex).to.be.instanceOf(Int32Array)
+    for (const view of [
+      context.nodes.up,
+      context.nodes.down,
+      context.nodes.col,
+      context.nodes.rowStart,
+      context.columns.len,
+      context.columns.prev,
+      context.columns.next
+    ]) {
+      expect(view).to.be.instanceOf(Uint16Array)
+    }
+
     solver.addSparseConstraints(constraints)
 
     // Empty rows add no nodes, so this crosses only the row-index boundary.
@@ -119,6 +140,49 @@ describe('ProblemSolver', function () {
     const solutions = solver.findOne()
     expect(solutions).to.have.length(1)
     expect(solutions[0]).to.deep.equal([{ index: 65_536, data: 65_536 }])
+  })
+
+  it('should align independently widened node and row index views', function () {
+    this.timeout(10_000)
+
+    // One empty row followed by 65,535 single-node rows creates an odd 65,537
+    // node count and a row index of 65,535. The mixed 32/16/32-bit layout needs
+    // padding between col and rowIndex, so this also guards the shared buffer's
+    // alignment fallback rather than testing only even-sized cutoff matrices.
+    const rows = Array.from({ length: 65_536 }, (_, data) => ({
+      coveredColumns: data === 0 ? [] : [0],
+      data
+    }))
+    const context = ProblemBuilder.buildContext({ numPrimary: 1, numSecondary: 0, rows })
+
+    expect(context.nodes.size).to.equal(65_537)
+    expect(context.nodes.up).to.be.instanceOf(Int32Array)
+    expect(context.nodes.down).to.be.instanceOf(Int32Array)
+    expect(context.nodes.rowStart).to.be.instanceOf(Int32Array)
+    expect(context.nodes.col).to.be.instanceOf(Uint16Array)
+    expect(context.nodes.rowIndex).to.be.instanceOf(Int32Array)
+    expect(context.nodes.rowIndex[65_536]).to.equal(65_535)
+  })
+
+  it('should widen column IDs before the Uint16 sentinel becomes a valid ID', function () {
+    this.timeout(10_000)
+
+    const context = ProblemBuilder.buildContext({
+      numPrimary: 65_535,
+      numSecondary: 0,
+      rows: [{ coveredColumns: [65_534], data: 'highest-column' }]
+    })
+
+    // Root + 65,535 columns makes 65,535 a real header index, so col must
+    // widen instead of confusing that value with Uint16's reserved sentinel.
+    // The odd node count also exercises padding before the 32-bit rowStart view.
+    expect(context.nodes.size).to.equal(65_537)
+    expect(context.nodes.col).to.be.instanceOf(Int32Array)
+    expect(context.nodes.col[65_536]).to.equal(65_535)
+    expect(context.nodes.rowIndex).to.be.instanceOf(Uint16Array)
+    expect(context.nodes.rowStart).to.be.instanceOf(Int32Array)
+    expect(context.nodes.rowStart[0]).to.equal(65_536)
+    expect(context.nodes.rowStart[1]).to.equal(65_537)
   })
 
   it('should search the highest node on both sides of the storage-width cutoff', function () {
@@ -139,18 +203,44 @@ describe('ProblemSolver', function () {
         numSecondary: 0,
         rows
       })
-      const ExpectedIndexArray = nodeCount === 65_535 ? Uint16Array : Int32Array
-      for (const view of [
-        context.nodes.up,
-        context.nodes.down,
-        context.nodes.col,
-        context.nodes.rowIndex,
-        context.nodes.rowStart,
-        context.columns.len,
-        context.columns.prev,
-        context.columns.next
-      ]) {
-        expect(view instanceof ExpectedIndexArray).to.equal(true)
+      const ExpectedNodeIndexArray = nodeCount === 65_535 ? Uint16Array : Int32Array
+      const views: Array<
+        [
+          Int32Array<ArrayBufferLike> | Uint16Array<ArrayBufferLike>,
+          typeof Int32Array | typeof Uint16Array
+        ]
+      > = [
+        [context.nodes.up, ExpectedNodeIndexArray],
+        [context.nodes.down, ExpectedNodeIndexArray],
+        [context.nodes.col, Uint16Array],
+        [context.nodes.rowIndex, Uint16Array],
+        [context.nodes.rowStart, ExpectedNodeIndexArray],
+        [context.columns.len, ExpectedNodeIndexArray],
+        [context.columns.prev, ExpectedNodeIndexArray],
+        [context.columns.next, ExpectedNodeIndexArray]
+      ]
+      for (const [view, ExpectedArray] of views) {
+        expect(view instanceof ExpectedArray).to.equal(true)
+      }
+
+      const clonedContext = ProblemBuilder.cloneContext(context)
+      expect(clonedContext.nodes.up).to.not.equal(context.nodes.up)
+      expect(clonedContext.nodes.down).to.not.equal(context.nodes.down)
+      expect(clonedContext.nodes.col).to.equal(context.nodes.col)
+      expect(clonedContext.nodes.rowIndex).to.equal(context.nodes.rowIndex)
+      expect(clonedContext.nodes.rowStart).to.equal(context.nodes.rowStart)
+      const clonedViews = [
+        clonedContext.nodes.up,
+        clonedContext.nodes.down,
+        clonedContext.nodes.col,
+        clonedContext.nodes.rowIndex,
+        clonedContext.nodes.rowStart,
+        clonedContext.columns.len,
+        clonedContext.columns.prev,
+        clonedContext.columns.next
+      ]
+      for (let i = 0; i < views.length; i++) {
+        expect(clonedViews[i]!.constructor).to.equal(views[i]![0].constructor)
       }
 
       // Primary column 1 has header index 2 and only the terminal row. Keeping
@@ -158,6 +248,7 @@ describe('ProblemSolver', function () {
       // merely allocating the width-specific store without exercising it.
       expect(context.nodes.size).to.equal(nodeCount)
       expect(context.nodes.down[2]).to.equal(nodeCount - 1)
+      expect(search(clonedContext, Infinity)).to.deep.equal([[{ index: 1_039, data: 1_039 }]])
       // Search through the public batch-ingestion path as well as inspecting the
       // direct builder context, so the fallback test covers the same behavior
       // users and the end-to-end width benchmarks execute.
