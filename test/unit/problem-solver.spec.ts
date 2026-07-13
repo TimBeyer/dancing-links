@@ -101,6 +101,25 @@ describe('ProblemSolver', function () {
     expect(solutions[0]).to.have.length(1)
   })
 
+  it('should preserve row data when only row indices require 32 bits', function () {
+    this.timeout(10_000)
+
+    const solver = new DancingLinks<number>().createSolver({ columns: 1 })
+    const constraints = Array.from({ length: 65_536 }, (_, data) => ({
+      data,
+      columnIndices: [] as number[]
+    }))
+    constraints.push({ data: 65_536, columnIndices: [0] })
+
+    solver.addSparseConstraints(constraints)
+
+    // Empty rows add no nodes, so this crosses only the row-index boundary.
+    // The selected row must still point at its high-index input payload.
+    const solutions = solver.findOne()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]).to.deep.equal([{ index: 65_536, data: 65_536 }])
+  })
+
   describe('Generator Interface', function () {
     it('should yield solutions that match findAll() results', function () {
       const dlx = new DancingLinks<number>()

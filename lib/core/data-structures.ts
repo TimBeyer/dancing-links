@@ -39,9 +39,12 @@ export class NodeStore {
   ) {
     this.size = maxNodes
     // Most exact-cover matrices fit below the reserved Uint16 sentinel. Using
-    // 16-bit indices halves navigation bandwidth and working-set size; larger
-    // matrices transparently retain 32-bit indices with identical semantics.
-    const IndexArrayConstructor = maxNodes <= UINT16_SENTINEL ? Uint16Array : Int32Array
+    // 16-bit indices halves navigation bandwidth and working-set size. Both node
+    // and row indices must fit: many empty rows can make maxRows exceed maxNodes.
+    // Either overflow domain transparently selects the behaviorally identical
+    // 32-bit fallback.
+    const IndexArrayConstructor =
+      maxNodes <= UINT16_SENTINEL && maxRows <= UINT16_SENTINEL ? Uint16Array : Int32Array
     const bytesPerElement = IndexArrayConstructor.BYTES_PER_ELEMENT
     const nodeFieldBytes = maxNodes * bytesPerElement
     const bufferBytes = immutableSource
