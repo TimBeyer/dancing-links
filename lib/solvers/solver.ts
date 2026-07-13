@@ -30,10 +30,14 @@ import {
   BinaryConstraintBatch
 } from '../types/interfaces.js'
 import { search } from '../core/algorithm.js'
-import { ProblemBuilder } from '../core/problem-builder.js'
+import { ProblemBuilder, type SearchContext } from '../core/problem-builder.js'
 
 export class ProblemSolver<T, Mode extends SolverMode> {
-  constructor(private handler: ConstraintHandler<T, Mode>) {}
+  constructor(
+    private handler: ConstraintHandler<T, Mode>,
+    /** Optional immutable layout supplied only by the explicit reusable-template API. */
+    private contextTemplate?: SearchContext<T>
+  ) {}
 
   validateConstraints(): this {
     this.handler.validateConstraints()
@@ -41,21 +45,25 @@ export class ProblemSolver<T, Mode extends SolverMode> {
   }
 
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addSparseConstraint(data, columnIndices)
     return this
   }
 
   addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addSparseConstraints(constraints)
     return this
   }
 
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addBinaryConstraint(data, columnValues)
     return this
   }
 
   addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addBinaryConstraints(constraints)
     return this
   }
@@ -68,11 +76,13 @@ export class ProblemSolver<T, Mode extends SolverMode> {
    * @internal
    */
   addRow(row: ConstraintRow<T>): this {
+    this.contextTemplate = undefined
     this.handler.addRow(row)
     return this
   }
 
   addRows(rows: ConstraintRow<T>[]): this {
+    this.contextTemplate = undefined
     this.handler.addRows(rows)
     return this
   }
@@ -154,12 +164,7 @@ export class ProblemSolver<T, Mode extends SolverMode> {
       throw new Error('Cannot solve problem with no constraints')
     }
 
-    // Build search context once - key optimization
-    const context = ProblemBuilder.buildContext({
-      numPrimary: this.handler.getNumPrimary(),
-      numSecondary: this.handler.getNumSecondary(),
-      rows: constraints
-    })
+    const context = this.createSearchContext(constraints)
 
     // Keep calling search with numSolutions: 1 until exhausted
     while (true) {
@@ -175,14 +180,23 @@ export class ProblemSolver<T, Mode extends SolverMode> {
       throw new Error('Cannot solve problem with no constraints')
     }
 
-    // Build search context from constraints
-    const context = ProblemBuilder.buildContext({
+    const context = this.createSearchContext(constraints)
+
+    // Execute search on context
+    return search<T>(context, numSolutions)
+  }
+
+  private createSearchContext(constraints: ConstraintRow<T>[]): SearchContext<T> {
+    if (this.contextTemplate) {
+      // The compiled template remains immutable; each solve mutates only its two
+      // native-copied buffers, preserving solver independence without rebuilding.
+      return ProblemBuilder.cloneContext(this.contextTemplate)
+    }
+
+    return ProblemBuilder.buildContext({
       numPrimary: this.handler.getNumPrimary(),
       numSecondary: this.handler.getNumSecondary(),
       rows: constraints
     })
-
-    // Execute search on context
-    return search<T>(context, numSolutions)
   }
 }

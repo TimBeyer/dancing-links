@@ -32,10 +32,16 @@ export interface SearchContext<T> {
   hasStarted: boolean
 
   /** Constraint matrix nodes with their current link state */
-  nodes: NodeStore<T>
+  nodes: NodeStore
 
   /** Column headers with their current lengths and links */
   columns: ColumnStore
+
+  /**
+   * Original rows, indexed by each node's rowIndex. One reference per input row
+   * avoids duplicating the generic data payload on every matrix node.
+   */
+  rows: ConstraintRow<T>[]
 }
 
 /**
@@ -61,8 +67,8 @@ export class ProblemBuilder {
 
     // Calculate required capacity and pre-allocate stores
     const { numNodes, numColumns } = calculateCapacity(numPrimary, numSecondary, rows)
-    const nodes = new NodeStore<T>(numNodes)
-    const columns = new ColumnStore(numColumns)
+    const nodes = new NodeStore(numNodes, rows.length)
+    const columns = new ColumnStore(numColumns, numNodes)
 
     // Build column structure
     this.buildColumns(nodes, columns, numPrimary, numSecondary)
@@ -77,7 +83,29 @@ export class ProblemBuilder {
       currentNodeIndex: 0,
       hasStarted: false,
       nodes,
-      columns
+      columns,
+      rows
+    }
+  }
+
+  /**
+   * Clone an immutable, fully linked problem layout for a fresh search.
+   *
+   * Mutable node links and column state occupy contiguous backing regions, so
+   * this path is two native memory copies regardless of matrix shape. Immutable
+   * node metadata remains shared. Reusable templates therefore avoid rebuilding
+   * thousands of links in JavaScript and avoid copying bytes search cannot write.
+   */
+  static cloneContext<T>(template: SearchContext<T>): SearchContext<T> {
+    return {
+      level: 0,
+      choice: [],
+      bestColIndex: 0,
+      currentNodeIndex: 0,
+      hasStarted: false,
+      nodes: template.nodes.clone(),
+      columns: template.columns.clone(),
+      rows: template.rows
     }
   }
 
@@ -85,50 +113,44 @@ export class ProblemBuilder {
    * Create column headers and linking structure
    */
   private static buildColumns(
-    nodes: NodeStore<any>,
+    nodes: NodeStore,
     columns: ColumnStore,
     numPrimary: number,
     numSecondary: number
   ): void {
-    // Create root column (index 0)
-    const rootColIndex = columns.allocateColumn()
-    const rootNodeIndex = nodes.allocateNode()
-    nodes.initializeNode(rootNodeIndex)
-    columns.initializeColumn(rootColIndex, rootNodeIndex)
+    const { up, down, col, rowIndex } = nodes
+    const { prev, next } = columns
 
-    // Create primary columns
-    for (let i = 0; i < numPrimary; i++) {
-      const headNodeIndex = nodes.allocateNode()
-      nodes.initializeNode(headNodeIndex)
+    // Header nodes are the first nodes and are allocated in column order. This
+    // identity layout removes a column-to-header lookup from every cover and
+    // uncover operation. Direct bulk writes also avoid allocation checks and
+    // small linking-method calls while the matrix is being constructed.
+    for (let colIndex = 0; colIndex < columns.size; colIndex++) {
+      up[colIndex] = colIndex
+      down[colIndex] = colIndex
+      col[colIndex] = NULL_INDEX
+      rowIndex[colIndex] = NULL_INDEX
+    }
 
-      const colIndex = columns.allocateColumn()
-      columns.initializeColumn(colIndex, headNodeIndex)
-
-      // Link to previous column
-      if (i === 0) {
-        // First primary column links to root
-        columns.linkColumns(rootColIndex, colIndex)
-      } else {
-        // Link to previous column
-        columns.linkColumns(colIndex - 1, colIndex)
+    // Only primary columns participate in the root's circular list.
+    if (numPrimary === 0) {
+      prev[0] = NULL_INDEX
+      next[0] = NULL_INDEX
+    } else {
+      prev[0] = numPrimary
+      next[0] = 1
+      for (let colIndex = 1; colIndex <= numPrimary; colIndex++) {
+        prev[colIndex] = colIndex - 1
+        next[colIndex] = colIndex === numPrimary ? 0 : colIndex + 1
       }
     }
 
-    // Close the circular link: last primary -> root
-    if (numPrimary > 0) {
-      columns.linkColumns(numPrimary, rootColIndex)
-    }
-
-    // Create secondary columns (self-linked)
-    for (let i = 0; i < numSecondary; i++) {
-      const headNodeIndex = nodes.allocateNode()
-      nodes.initializeNode(headNodeIndex)
-
-      const colIndex = columns.allocateColumn()
-      columns.initializeColumn(colIndex, headNodeIndex)
-
-      // Secondary columns are self-linked
-      columns.linkColumns(colIndex, colIndex)
+    // Secondary columns are absent from the root list but retain self-links so
+    // cover/uncover can use the same branch-free pointer updates for both kinds.
+    const firstSecondary = numPrimary + ROOT_COLUMN_OFFSET
+    for (let colIndex = firstSecondary; colIndex < firstSecondary + numSecondary; colIndex++) {
+      prev[colIndex] = colIndex
+      next[colIndex] = colIndex
     }
   }
 
@@ -136,41 +158,41 @@ export class ProblemBuilder {
    * Create row nodes and link them into the column structure
    */
   private static buildRows<T>(
-    nodes: NodeStore<T>,
+    nodes: NodeStore,
     columns: ColumnStore,
     rows: ConstraintRow<T>[]
   ): void {
+    const { up, down, col, rowIndex, rowStart } = nodes
+    const { len } = columns
+    let nextNodeIndex = columns.size
+
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      let rowStartIndex: number = NULL_INDEX
+      const coveredColumns = rows[i].coveredColumns
+      const rowLength = coveredColumns.length
+      const rowStartIndex = nextNodeIndex
+      rowStart[i] = rowStartIndex
 
-      for (const columnIndex of row.coveredColumns) {
-        const nodeIndex = nodes.allocateNode()
-        nodes.initializeNode(nodeIndex, columnIndex + ROOT_COLUMN_OFFSET, i, row.data)
+      // Rows never change horizontally, so their contiguous boundaries replace
+      // per-node left/right pointers. Sequential scans avoid pointer chasing,
+      // save two arrays, and give the CPU predictable adjacent memory accesses.
+      for (let j = 0; j < rowLength; j++) {
+        const nodeIndex = nextNodeIndex++
+        const colIndex = coveredColumns[j] + ROOT_COLUMN_OFFSET
+        const lastInColIndex = up[colIndex]
 
-        if (rowStartIndex === NULL_INDEX) {
-          rowStartIndex = nodeIndex
-        } else {
-          // Link horizontally to previous node in row
-          nodes.linkHorizontal(nodeIndex - 1, nodeIndex)
-        }
+        up[nodeIndex] = lastInColIndex
+        down[nodeIndex] = colIndex
+        col[nodeIndex] = colIndex
+        rowIndex[nodeIndex] = i
 
-        // Link vertically into column
-        const colIndex = columnIndex + ROOT_COLUMN_OFFSET
-        const colHeadIndex = columns.head[colIndex]
-        const lastInColIndex = nodes.up[colHeadIndex]
-
-        nodes.linkVertical(lastInColIndex, nodeIndex)
-        nodes.linkVertical(nodeIndex, colHeadIndex)
-
-        columns.len[colIndex]++
-      }
-
-      // Close horizontal circular link for the row
-      if (rowStartIndex !== NULL_INDEX && row.coveredColumns.length > 1) {
-        const lastNodeIndex = nodes.size - 1
-        nodes.linkHorizontal(lastNodeIndex, rowStartIndex)
+        down[lastInColIndex] = nodeIndex
+        up[colIndex] = nodeIndex
+        len[colIndex]++
       }
     }
+
+    // The sentinel boundary makes every row's half-open range available as
+    // [rowStart[row], rowStart[row + 1]) without a separate length array.
+    rowStart[rows.length] = nextNodeIndex
   }
 }

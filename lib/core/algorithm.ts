@@ -8,8 +8,8 @@
  * Based on: https://github.com/shreevatsa/knuth-literate-programs/blob/master/programs/dance.pdf
  *
  * ARCHITECTURE:
- * - Struct-of-Arrays data layout using Int32Array for navigation fields
- * - Index-based references with NULL_INDEX (-1) for null pointers
+ * - Struct-of-Arrays data layout using adaptive 16/32-bit navigation fields
+ * - Index-based references with a width-appropriate reserved sentinel
  * - Pre-allocated storage based on constraint matrix analysis
  * - State machine pattern to avoid recursion and enable goto-like control flow
  *
@@ -17,10 +17,247 @@
  * - Early termination for impossible constraints (columns with 0 options)
  * - Unit propagation for forced moves (columns with 1 option)
  * - Pre-calculated pointers to reduce data dependencies
+ * - Local typed-array aliases to avoid repeated object-property loads in hot loops
  */
 
-import { Result } from '../types/interfaces.js'
+import { ConstraintRow, Result } from '../types/interfaces.js'
+import { ColumnStore, NodeStore } from './data-structures.js'
 import { SearchContext } from './problem-builder.js'
+
+/**
+ * Hide a column and every row that intersects it.
+ *
+ * Keep this hot operation at module scope so repeated searches share one
+ * function identity. Creating it inside search causes optimized callers to
+ * deoptimize when the next search installs a different closure at the same
+ * call site.
+ */
+function cover(nodes: NodeStore, columns: ColumnStore, colIndex: number): void {
+  const { down, up, col, rowIndex, rowStart } = nodes
+  const { len, prev, next } = columns
+  const leftColIndex = prev[colIndex]
+  const rightColIndex = next[colIndex]
+  next[leftColIndex] = rightColIndex
+  prev[rightColIndex] = leftColIndex
+  const colHeadIndex = colIndex
+  for (let rr = down[colHeadIndex]; rr !== colHeadIndex;) {
+    const nextRR = down[rr]
+    const row = rowIndex[rr]
+    const firstInRow = rowStart[row]
+    const afterRow = rowStart[row + 1]
+    // This pair is the circular right traversal expressed as two contiguous
+    // ranges. It preserves DLX ordering while removing a dependent pointer load
+    // from every visited node and exposing linear access to the CPU prefetcher.
+    for (let nn = rr + 1; nn < afterRow; nn++) {
+      const uu = up[nn]
+      const dd = down[nn]
+      down[uu] = dd
+      up[dd] = uu
+      len[col[nn]]--
+    }
+    for (let nn = firstInRow; nn < rr; nn++) {
+      const uu = up[nn]
+      const dd = down[nn]
+      down[uu] = dd
+      up[dd] = uu
+      len[col[nn]]--
+    }
+    rr = nextRR
+  }
+}
+/** Restore a previously covered column. */
+function uncover(nodes: NodeStore, columns: ColumnStore, colIndex: number): void {
+  const { down, up, col, rowIndex, rowStart } = nodes
+  const { len, prev, next } = columns
+  const colHeadIndex = colIndex
+  for (let rr = up[colHeadIndex]; rr !== colHeadIndex;) {
+    const nextRR = up[rr]
+    const row = rowIndex[rr]
+    const firstInRow = rowStart[row]
+    const afterRow = rowStart[row + 1]
+    // Reverse the exact contiguous ranges used by cover so vertical links are
+    // restored in DLX order without a per-node left-pointer dependency.
+    for (let nn = rr - 1; nn >= firstInRow; nn--) {
+      const uu = up[nn]
+      const dd = down[nn]
+      down[uu] = nn
+      up[dd] = nn
+      len[col[nn]]++
+    }
+    for (let nn = afterRow - 1; nn > rr; nn--) {
+      const uu = up[nn]
+      const dd = down[nn]
+      down[uu] = nn
+      up[dd] = nn
+      len[col[nn]]++
+    }
+    rr = nextRR
+  }
+  const leftColIndex = prev[colIndex]
+  const rightColIndex = next[colIndex]
+  next[leftColIndex] = colIndex
+  prev[rightColIndex] = colIndex
+}
+/**
+ * Cover every other column in a chosen row as one hot operation.
+ *
+ * A typical exact-cover row touches several columns. Batching them here loads
+ * the typed-array views once and crosses the JS function boundary once per row,
+ * rather than once per column, while preserving the circular rightward order.
+ */
+function coverRow(nodes: NodeStore, columns: ColumnStore, currentNodeIndex: number): void {
+  const { down, up, col, rowIndex, rowStart } = nodes
+  const { len, prev, next } = columns
+  const chosenRow = rowIndex[currentNodeIndex]
+  const firstChosenNode = rowStart[chosenRow]
+  const afterChosenRow = rowStart[chosenRow + 1]
+  let pp = currentNodeIndex + 1
+  let afterRange = afterChosenRow
+  while (true) {
+    for (; pp < afterRange; pp++) {
+      const colIndex = col[pp]
+      const leftColIndex = prev[colIndex]
+      const rightColIndex = next[colIndex]
+      next[leftColIndex] = rightColIndex
+      prev[rightColIndex] = leftColIndex
+      for (let rr = down[colIndex]; rr !== colIndex;) {
+        const nextRR = down[rr]
+        const row = rowIndex[rr]
+        const firstInRow = rowStart[row]
+        const afterRow = rowStart[row + 1]
+        for (let nn = rr + 1; nn < afterRow; nn++) {
+          const uu = up[nn]
+          const dd = down[nn]
+          down[uu] = dd
+          up[dd] = uu
+          len[col[nn]]--
+        }
+        for (let nn = firstInRow; nn < rr; nn++) {
+          const uu = up[nn]
+          const dd = down[nn]
+          down[uu] = dd
+          up[dd] = uu
+          len[col[nn]]--
+        }
+        rr = nextRR
+      }
+    }
+    if (afterRange === currentNodeIndex) {
+      return
+    }
+    pp = firstChosenNode
+    afterRange = currentNodeIndex
+  }
+}
+/** Restore a chosen row's other columns in the exact reverse order of coverRow. */
+function uncoverRow(nodes: NodeStore, columns: ColumnStore, currentNodeIndex: number): void {
+  const { down, up, col, rowIndex, rowStart } = nodes
+  const { len, prev, next } = columns
+  const chosenRow = rowIndex[currentNodeIndex]
+  const firstChosenNode = rowStart[chosenRow]
+  const afterChosenRow = rowStart[chosenRow + 1]
+  let pp = currentNodeIndex - 1
+  let beforeRange = firstChosenNode - 1
+  while (true) {
+    for (; pp > beforeRange; pp--) {
+      const colIndex = col[pp]
+      for (let rr = up[colIndex]; rr !== colIndex;) {
+        const nextRR = up[rr]
+        const row = rowIndex[rr]
+        const firstInRow = rowStart[row]
+        const afterRow = rowStart[row + 1]
+        for (let nn = rr - 1; nn >= firstInRow; nn--) {
+          const uu = up[nn]
+          const dd = down[nn]
+          down[uu] = nn
+          up[dd] = nn
+          len[col[nn]]++
+        }
+        for (let nn = afterRow - 1; nn > rr; nn--) {
+          const uu = up[nn]
+          const dd = down[nn]
+          down[uu] = nn
+          up[dd] = nn
+          len[col[nn]]++
+        }
+        rr = nextRR
+      }
+      const leftColIndex = prev[colIndex]
+      const rightColIndex = next[colIndex]
+      next[leftColIndex] = colIndex
+      prev[rightColIndex] = colIndex
+    }
+    if (beforeRange === currentNodeIndex) {
+      return
+    }
+    pp = afterChosenRow - 1
+    beforeRange = currentNodeIndex
+  }
+}
+/** Select the shortest active primary column. */
+function pickBestColumn(columns: ColumnStore): number {
+  const rootColIndex = 0
+  const { len, next } = columns
+  const rootNext = next[rootColIndex]
+  let lowestLen = len[rootNext]
+  let lowest = rootNext
+
+  // Zero is the absolute lower bound, so an impossible first column makes the
+  // rest of the minimum-selection scan redundant.
+  if (lowestLen === 0) {
+    return lowest
+  }
+
+  for (
+    let curColIndex = next[rootNext];
+    curColIndex !== rootColIndex;
+    curColIndex = next[curColIndex]
+  ) {
+    const length = len[curColIndex]
+
+    // A unit column is forced. Prioritizing it propagates that constraint
+    // immediately and avoids exploring a wider branching column first.
+    if (length === 1) {
+      return curColIndex
+    }
+
+    if (length < lowestLen) {
+      lowestLen = length
+      lowest = curColIndex
+
+      // No later column can improve on zero.
+      if (lowestLen === 0) {
+        break
+      }
+    }
+  }
+
+  return lowest
+}
+
+/**
+ * Materialize one solution outside the search loop's optimization unit.
+ *
+ * Object creation is rare relative to link updates. Isolating it here keeps
+ * allocation feedback out of the hot state machine, while the exact-size result
+ * array avoids dynamic growth for each solution that is returned.
+ */
+function materializeSolution<T>(
+  nodes: NodeStore,
+  rows: ConstraintRow<T>[],
+  choice: number[],
+  deepestLevel: number
+): Result<T>[] {
+  const results = new Array<Result<T>>(deepestLevel + 1)
+  for (let level = 0; level <= deepestLevel; level++) {
+    const nodeIndex = choice[level]!
+    results[level] = {
+      index: nodes.rowIndex[nodeIndex],
+      data: rows[nodes.rowIndex[nodeIndex]].data
+    }
+  }
+  return results
+}
 
 /**
  * State machine states for Dancing Links search algorithm
@@ -49,21 +286,16 @@ enum SearchState {
  */
 export function search<T>(context: SearchContext<T>, numSolutions: number): Result<T>[][] {
   const { nodes, columns } = context
+  const { down, col } = nodes
+  const { next } = columns
   const solutions: Result<T>[][] = []
 
-  // Determine search resumption state based on context
   let currentSearchState: SearchState
-  let running = true
 
-  const isFirstSearch = !context.hasStarted
-  const isResumedAtDepth = context.hasStarted && context.level > 0
-
-  if (isFirstSearch) {
-    // Starting fresh search - begin with column selection
+  if (!context.hasStarted) {
     currentSearchState = SearchState.FORWARD
     context.hasStarted = true
-  } else if (isResumedAtDepth) {
-    // Resuming from paused search at some depth - continue from current choice
+  } else if (context.level > 0) {
     currentSearchState = SearchState.RECOVER
   } else {
     // Must be: hasStarted=true && level=0 (backtracked to root)
@@ -83,242 +315,67 @@ export function search<T>(context: SearchContext<T>, numSolutions: number): Resu
   // Root column is always at index 0 (created by ProblemBuilder)
   const rootColIndex = 0
 
-  /**
-   * Cover operation - hide a column and all rows that intersect it
-   */
-  function cover(colIndex: number) {
-    const leftColIndex = columns.prev[colIndex]
-    const rightColIndex = columns.next[colIndex]
+  // Keep the state transitions in one stable function. Besides avoiding call
+  // overhead, this prevents V8 from deoptimizing on fresh nested-function
+  // identities every time a new problem is solved.
+  while (true) {
+    switch (currentSearchState as SearchState) {
+      case SearchState.FORWARD: {
+        const bestColIndex = pickBestColumn(columns)
+        context.bestColIndex = bestColIndex
+        cover(nodes, columns, bestColIndex)
 
-    // Unlink column from column list
-    columns.next[leftColIndex] = rightColIndex
-    columns.prev[rightColIndex] = leftColIndex
-
-    // From top to bottom, left to right: unlink every row node from its column
-    const colHeadIndex = columns.head[colIndex]
-    for (let rr = nodes.down[colHeadIndex]; rr !== colHeadIndex; ) {
-      // Store next pointer before modifying current node's links
-      const nextRR = nodes.down[rr]
-      for (let nn = nodes.right[rr]; nn !== rr; nn = nodes.right[nn]) {
-        const uu = nodes.up[nn]
-        const dd = nodes.down[nn]
-
-        nodes.down[uu] = dd
-        nodes.up[dd] = uu
-
-        columns.len[nodes.col[nn]]--
+        const currentNodeIndex = down[bestColIndex]
+        context.currentNodeIndex = currentNodeIndex
+        context.choice[context.level] = currentNodeIndex
+        currentSearchState = SearchState.ADVANCE
+        break
       }
-      rr = nextRR
-    }
-  }
-
-  function uncover(colIndex: number) {
-    const colHeadIndex = columns.head[colIndex]
-
-    // From bottom to top, right to left: relink every row node to its column
-    for (let rr = nodes.up[colHeadIndex]; rr !== colHeadIndex; ) {
-      // Store next pointer before modifying current node's links
-      const nextRR = nodes.up[rr]
-      for (let nn = nodes.left[rr]; nn !== rr; nn = nodes.left[nn]) {
-        const uu = nodes.up[nn]
-        const dd = nodes.down[nn]
-
-        nodes.down[uu] = nn
-        nodes.up[dd] = nn
-
-        columns.len[nodes.col[nn]]++
-      }
-      rr = nextRR
-    }
-
-    // Relink column to column list
-    const leftColIndex = columns.prev[colIndex]
-    const rightColIndex = columns.next[colIndex]
-
-    columns.next[leftColIndex] = colIndex
-    columns.prev[rightColIndex] = colIndex
-  }
-
-  function pickBestColumn() {
-    const rootNext = columns.next[rootColIndex]
-    let lowestLen = columns.len[rootNext]
-    let lowest = rootNext
-
-    /**
-     * Early termination optimization for impossible constraints.
-     *
-     * When a column has zero remaining options, the current search path
-     * cannot lead to a valid solution since this constraint cannot be satisfied.
-     * Immediately selecting such columns triggers backtracking sooner, avoiding
-     * deeper recursion into impossible branches of the search tree.
-     *
-     * This is particularly effective in highly constrained problems where
-     * covering one constraint frequently eliminates all options for another.
-     */
-    if (lowestLen === 0) {
-      context.bestColIndex = lowest
-      return
-    }
-
-    /**
-     * Unit propagation optimization for forced constraints.
-     *
-     * When a column has exactly one remaining option, that option MUST be selected
-     * in any valid solution - there is no choice involved. Prioritizing these
-     * unit constraints reduces the search space by making forced moves immediately
-     * rather than exploring them through normal branching.
-     *
-     * This is highly effective in logic puzzles like Sudoku where filling one
-     * cell often creates cascading unit constraints in related rows/columns/blocks.
-     * The optimization transforms what would be deep branching trees into
-     * immediate constraint propagation.
-     */
-    for (
-      let curColIndex = columns.next[rootNext];
-      curColIndex !== rootColIndex;
-      curColIndex = columns.next[curColIndex]
-    ) {
-      const length = columns.len[curColIndex]
-
-      if (length === 1) {
-        context.bestColIndex = curColIndex
-        return
-      }
-
-      if (length < lowestLen) {
-        lowestLen = length
-        lowest = curColIndex
-
-        /**
-         * Short-circuit when impossible constraint found.
-         *
-         * If we encounter a column with zero options during our scan,
-         * we can immediately stop searching since no column can have
-         * fewer than zero options. This saves unnecessary iteration
-         * through remaining columns in highly constrained scenarios.
-         */
-        if (lowestLen === 0) {
+      case SearchState.ADVANCE: {
+        const currentNodeIndex = context.currentNodeIndex
+        if (currentNodeIndex === context.bestColIndex) {
+          currentSearchState = SearchState.BACKUP
           break
         }
-      }
-    }
 
-    context.bestColIndex = lowest
-  }
+        coverRow(nodes, columns, currentNodeIndex)
 
-  function forward() {
-    pickBestColumn()
-    cover(context.bestColIndex)
+        if (next[rootColIndex] === rootColIndex) {
+          solutions.push(materializeSolution(nodes, context.rows, context.choice, context.level))
 
-    context.currentNodeIndex = nodes.down[columns.head[context.bestColIndex]]
-    context.choice[context.level] = context.currentNodeIndex
+          currentSearchState =
+            solutions.length === numSolutions ? SearchState.DONE : SearchState.RECOVER
+          break
+        }
 
-    currentSearchState = SearchState.ADVANCE
-  }
-
-  function recordSolution() {
-    const results: Result<T>[] = []
-    for (let l = 0; l <= context.level; l++) {
-      const nodeIndex = context.choice[l]!
-      results.push({
-        index: nodes.rowIndex[nodeIndex],
-        data: nodes.data[nodeIndex]!
-      })
-    }
-
-    solutions.push(results)
-  }
-
-  function advance() {
-    const bestColHeadIndex = columns.head[context.bestColIndex]
-    if (context.currentNodeIndex === bestColHeadIndex) {
-      currentSearchState = SearchState.BACKUP
-      return
-    }
-
-    for (
-      let pp = nodes.right[context.currentNodeIndex];
-      pp !== context.currentNodeIndex;
-      pp = nodes.right[pp]
-    ) {
-      cover(nodes.col[pp])
-    }
-
-    if (columns.next[rootColIndex] === rootColIndex) {
-      recordSolution()
-      if (solutions.length === numSolutions) {
-        currentSearchState = SearchState.DONE
-      } else {
-        currentSearchState = SearchState.RECOVER
-      }
-      return
-    }
-
-    context.level = context.level + 1
-    currentSearchState = SearchState.FORWARD
-  }
-
-  function backup() {
-    // Restore the matrix state by uncovering the column we just tried
-    uncover(context.bestColIndex)
-
-    const isAtRootLevel = context.level === 0
-    if (isAtRootLevel) {
-      /**
-       * Reached root level during backtracking - search exhaustion.
-       *
-       * When we backtrack to level 0, it means we've tried all possible
-       * choices at every level and there are no more solution branches
-       * to explore. The search is complete.
-       */
-      currentSearchState = SearchState.DONE
-      return
-    }
-
-    // Move up one level in the search tree
-    context.level = context.level - 1
-
-    // Restore the choice and column context from the previous level
-    context.currentNodeIndex = context.choice[context.level]!
-    context.bestColIndex = nodes.col[context.currentNodeIndex]
-
-    // Continue trying the next choice at this level
-    currentSearchState = SearchState.RECOVER
-  }
-
-  function recover() {
-    for (
-      let pp = nodes.left[context.currentNodeIndex];
-      pp !== context.currentNodeIndex;
-      pp = nodes.left[pp]
-    ) {
-      uncover(nodes.col[pp])
-    }
-    context.currentNodeIndex = nodes.down[context.currentNodeIndex]
-    context.choice[context.level] = context.currentNodeIndex
-    currentSearchState = SearchState.ADVANCE
-  }
-
-  // Execute search state machine
-  while (running) {
-    switch (currentSearchState as SearchState) {
-      case SearchState.FORWARD:
-        forward()
+        context.level++
+        currentSearchState = SearchState.FORWARD
         break
-      case SearchState.ADVANCE:
-        advance()
-        break
+      }
       case SearchState.BACKUP:
-        backup()
+        uncover(nodes, columns, context.bestColIndex)
+
+        if (context.level === 0) {
+          currentSearchState = SearchState.DONE
+          break
+        }
+
+        context.level--
+        context.currentNodeIndex = context.choice[context.level]!
+        context.bestColIndex = col[context.currentNodeIndex]
+        currentSearchState = SearchState.RECOVER
         break
-      case SearchState.RECOVER:
-        recover()
+      case SearchState.RECOVER: {
+        const currentNodeIndex = context.currentNodeIndex
+        uncoverRow(nodes, columns, currentNodeIndex)
+        const nextNodeIndex = down[currentNodeIndex]
+        context.currentNodeIndex = nextNodeIndex
+        context.choice[context.level] = nextNodeIndex
+        currentSearchState = SearchState.ADVANCE
         break
+      }
       default:
-        running = false
-        break
+        return solutions
     }
   }
-
-  return solutions
 }

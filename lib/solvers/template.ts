@@ -32,9 +32,13 @@ import {
   ComplexSolverConfig
 } from '../types/interfaces.js'
 import { SimpleConstraintHandler, ComplexConstraintHandler } from '../constraints/index.js'
+import { ProblemBuilder, type SearchContext } from '../core/problem-builder.js'
 import { ProblemSolver } from './solver.js'
 
 export class SolverTemplate<T, Mode extends SolverMode> {
+  /** Immutable compiled layout; every constraint mutation invalidates it. */
+  private contextTemplate?: SearchContext<T>
+
   constructor(private handler: ConstraintHandler<T, Mode>) {}
 
   validateConstraints(): this {
@@ -43,31 +47,37 @@ export class SolverTemplate<T, Mode extends SolverMode> {
   }
 
   addSparseConstraint(data: T, columnIndices: SparseColumnIndices<Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addSparseConstraint(data, columnIndices)
     return this
   }
 
   addSparseConstraints(constraints: SparseConstraintBatch<T, Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addSparseConstraints(constraints)
     return this
   }
 
   addBinaryConstraint(data: T, columnValues: BinaryColumnValues<Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addBinaryConstraint(data, columnValues)
     return this
   }
 
   addBinaryConstraints(constraints: BinaryConstraintBatch<T, Mode>): this {
+    this.contextTemplate = undefined
     this.handler.addBinaryConstraints(constraints)
     return this
   }
 
   addRow(row: ConstraintRow<T>): this {
+    this.contextTemplate = undefined
     this.handler.addRow(row)
     return this
   }
 
   addRows(rows: ConstraintRow<T>[]): this {
+    this.contextTemplate = undefined
     this.handler.addRows(rows)
     return this
   }
@@ -90,6 +100,7 @@ export class SolverTemplate<T, Mode extends SolverMode> {
 
     // Check if template has validation enabled
     const templateValidationEnabled = this.handler.isValidationEnabled()
+    const contextTemplate = this.getContextTemplate(constraints)
 
     // Use explicit mode detection instead of inferring from getNumSecondary()
     if (this.handler.mode === 'complex') {
@@ -102,7 +113,7 @@ export class SolverTemplate<T, Mode extends SolverMode> {
       }
 
       newHandler.addRows(constraints)
-      return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
+      return new ProblemSolver(newHandler, contextTemplate) as ProblemSolver<T, Mode>
     } else {
       const config = this.handler.getConfig() as SimpleSolverConfig
       const newHandler = new SimpleConstraintHandler<T>(config)
@@ -113,7 +124,21 @@ export class SolverTemplate<T, Mode extends SolverMode> {
       }
 
       newHandler.addRows(constraints)
-      return new ProblemSolver(newHandler) as ProblemSolver<T, Mode>
+      return new ProblemSolver(newHandler, contextTemplate) as ProblemSolver<T, Mode>
     }
+  }
+
+  private getContextTemplate(constraints: ConstraintRow<T>[]): SearchContext<T> {
+    if (!this.contextTemplate) {
+      // Snapshot the row table as well as compiling the links. Later template
+      // additions cannot alter solvers already created from this immutable
+      // layout, while all future creates reuse the same compilation work.
+      this.contextTemplate = ProblemBuilder.buildContext({
+        numPrimary: this.handler.getNumPrimary(),
+        numSecondary: this.handler.getNumSecondary(),
+        rows: constraints.slice()
+      })
+    }
+    return this.contextTemplate
   }
 }

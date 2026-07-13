@@ -83,6 +83,24 @@ describe('ProblemSolver', function () {
     expect(() => solver2.findAll()).to.not.throw()
   })
 
+  it('should preserve behavior when the matrix requires 32-bit indices', function () {
+    this.timeout(10_000)
+
+    const solver = new DancingLinks<number>().createSolver({ columns: 1 })
+    const constraints = Array.from({ length: 65_536 }, (_, data) => ({
+      data,
+      columnIndices: [0]
+    }))
+
+    solver.addSparseConstraints(constraints)
+
+    // The column length itself exceeds Uint16 capacity, so this exercises both
+    // the node-index and column-length fallbacks rather than only the threshold.
+    const solutions = solver.findOne()
+    expect(solutions).to.have.length(1)
+    expect(solutions[0]).to.have.length(1)
+  })
+
   describe('Generator Interface', function () {
     it('should yield solutions that match findAll() results', function () {
       const dlx = new DancingLinks<number>()

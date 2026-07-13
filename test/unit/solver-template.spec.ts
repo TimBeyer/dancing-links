@@ -158,6 +158,30 @@ describe('SolverTemplate', function () {
   })
 
   describe('Template State Isolation', function () {
+    it('should invalidate the compiled layout when the template changes', function () {
+      const template = new DancingLinks<string>().createSolverTemplate({ columns: 2 })
+
+      template.addSparseConstraint('left', [0]).addSparseConstraint('right', [1])
+
+      // Creating this solver compiles the original template layout.
+      const originalSolver = template.createSolver()
+
+      // This row creates a second solution and must invalidate that layout.
+      template.addSparseConstraint('combined', [0, 1])
+      const updatedSolver = template.createSolver()
+
+      const originalSolutions = originalSolver.findAll()
+      const updatedSolutions = updatedSolver.findAll()
+
+      expect(
+        originalSolutions.map(solution => solution.map(result => result.data).sort())
+      ).to.deep.equal([['left', 'right']])
+      expect(updatedSolutions.map(solution => solution.map(result => result.data))).to.deep.include(
+        ['combined']
+      )
+      expect(updatedSolutions).to.have.length(2)
+    })
+
     it('should isolate template modifications from existing solvers', function () {
       const dlx = new DancingLinks<string>()
       const template = dlx.createSolverTemplate({ columns: 3 })
