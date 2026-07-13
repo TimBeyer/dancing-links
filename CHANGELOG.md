@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.3.8](https://github.com/TimBeyer/dancing-links/compare/v4.3.7...v4.3.8) (2026-07-13)
+
+
+### Bug Fixes
+
+* **ci:** benchmark releases on Namespace ([513d1d5](https://github.com/TimBeyer/dancing-links/commit/513d1d5bd77872608c10ebdb8467a1c4b4d3c2fb))
+* **ci:** publish npm releases through trusted OIDC ([2370620](https://github.com/TimBeyer/dancing-links/commit/2370620edef94f655c0f442ecc2f1ff0ed22ed36))
+* **ci:** sync optional lockfile dependencies ([21f30f4](https://github.com/TimBeyer/dancing-links/commit/21f30f481c4433115fa99263b5563d0d82f31fd1))
+
 ## [4.3.7](https://github.com/TimBeyer/dancing-links/compare/v4.3.6...v4.3.7) (2026-01-15)
 
 
