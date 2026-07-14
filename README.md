@@ -1,225 +1,100 @@
-# dancing-links
+# Cover Story
 
-## About
+**Cover Story** is a playable stealth-game prototype whose patrol system is a live exact-cover
+problem. You are stealing a dossier from a museum while every plausible joint guard schedule is
+recomputed, sampled, and drawn around you in real time.
 
-This is an implementation of Knuth's DLX to solve the exact cover problem.
-It is a port of [Knuth's literate dancing links implementation](https://cs.stanford.edu/~knuth/programs/dance.w) and supports primary and secondary constraints, and returning custom data in addition to row indices.
+This branch intentionally consumes [`dancing-links`](https://www.npmjs.com/package/dancing-links)
+`4.3.9` from npm. It does not import or benchmark a local copy of the solver.
 
-There are no external dependencies and there is full TypeScript support.
+## Play
 
-It is currently [the fastest](#benchmarks) Dancing Links implementation in JavaScript.
-
-## Usage
-
-### Basic Example
-
-```ts
-import { DancingLinks } from 'dancing-links'
-
-const dlx = new DancingLinks<string>()
-const solver = dlx.createSolver({ columns: 3 })
-
-solver.addSparseConstraint('row1', [0, 2]) // Constraint active in columns 0 and 2
-solver.addSparseConstraint('row2', [1]) // Constraint active in column 1
-solver.addSparseConstraint('row3', [0, 1]) // Constraint active in columns 0 and 1
-
-const solutions = solver.findAll()
-// Returns: [[{ data: 'row1', index: 0 }, { data: 'row2', index: 1 }]]
+```sh
+npm install
+npm run dev
 ```
 
-### Constraint Formats
+Open the local URL printed by Vite and select **Begin infiltration**.
 
-#### Sparse Constraints (Recommended)
+| Input                      | Action                                                   |
+| -------------------------- | -------------------------------------------------------- |
+| WASD / arrow keys          | Move and hide behind exhibits                            |
+| Click a nearby patrol node | Throw an echo; exactly one guard must service it         |
+| E beside a magenta gate    | Jam that route for four planning beats                   |
+| Space                      | Take the dossier at the vault or extract at the entrance |
+| Escape                     | Pause / resume                                           |
+| R                          | Restart                                                  |
 
-**Sparse constraints are the most efficient format** - specify only the active column indices instead of full binary arrays. This reduces parsing overhead and memory usage, especially for problems with many columns.
+The dossier increases the patrol tempo. Exposure rises only while a guard has an unobstructed view;
+breaking line of sight lets it fall. Three blown identities end the run.
 
-```ts
-const solver = dlx.createSolver({ columns: 100 })
+## Why this is actually DLX gameplay
 
-// ⚡ EFFICIENT: Only specify active columns
-solver.addSparseConstraint('constraint1', [0, 15, 42, 87])
-solver.addSparseConstraint('constraint2', [1, 16, 43, 99])
+Every planning beat generates a four-step route row for each guard. The exact-cover matrix uses:
 
-// Batch operations for better performance
-const constraints = [
-  { data: 'batch1', columnIndices: [0, 10, 20] },
-  { data: 'batch2', columnIndices: [5, 15, 25] },
-  { data: 'batch3', columnIndices: [2, 12, 22] }
-]
-solver.addSparseConstraints(constraints)
+- one primary column per guard, so exactly one route is selected for every guard;
+- one primary column per active duty or echo, so exactly one selected route services each one;
+- secondary node/time columns, so two guards cannot occupy the same place on the same beat; and
+- secondary undirected edge/time columns, so guards cannot pass through one another head-on.
+
+The game samples up to 128 complete covers and turns their next moves into the colored ghost field.
+Thick, bright paths occur in more valid covers. The actual patrol then follows one of those complete
+joint schedules. An echo adds a primary column; a jam removes all rows that cross an edge. Both
+actions therefore reshape the solution space rather than applying a cosmetic AI modifier.
+
+`128+` is deliberately shown when the search reaches its sampling limit. It means “at least 128,”
+not that exactly 128 schedules exist.
+
+## Real-world performance, not benchmark shortcuts
+
+Every beat rebuilds the problem from the current guard positions, outstanding deadlines, and jammed
+edges. The prototype does not cache an answer to a repeated puzzle. That makes its workload the one
+the interaction creates: varied, stateful, and latency-sensitive.
+
+The hot path is documented inline in [`src/schedule.ts`](src/schedule.ts):
+
+- route constraints stay sparse instead of allocating mostly-zero binary matrices;
+- all prevalidated route rows enter the solver in one batch;
+- numeric node, edge, and time indices avoid parsing or per-slot lookup objects; and
+- a bounded horizon, route count, and solution sample keep planning latency predictable.
+
+Static node and edge maps in [`src/world.ts`](src/world.ts) are also built once rather than rescanned
+for every render frame. These choices reduce work without changing the puzzle or reusing a previous
+solution.
+
+## Contradiction behavior
+
+Player input should not crash or freeze the real-time loop. If a newly thrown echo cannot belong to
+any cover, the scheduler retries without the newest player duty, reports the fizzle, and refunds its
+charge. If a fixed routine duty is contradictory after route changes, it is separately removed while
+guard selection and collision constraints remain active.
+
+Those fallbacks are intentionally not behavior-identical, so they have dedicated tests. See
+[`test/game/schedule.spec.ts`](test/game/schedule.spec.ts) for collisions, head-on edges, jams,
+unreachable duties, both recovery paths, and honest capped-search reporting.
+
+## Development
+
+```sh
+npm test           # scheduler and fallback behavior
+npm run lint       # TypeScript linting
+npm run build      # strict typecheck plus production Vite bundle
+npm run format:check
 ```
 
-#### Binary Constraints
+The prototype is deliberately small and framework-free:
 
-Use binary constraints when it's more convenient for your encoding logic or when you already have constraint data in binary format:
+- `src/schedule.ts` builds and solves the live exact-cover matrix;
+- `src/game.ts` owns the heist loop, patrol deadlines, detection, equipment, and rendering;
+- `src/world.ts` defines the museum graph, exhibits, doors, and collision geometry; and
+- `src/audio.ts` creates the procedural feedback sounds.
 
-```ts
-const solver = dlx.createSolver({ columns: 4 })
+## Prototype scope
 
-// Convenient when encoding naturally produces binary arrays
-solver.addBinaryConstraint('row1', [1, 0, 1, 0])
-solver.addBinaryConstraint('row2', [0, 1, 0, 1])
-solver.addBinaryConstraint('row3', [1, 1, 0, 0])
+This is one compact mission tuned for desktop keyboard and pointer controls. There is no persistence
+beyond the local best score, no level editor, and no production asset pipeline. The point of the
+prototype is to test whether reading and manipulating a solution distribution can feel like a game.
 
-// Batch operations
-const binaryConstraints = [
-  { data: 'batch1', columnValues: [1, 0, 1, 0] },
-  { data: 'batch2', columnValues: [0, 1, 0, 1] }
-]
-solver.addBinaryConstraints(binaryConstraints)
-```
+## License
 
-### Constraint Templates
-
-For problems with reusable constraint patterns, templates provide significant performance benefits by pre-processing base constraints. **Templates are especially beneficial when using binary constraints**, as the binary-to-sparse conversion happens once during template creation rather than every time you create a solver:
-
-```ts
-// Create template with base constraints
-const template = dlx.createSolverTemplate({ columns: 20 })
-template.addSparseConstraint('base1', [0, 5, 10])
-template.addSparseConstraint('base2', [1, 6, 11])
-
-// Create multiple solvers from the same template
-const solver1 = template.createSolver()
-solver1.addSparseConstraint('extra1', [2, 7, 12])
-const solutions1 = solver1.findAll()
-
-const solver2 = template.createSolver()
-solver2.addSparseConstraint('extra2', [3, 8, 13])
-const solutions2 = solver2.findAll()
-```
-
-### Complex Constraints (Primary + Secondary)
-
-For problems requiring both primary constraints (must be covered exactly once) and secondary constraints (optional - may be left uncovered, but if covered, allow no collisions):
-
-```ts
-const solver = dlx.createSolver({
-  primaryColumns: 2, // First 2 columns are primary
-  secondaryColumns: 2 // Next 2 columns are secondary
-})
-
-// Method 1: Add constraints separately
-solver.addSparseConstraint('constraint1', {
-  primary: [0], // Must cover primary column 0
-  secondary: [1] // May cover secondary column 1 (optional, but no conflicts if used)
-})
-
-// Method 2: Add as binary constraint
-solver.addBinaryConstraint('constraint2', {
-  primaryRow: [0, 1], // Binary values for primary columns
-  secondaryRow: [1, 0] // Binary values for secondary columns
-})
-```
-
-**Key difference between primary and secondary constraints:**
-
-- **Primary**: All primary columns MUST be covered exactly once in any valid solution
-- **Secondary**: Secondary columns are optional - they can be left uncovered, but if a secondary column IS covered, only one constraint can cover it (no collisions allowed)
-
-### Solution Methods
-
-```ts
-// Find one solution
-const oneSolution = solver.findOne()
-
-// Find all solutions
-const allSolutions = solver.findAll()
-
-// Find up to N solutions
-const limitedSolutions = solver.find(10)
-```
-
-### Generator Interface (Streaming Solutions)
-
-For large solution spaces or when you need early termination, use the generator interface:
-
-```ts
-// Stream solutions one at a time
-const generator = solver.createGenerator()
-
-let solutionCount = 0
-for (const solution of generator) {
-  console.log('Found solution:', solution)
-
-  solutionCount++
-  if (solutionCount >= 5) {
-    // Stop after finding 5 solutions
-    break
-  }
-}
-
-// Manual iteration for full control
-const generator2 = solver.createGenerator()
-let result = generator2.next()
-while (!result.done) {
-  processSolution(result.value)
-  result = generator2.next()
-}
-```
-
-The generator maintains search state between solutions, enabling memory-efficient streaming and early termination without computing all solutions upfront.
-
-## Examples
-
-The [benchmark directory](https://github.com/TimBeyer/dancing-links/tree/master/benchmark) contains complete implementations for:
-
-- **N-Queens Problem**: Classical constraint satisfaction problem
-- **Pentomino Tiling**: 2D shape placement with rotation constraints
-- **Sudoku Solver**: Number placement with row/column/box constraints
-
-These examples demonstrate encoding techniques for different problem types and show performance optimization strategies.
-
-## Benchmarks
-
-This section contains performance comparisons against other JavaScript Dancing Links libraries, updated automatically during releases.
-
-All benchmarks run on the same machine with identical test cases. Results show operations per second (higher is better).
-
-### All solutions to the sudoku
-
-| Library                 | Ops/Sec  | Relative Performance | Margin of Error |
-| ----------------------- | -------- | -------------------- | --------------- |
-| dancing-links (sparse)  | 35659.62 | **1.00x (fastest)**  | ±0.10%          |
-| dancing-links (binary)  | 8297.89  | 0.23x                | ±0.13%          |
-| dance                   | 2714.39  | 0.08x                | ±0.23%          |
-| dancing-links-algorithm | 1661.14  | 0.05x                | ±0.37%          |
-| dlxlib                  | 1521.37  | 0.04x                | ±0.35%          |
-
-### Finding one pentomino tiling on a 6x10 field
-
-| Library                | Ops/Sec | Relative Performance | Margin of Error |
-| ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 831.54  | **1.00x (fastest)**  | ±0.29%          |
-| dancing-links (binary) | 762.37  | 0.92x                | ±0.34%          |
-| dlxlib                 | 446.27  | 0.54x                | ±0.60%          |
-| dance                  | 100.90  | 0.12x                | ±0.87%          |
-
-### Finding ten pentomino tilings on a 6x10 field
-
-| Library                | Ops/Sec | Relative Performance | Margin of Error |
-| ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (sparse) | 117.94  | **1.00x (fastest)**  | ±0.57%          |
-| dancing-links (binary) | 114.12  | 0.97x                | ±1.02%          |
-| dlxlib                 | 85.77   | 0.73x                | ±1.51%          |
-| dance                  | 20.07   | 0.17x                | ±1.05%          |
-
-### Finding one hundred pentomino tilings on a 6x10 field
-
-| Library                | Ops/Sec | Relative Performance | Margin of Error |
-| ---------------------- | ------- | -------------------- | --------------- |
-| dancing-links (binary) | 16.00   | **1.00x (fastest)**  | ±0.80%          |
-| dancing-links (sparse) | 15.98   | 1.00x                | ±0.63%          |
-| dlxlib                 | 11.78   | 0.74x                | ±1.47%          |
-| dance                  | 2.90    | 0.18x                | ±1.21%          |
-
-**Testing Environment:**
-
-- Node.js v25.9.0
-- Test cases: Sudoku solving, pentomino tiling (1, 10, 100 solutions)
-
-_Last updated: 2026-07-13_
-
-## Contributing
-
-For development information, performance benchmarking, profiling, and contribution guidelines, see [DEVELOPMENT.md](DEVELOPMENT.md).
+MIT

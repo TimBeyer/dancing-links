@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Cover Story — a real-time stealth game powered by live exact-cover scheduling."
+    />
+    <title>Cover Story · A real-time exact-cover heist</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="masthead">
+        <div>
+          <span class="eyebrow">OPERATIVE CONSOLE / 03:17</span>
+          <h1>COVER <span>STORY</span></h1>
+        </div>
+        <div class="solver-badge">
+          <span class="solver-pulse"></span>
+          LIVE EXACT-COVER ENGINE
+        </div>
+      </header>
+
+      <main class="game-shell">
+        <canvas id="game" width="1200" height="720" aria-label="Cover Story stealth game"></canvas>
+
+        <section class="hud hud-left" aria-label="Mission status">
+          <p class="hud-label">MISSION</p>
+          <strong id="objective">Reach the archive</strong>
+          <div class="objective-line">
+            <span id="objective-dot"></span>
+            <span id="objective-detail">Find the cyan vault and extract the dossier</span>
+          </div>
+        </section>
+
+        <section class="hud hud-right" aria-label="Solver telemetry">
+          <div class="telemetry-primary">
+            <span id="future-count">—</span>
+            <small>PLAUSIBLE FUTURES</small>
+          </div>
+          <div class="telemetry-grid">
+            <span>SOLVE <b id="solve-time">—</b></span>
+            <span>ROWS <b id="route-count">—</b></span>
+            <span>BEAT <b id="beat-count">00</b></span>
+          </div>
+        </section>
+
+        <section class="heat-panel" aria-label="Detection level">
+          <div class="heat-label"><span>EXPOSURE</span><b id="heat-value">0%</b></div>
+          <div class="heat-track"><div id="heat-fill"></div></div>
+        </section>
+
+        <section class="loadout" aria-label="Equipment and lives">
+          <span><kbd>CLICK</kbd> ECHO <b id="echo-count">3</b></span>
+          <span><kbd>E</kbd> JAM <b id="jam-count">2</b></span>
+          <span>IDENTITIES <b id="life-count">● ● ●</b></span>
+        </section>
+
+        <div id="toast" class="toast" aria-live="polite"></div>
+
+        <section id="overlay" class="overlay">
+          <div class="overlay-card">
+            <p class="eyebrow">THE HEIST EXISTS IN EVERY PLAUSIBLE FUTURE</p>
+            <h2 id="overlay-title">Rewrite the patrol.</h2>
+            <p id="overlay-copy" class="overlay-copy">
+              The ghost paths are every guard move that still belongs to a valid joint schedule.
+              Manipulate the schedule, slip through the uncertainty, and steal the dossier.
+            </p>
+            <div id="tutorial" class="tutorial">
+              <div>
+                <b>01</b><span><strong>MOVE</strong> WASD / ARROWS</span>
+              </div>
+              <div>
+                <b>02</b><span><strong>THROW ECHO</strong> Click a nearby patrol node</span>
+              </div>
+              <div>
+                <b>03</b><span><strong>JAM DOOR</strong> Press E beside a magenta gate</span>
+              </div>
+              <div>
+                <b>04</b><span><strong>INTERACT</strong> Space at the vault and exit</span>
+              </div>
+            </div>
+            <button id="start-button" type="button">BEGIN INFILTRATION</button>
+            <p class="overlay-footnote">ESC pauses · R restarts · headphones recommended</p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>GHOST LINES = WEIGHTED MOVES ACROSS THE CURRENT SOLUTION SAMPLE</span>
+        <span>POWERED BY <b>dancing-links@4.3.9</b> FROM NPM</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
