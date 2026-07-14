@@ -122,6 +122,7 @@ export class CoverStoryGame {
     this.lives = 3
     this.alerts = 0
     this.elapsedSeconds = 0
+    this.caughtFlash = 0
     this.resetPatrol()
     this.mode = 'playing'
     this.overlay.classList.add('hidden')
